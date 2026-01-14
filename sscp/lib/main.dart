@@ -45,6 +45,12 @@ class FirebaseErrorApp extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 16),
                 ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Failed to establish Firebase connection',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
               ],
             ),
           ),
