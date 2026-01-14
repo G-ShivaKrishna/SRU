@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'app/app.dart';
 
-//emunnave pilla
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
