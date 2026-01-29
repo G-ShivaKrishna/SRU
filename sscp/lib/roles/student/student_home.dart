@@ -17,7 +17,7 @@ class StudentHome extends StatelessWidget {
 
   void _navigateToPage(BuildContext context, String pageName) {
     Widget page;
-    
+
     switch (pageName) {
       case 'Home':
         return;
@@ -57,7 +57,7 @@ class StudentHome extends StatelessWidget {
       default:
         return;
     }
-    
+
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => page),
     );
@@ -66,7 +66,7 @@ class StudentHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Academics & Administration Portal'),
@@ -85,11 +85,13 @@ class StudentHome extends StatelessWidget {
           if (!isMobile) ...[
             TextButton(
               onPressed: () {},
-              child: const Text('Password', style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('Password', style: TextStyle(color: Colors.white)),
             ),
             TextButton(
               onPressed: () {},
-              child: const Text('Logout', style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('Logout', style: TextStyle(color: Colors.white)),
             ),
           ] else ...[
             IconButton(
@@ -188,7 +190,8 @@ class StudentHome extends StatelessWidget {
                   return GestureDetector(
                     onTap: () => _navigateToPage(context, item),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 8),
                       child: Text(
                         item,
                         style: const TextStyle(
@@ -209,7 +212,10 @@ class StudentHome extends StatelessWidget {
             onSelected: (value) => _navigateToPage(context, value),
             itemBuilder: (BuildContext context) {
               return menuItems
-                  .where((item) => item != 'Home' && !['Academics', 'Profile', 'Course Reg.', 'Attendance'].contains(item))
+                  .where((item) =>
+                      item != 'Home' &&
+                      !['Academics', 'Profile', 'Course Reg.', 'Attendance']
+                          .contains(item))
                   .map((String choice) {
                 return PopupMenuItem<String>(
                   value: choice,
@@ -236,7 +242,8 @@ class StudentHome extends StatelessWidget {
             return GestureDetector(
               onTap: () => _navigateToPage(context, item),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 child: Text(
                   item,
                   style: const TextStyle(
@@ -255,7 +262,7 @@ class StudentHome extends StatelessWidget {
 
   Widget _buildStatusBar(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    
+
     return Container(
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.symmetric(
@@ -280,7 +287,7 @@ class StudentHome extends StatelessWidget {
 
   Widget _buildWelcomeSection(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    
+
     return Container(
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.all(isMobile ? 12 : 16),
@@ -298,7 +305,7 @@ class StudentHome extends StatelessWidget {
 
   Widget _buildTimetableLink(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    
+
     return GestureDetector(
       onTap: () {},
       child: Container(
@@ -366,7 +373,8 @@ class StudentHome extends StatelessWidget {
 
   Widget _buildInfoCardsGrid(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    final crossAxisCount = isMobile ? 2 : (MediaQuery.of(context).size.width < 1024 ? 2 : 4);
+    final crossAxisCount =
+        isMobile ? 2 : (MediaQuery.of(context).size.width < 1024 ? 2 : 4);
     final childAspectRatio = isMobile ? 1.2 : 1.4;
 
     return GridView.count(
