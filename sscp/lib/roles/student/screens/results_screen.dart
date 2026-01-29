@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../widgets/app_header.dart';
 
 class ResultsScreen extends StatelessWidget {
   const ResultsScreen({super.key});
@@ -16,7 +17,7 @@ class ResultsScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildHeaderSection(context),
+            const AppHeader(),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: _buildResultsTable(context),

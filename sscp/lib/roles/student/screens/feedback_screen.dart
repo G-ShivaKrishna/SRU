@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../widgets/app_header.dart';
 
 class FeedbackScreen extends StatelessWidget {
   const FeedbackScreen({super.key});
@@ -10,8 +11,15 @@ class FeedbackScreen extends StatelessWidget {
         title: const Text('Feedback'),
         backgroundColor: const Color(0xFF1e3a5f),
       ),
-      body: const Center(
-        child: Text('Feedback Screen'),
+      body: Column(
+        children: [
+          const AppHeader(),
+          const Expanded(
+            child: Center(
+              child: Text('Feedback Screen'),
+            ),
+          ),
+        ],
       ),
     );
   }

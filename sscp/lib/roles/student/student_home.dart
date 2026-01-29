@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../screens/role_selection_screen.dart';
 import 'screens/academics_screen.dart';
 import 'screens/profile_screen.dart';
@@ -7,8 +8,6 @@ import 'screens/attendance_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
-import 'screens/grievance_screen.dart';
-import 'screens/ssm_screen.dart';
 import 'screens/university_clubs_screen.dart';
 import 'screens/central_library_screen.dart';
 
@@ -42,18 +41,12 @@ class StudentHome extends StatelessWidget {
       case 'Exams':
         page = const ExamsScreen();
         break;
-      case 'Grievance':
-        page = const GrievanceScreen();
-        break;
-      case 'SSM':
-        page = const SSMScreen();
-        break;
-      case 'University Clubs':
-        page = const UniversityClubsScreen();
-        break;
       case 'Central Library':
         page = const CentralLibraryScreen();
         break;
+      case 'University Clubs':
+        _launchURL('https://www.sruclub.in/');
+        return;
       default:
         return;
     }
@@ -61,6 +54,15 @@ class StudentHome extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => page),
     );
+  }
+
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
   @override
@@ -128,14 +130,6 @@ class StudentHome extends StatelessWidget {
                     Colors.amber,
                     context,
                   ),
-                  const SizedBox(height: 12),
-                  _buildLargeInfoCard(
-                    'Alpha - Brave - 185 Coins',
-                    'Sigma - Brave - 0 Coins',
-                    'Gamification',
-                    Colors.red,
-                    context,
-                  ),
                   const SizedBox(height: 24),
                   _buildChartSection('Last Week Attendance %', context),
                   const SizedBox(height: 24),
@@ -160,8 +154,6 @@ class StudentHome extends StatelessWidget {
       'Results',
       'Feedback',
       'Exams',
-      'Grievance',
-      'SSM',
       'University Clubs',
       'Central Library',
     ];
@@ -271,11 +263,6 @@ class StudentHome extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Text(
-            'Placements',
-            style: TextStyle(color: Colors.white, fontSize: 12),
-          ),
-          const SizedBox(width: 20),
           const Text(
             'No Due',
             style: TextStyle(color: Colors.white, fontSize: 12),
