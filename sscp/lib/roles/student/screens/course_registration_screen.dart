@@ -200,25 +200,27 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
   Widget _buildRegistrationForm(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    return Padding(
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionCard(
-              'Year Course Registration',
-              [
-                _buildCourseTable(),
-              ],
-              context),
-          const SizedBox(height: 16),
-          _buildSectionCard(
-              'Lab/Tutorial Mapping Information',
-              [
-                _buildLabTable(),
-              ],
-              context),
-        ],
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 12 : 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionCard(
+                'Year Course Registration',
+                [
+                  _buildCourseTable(),
+                ],
+                context),
+            const SizedBox(height: 16),
+            _buildSectionCard(
+                'Lab/Tutorial Mapping Information',
+                [
+                  _buildLabTable(),
+                ],
+                context),
+          ],
+        ),
       ),
     );
   }
@@ -226,35 +228,37 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
   Widget _buildEditTab(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    return Padding(
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
-      child: Column(
-        children: [
-          if (!isRegistrationOpen)
-            Container(
-              padding: EdgeInsets.all(isMobile ? 12 : 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3CD),
-                border: Border.all(color: const Color(0xFFFFE69C)),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Edit option is disabled. Contact Dean Academics to enable.',
-                style: TextStyle(
-                  fontSize: isMobile ? 12 : 14,
-                  color: const Color(0xFF856404),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 12 : 16),
+        child: Column(
+          children: [
+            if (!isRegistrationOpen)
+              Container(
+                padding: EdgeInsets.all(isMobile ? 12 : 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3CD),
+                  border: Border.all(color: const Color(0xFFFFE69C)),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                textAlign: TextAlign.center,
-              ),
-            )
-          else
-            _buildSectionCard(
-                'Edit Course Registration',
-                [
-                  _buildCourseTable(),
-                ],
-                context),
-        ],
+                child: Text(
+                  'Edit option is disabled. Contact Dean Academics to enable.',
+                  style: TextStyle(
+                    fontSize: isMobile ? 12 : 14,
+                    color: const Color(0xFF856404),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else
+              _buildSectionCard(
+                  'Edit Course Registration',
+                  [
+                    _buildCourseTable(),
+                  ],
+                  context),
+          ],
+        ),
       ),
     );
   }
@@ -364,25 +368,27 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       ],
     };
 
-    return Padding(
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
-      child: Column(
-        children: semesterCourses.entries.map((entry) {
-          final semKey = entry.key;
-          final parts = semKey.split('-');
-          final year = parts[0];
-          final sem = parts[1];
-          final courses = entry.value;
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 12 : 16),
+        child: Column(
+          children: semesterCourses.entries.map((entry) {
+            final semKey = entry.key;
+            final parts = semKey.split('-');
+            final year = parts[0];
+            final sem = parts[1];
+            final courses = entry.value;
 
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: _buildSemesterCourseCard(
-              'Year $year - Semester $sem',
-              courses,
-              context,
-            ),
-          );
-        }).toList(),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildSemesterCourseCard(
+                'Year $year - Semester $sem',
+                courses,
+                context,
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
