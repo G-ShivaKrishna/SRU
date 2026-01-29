@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'app/app.dart';
 
-//emunnave pilla
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -45,6 +44,12 @@ class FirebaseErrorApp extends StatelessWidget {
                   error,
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Failed to establish Firebase connection',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
             ),
