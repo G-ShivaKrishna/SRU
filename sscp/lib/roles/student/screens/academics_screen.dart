@@ -93,8 +93,8 @@ class _AcademicsScreenState extends State<AcademicsScreen> {
           if (isMobile)
             Column(
               children: [
-                _buildDropdownField('Academic Year', selectedYear,
-                    academicYears, (value) {
+                _buildDropdownField(
+                    'Academic Year', selectedYear, academicYears, (value) {
                   setState(() => selectedYear = value);
                 }),
                 const SizedBox(height: 12),
@@ -278,41 +278,21 @@ class _AcademicsScreenState extends State<AcademicsScreen> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     final calendarEvents = [
-      {
-        'event': 'Semester Starts',
-        'date': '15-Jul-2025',
-        'type': 'start'
-      },
-      {
-        'event': 'Add/Drop Courses',
-        'date': '22-Jul-2025',
-        'type': 'important'
-      },
-      {
-        'event': 'Mid Sem Exams',
-        'date': '15-Sep-2025',
-        'type': 'exam'
-      },
+      {'event': 'Semester Starts', 'date': '15-Jul-2025', 'type': 'start'},
+      {'event': 'Add/Drop Courses', 'date': '22-Jul-2025', 'type': 'important'},
+      {'event': 'Mid Sem Exams', 'date': '15-Sep-2025', 'type': 'exam'},
       {
         'event': 'Project Submission',
         'date': '10-Oct-2025',
         'type': 'deadline'
       },
-      {
-        'event': 'End Sem Exams',
-        'date': '20-Nov-2025',
-        'type': 'exam'
-      },
+      {'event': 'End Sem Exams', 'date': '20-Nov-2025', 'type': 'exam'},
       {
         'event': 'Results Declaration',
         'date': '05-Dec-2025',
         'type': 'important'
       },
-      {
-        'event': 'Semester Ends',
-        'date': '10-Dec-2025',
-        'type': 'end'
-      },
+      {'event': 'Semester Ends', 'date': '10-Dec-2025', 'type': 'end'},
     ];
 
     return Container(
