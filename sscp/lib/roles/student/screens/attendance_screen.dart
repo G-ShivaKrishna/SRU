@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../widgets/app_header.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -24,7 +25,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildHeaderSection(context),
+            const AppHeader(),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(
@@ -37,24 +38,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderSection(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    return Container(
-      color: const Color(0xFF1e3a5f),
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
-      child: Text(
-        'Attendance Report',
-        style: TextStyle(
-          color: Colors.yellow,
-          fontSize: isMobile ? 14 : 16,
-          fontWeight: FontWeight.bold,
-        ),
-        textAlign: TextAlign.center,
       ),
     );
   }

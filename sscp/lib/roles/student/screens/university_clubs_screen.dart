@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../widgets/app_header.dart';
 
 class UniversityClubsScreen extends StatelessWidget {
   const UniversityClubsScreen({super.key});
@@ -10,8 +11,15 @@ class UniversityClubsScreen extends StatelessWidget {
         title: const Text('University Clubs'),
         backgroundColor: const Color(0xFF1e3a5f),
       ),
-      body: const Center(
-        child: Text('University Clubs Screen'),
+      body: Column(
+        children: [
+          const AppHeader(),
+          const Expanded(
+            child: Center(
+              child: Text('University Clubs Screen'),
+            ),
+          ),
+        ],
       ),
     );
   }

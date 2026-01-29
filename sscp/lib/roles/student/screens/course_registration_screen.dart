@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../widgets/app_header.dart';
 
 class CourseRegistrationScreen extends StatefulWidget {
   const CourseRegistrationScreen({super.key});
@@ -35,38 +36,41 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
         backgroundColor: const Color(0xFF1e3a5f),
         foregroundColor: Colors.white,
       ),
-      body: Column(
-        children: [
-          _buildHeaderSection(context),
-          if (!isRegistrationOpen)
-            _buildDisabledMessage(context)
-          else
-            const SizedBox.shrink(),
-          Container(
-            color: const Color(0xFF1e3a5f),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
-              indicatorColor: Colors.yellow,
-              tabs: const [
-                Tab(text: 'Register'),
-                Tab(text: 'Edit'),
-                Tab(text: 'Status'),
-              ],
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const AppHeader(),
+            _buildHeaderSection(context),
+            if (!isRegistrationOpen)
+              _buildDisabledMessage(context)
+            else
+              const SizedBox.shrink(),
+            Container(
+              color: const Color(0xFF1e3a5f),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                indicatorColor: Colors.yellow,
+                tabs: const [
+                  Tab(text: 'Register'),
+                  Tab(text: 'Edit'),
+                  Tab(text: 'Status'),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildRegisterTab(context),
-                _buildEditTab(context),
-                _buildStatusTab(context),
-              ],
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildRegisterTab(context),
+                  _buildEditTab(context),
+                  _buildStatusTab(context),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

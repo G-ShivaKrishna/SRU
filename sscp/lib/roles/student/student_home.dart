@@ -9,6 +9,7 @@ import 'screens/results_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
 import 'screens/university_clubs_screen.dart';
+import 'screens/central_library_screen.dart';
 
 class StudentHome extends StatelessWidget {
   const StudentHome({super.key});
@@ -40,10 +41,10 @@ class StudentHome extends StatelessWidget {
       case 'Exams':
         page = const ExamsScreen();
         break;
-      case 'University Clubs':
-        page = const UniversityClubsScreen();
-        break;
       case 'Central Library':
+        page = const CentralLibraryScreen();
+        break;
+      case 'University Clubs':
         _launchURL('https://www.sruclub.in/');
         return;
       default:
