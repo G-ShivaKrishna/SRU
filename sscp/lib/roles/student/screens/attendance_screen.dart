@@ -317,7 +317,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               DataCell(Text(item['classesAttended']!)),
               DataCell(
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: _getPercentageColor(item['percentage']!),
                     borderRadius: BorderRadius.circular(4),
@@ -367,8 +368,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: _getPercentageColor(item['percentage']!),
                       borderRadius: BorderRadius.circular(4),
