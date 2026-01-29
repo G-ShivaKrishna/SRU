@@ -48,13 +48,55 @@ class ResultsScreen extends StatelessWidget {
   Widget _buildResultsTable(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final results = [
-      {'sNo': '1', 'year': '4', 'sem': '1', 'examType': 'Regular', 'examSession': 'NOV-2025'},
-      {'sNo': '2', 'year': '3', 'sem': '2', 'examType': 'Regular', 'examSession': 'APR-2025'},
-      {'sNo': '3', 'year': '3', 'sem': '1', 'examType': 'Regular', 'examSession': 'NOV-2024'},
-      {'sNo': '4', 'year': '2', 'sem': '2', 'examType': 'Regular', 'examSession': 'MAY-2024'},
-      {'sNo': '5', 'year': '2', 'sem': '1', 'examType': 'Regular', 'examSession': 'DEC-2023'},
-      {'sNo': '6', 'year': '1', 'sem': '2', 'examType': 'Regular', 'examSession': 'JUN-2023'},
-      {'sNo': '7', 'year': '1', 'sem': '1', 'examType': 'Regular', 'examSession': 'FEB-2023'},
+      {
+        'sNo': '1',
+        'year': '4',
+        'sem': '1',
+        'examType': 'Regular',
+        'examSession': 'NOV-2025'
+      },
+      {
+        'sNo': '2',
+        'year': '3',
+        'sem': '2',
+        'examType': 'Regular',
+        'examSession': 'APR-2025'
+      },
+      {
+        'sNo': '3',
+        'year': '3',
+        'sem': '1',
+        'examType': 'Regular',
+        'examSession': 'NOV-2024'
+      },
+      {
+        'sNo': '4',
+        'year': '2',
+        'sem': '2',
+        'examType': 'Regular',
+        'examSession': 'MAY-2024'
+      },
+      {
+        'sNo': '5',
+        'year': '2',
+        'sem': '1',
+        'examType': 'Regular',
+        'examSession': 'DEC-2023'
+      },
+      {
+        'sNo': '6',
+        'year': '1',
+        'sem': '2',
+        'examType': 'Regular',
+        'examSession': 'JUN-2023'
+      },
+      {
+        'sNo': '7',
+        'year': '1',
+        'sem': '1',
+        'examType': 'Regular',
+        'examSession': 'FEB-2023'
+      },
     ];
 
     if (isMobile) {
@@ -69,12 +111,24 @@ class ResultsScreen extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: DataTable(
         columns: const [
-          DataColumn(label: Text('S.No.', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Year', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Sem', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Exam Type', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Exam Session', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Print Memo', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(
+              label:
+                  Text('S.No.', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(
+              label:
+                  Text('Year', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(
+              label:
+                  Text('Sem', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(
+              label: Text('Exam Type',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(
+              label: Text('Exam Session',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(
+              label: Text('Print Memo',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
         ],
         rows: results.map((result) {
           return DataRow(
@@ -88,7 +142,8 @@ class ResultsScreen extends StatelessWidget {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   onPressed: () {},
                   child: const Text(
