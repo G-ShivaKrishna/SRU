@@ -204,13 +204,19 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionCard('Year Course Registration', [
-              _buildCourseTable(),
-            ], context),
+            _buildSectionCard(
+                'Year Course Registration',
+                [
+                  _buildCourseTable(),
+                ],
+                context),
             const SizedBox(height: 16),
-            _buildSectionCard('Lab/Tutorial Mapping Information', [
-              _buildLabTable(),
-            ], context),
+            _buildSectionCard(
+                'Lab/Tutorial Mapping Information',
+                [
+                  _buildLabTable(),
+                ],
+                context),
           ],
         ),
       ),
@@ -243,9 +249,12 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                 ),
               )
             else
-              _buildSectionCard('Edit Course Registration', [
-                _buildCourseTable(),
-              ], context),
+              _buildSectionCard(
+                  'Edit Course Registration',
+                  [
+                    _buildCourseTable(),
+                  ],
+                  context),
           ],
         ),
       ),
@@ -257,28 +266,103 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
 
     final semesterCourses = {
       '1-1': [
-        {'sNo': '1', 'code': '22CS101', 'name': 'PC-PROGRAMMING IN C', 'credits': '3'},
-        {'sNo': '2', 'code': '22CS102', 'name': 'MATHEMATICAL FOUNDATIONS OF CS', 'credits': '3'},
-        {'sNo': '3', 'code': '22CS103', 'name': 'DIGITAL LOGIC DESIGN', 'credits': '3'},
-        {'sNo': '4', 'code': '22CS104', 'name': 'ENVIRONMENTAL STUDIES', 'credits': '2'},
-        {'sNo': '5', 'code': '22CS105', 'name': 'PROFESSIONAL ETHICS', 'credits': '2'},
+        {
+          'sNo': '1',
+          'code': '22CS101',
+          'name': 'PC-PROGRAMMING IN C',
+          'credits': '3'
+        },
+        {
+          'sNo': '2',
+          'code': '22CS102',
+          'name': 'MATHEMATICAL FOUNDATIONS OF CS',
+          'credits': '3'
+        },
+        {
+          'sNo': '3',
+          'code': '22CS103',
+          'name': 'DIGITAL LOGIC DESIGN',
+          'credits': '3'
+        },
+        {
+          'sNo': '4',
+          'code': '22CS104',
+          'name': 'ENVIRONMENTAL STUDIES',
+          'credits': '2'
+        },
+        {
+          'sNo': '5',
+          'code': '22CS105',
+          'name': 'PROFESSIONAL ETHICS',
+          'credits': '2'
+        },
       ],
       '1-2': [
-        {'sNo': '1', 'code': '22CS201', 'name': 'DATA STRUCTURES', 'credits': '3'},
-        {'sNo': '2', 'code': '22CS202', 'name': 'DATABASE FUNDAMENTALS', 'credits': '3'},
-        {'sNo': '3', 'code': '22CS203', 'name': 'WEB TECHNOLOGIES', 'credits': '3'},
-        {'sNo': '4', 'code': '22CS204', 'name': 'ENGINEERING PHYSICS', 'credits': '2'},
+        {
+          'sNo': '1',
+          'code': '22CS201',
+          'name': 'DATA STRUCTURES',
+          'credits': '3'
+        },
+        {
+          'sNo': '2',
+          'code': '22CS202',
+          'name': 'DATABASE FUNDAMENTALS',
+          'credits': '3'
+        },
+        {
+          'sNo': '3',
+          'code': '22CS203',
+          'name': 'WEB TECHNOLOGIES',
+          'credits': '3'
+        },
+        {
+          'sNo': '4',
+          'code': '22CS204',
+          'name': 'ENGINEERING PHYSICS',
+          'credits': '2'
+        },
       ],
       '2-1': [
-        {'sNo': '1', 'code': '22CS301', 'name': 'DESIGN AND ANALYSIS OF ALGORITHMS', 'credits': '3'},
-        {'sNo': '2', 'code': '22CS302', 'name': 'OPERATING SYSTEMS', 'credits': '3'},
+        {
+          'sNo': '1',
+          'code': '22CS301',
+          'name': 'DESIGN AND ANALYSIS OF ALGORITHMS',
+          'credits': '3'
+        },
+        {
+          'sNo': '2',
+          'code': '22CS302',
+          'name': 'OPERATING SYSTEMS',
+          'credits': '3'
+        },
         {'sNo': '3', 'code': '22CS303', 'name': 'DBMS', 'credits': '3'},
-        {'sNo': '4', 'code': '22CS304', 'name': 'PYTHON PROGRAMMING', 'credits': '3'},
+        {
+          'sNo': '4',
+          'code': '22CS304',
+          'name': 'PYTHON PROGRAMMING',
+          'credits': '3'
+        },
       ],
       '2-2': [
-        {'sNo': '1', 'code': '22CS401', 'name': 'JAVA PROGRAMMING', 'credits': '3'},
-        {'sNo': '2', 'code': '22CS402', 'name': 'WEB DEVELOPMENT', 'credits': '3'},
-        {'sNo': '3', 'code': '22CS403', 'name': 'NETWORK PROGRAMMING', 'credits': '3'},
+        {
+          'sNo': '1',
+          'code': '22CS401',
+          'name': 'JAVA PROGRAMMING',
+          'credits': '3'
+        },
+        {
+          'sNo': '2',
+          'code': '22CS402',
+          'name': 'WEB DEVELOPMENT',
+          'credits': '3'
+        },
+        {
+          'sNo': '3',
+          'code': '22CS403',
+          'name': 'NETWORK PROGRAMMING',
+          'credits': '3'
+        },
       ],
     };
 
@@ -357,10 +441,18 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       scrollDirection: Axis.horizontal,
       child: DataTable(
         columns: const [
-          DataColumn(label: Text('S.No.', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Course Code', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Course Name', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(label: Text('Credits', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(
+              label:
+                  Text('S.No.', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(
+              label: Text('Course Code',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(
+              label: Text('Course Name',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(
+              label: Text('Credits',
+                  style: TextStyle(fontWeight: FontWeight.bold))),
         ],
         rows: courses.map((course) {
           return DataRow(
@@ -390,11 +482,10 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       children: courses.asMap().entries.map((entry) {
         int index = entry.key;
         Map<String, String> course = entry.value;
-        
+
         return Column(
           children: [
-            if (index > 0)
-              Divider(color: Colors.grey[300], height: 16),
+            if (index > 0) Divider(color: Colors.grey[300], height: 16),
             _buildMobileCourseRow('S.No.', course['sNo']!),
             _buildMobileCourseRow('Code', course['code']!),
             _buildMobileCourseRow('Course Name', course['name']!),
