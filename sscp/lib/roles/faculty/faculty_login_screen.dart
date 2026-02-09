@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../screens/role_selection_screen.dart';
+import 'faculty_home.dart';
 
-class AdminHome extends StatelessWidget {
-  const AdminHome({super.key});
+class FacultyLoginScreen extends StatelessWidget {
+  const FacultyLoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        backgroundColor: Colors.red,
+        title: const Text('Faculty Login'),
+        backgroundColor: Colors.green,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -20,8 +21,15 @@ class AdminHome extends StatelessWidget {
           },
         ),
       ),
-      body: const Center(
-        child: Text('Admin Dashboard - Coming Soon'),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const FacultyHome()),
+            );
+          },
+          child: const Text('Go to Faculty Dashboard (Demo)'),
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'student_home.dart';
 import '../../screens/role_selection_screen.dart';
@@ -11,11 +12,13 @@ class StudentLoginScreen extends StatefulWidget {
 }
 
 class _StudentLoginScreenState extends State<StudentLoginScreen> {
-  final _usernameController = TextEditingController();
+  final _rollNumberController = TextEditingController();
   final _passwordController = TextEditingController();
   final _captchaController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
   late String _captchaText;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -25,7 +28,9 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
   void _generateCaptcha() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    _captchaText = List.generate(6, (index) => chars[Random().nextInt(chars.length)]).join();
+    _captchaText =
+        List.generate(6, (index) => chars[Random().nextInt(chars.length)])
+            .join();
   }
 
   void _refreshCaptcha() {
@@ -36,7 +41,87 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
   }
 
   bool _validateCaptcha() {
-    return _captchaController.text == _captchaText;
+    return _captchaController.text.toUpperCase() == _captchaText;
+  }
+
+  bool _validateRollNumber(String rollNumber) {
+    if (rollNumber.isEmpty) return false;
+    // Accept format: 2203A51291 or 2203a51291
+    return RegExp(r'^[0-9]{4}[A-Za-z]{1}[0-9]{5}$').hasMatch(rollNumber);
+  }
+
+  bool _validatePassword(String password) {
+    return password.length >= 6;
+  }
+
+  Future<void> _handleLogin() async {
+    final rollNumber = _rollNumberController.text.trim();
+    final password = _passwordController.text;
+
+    // Validate roll number format
+    if (!_validateRollNumber(rollNumber)) {
+      _showError('Roll number must be in format: 2203A51291');
+      return;
+    }
+
+    // Validate password format
+    if (!_validatePassword(password)) {
+      _showError('Password must be at least 6 characters');
+      return;
+    }
+
+    // Validate CAPTCHA
+    if (!_validateCaptcha()) {
+      _showError('Invalid CAPTCHA. Please try again.');
+      _refreshCaptcha();
+      return;
+    }
+
+    // Authenticate using Firebase Auth
+    setState(() => _isLoading = true);
+
+    try {
+      // Use lowercase for Firebase Auth email
+      final email = '${rollNumber.toLowerCase()}@sru.edu.in';
+
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const StudentHome()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      _refreshCaptcha();
+
+      if (e.code == 'user-not-found') {
+        _showError('Student account not found. Contact admin.');
+      } else if (e.code == 'wrong-password') {
+        _showError('Incorrect password');
+      } else if (e.code == 'invalid-email') {
+        _showError('Invalid roll number format');
+      } else {
+        _showError('Login failed: ${e.message}');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _refreshCaptcha();
+      _showError('An error occurred: $e');
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -49,7 +134,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const RoleSelectionScreen()),
             );
           },
         ),
@@ -60,18 +146,22 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
-              controller: _usernameController,
+              controller: _rollNumberController,
+              enabled: !_isLoading,
+              keyboardType: TextInputType.text,
               decoration: InputDecoration(
-                labelText: 'Username',
+                labelText: 'Roll Number',
+                hintText: 'e.g., 2203A51291',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                prefixIcon: const Icon(Icons.person),
+                prefixIcon: const Icon(Icons.badge),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _passwordController,
+              enabled: !_isLoading,
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 labelText: 'Password',
@@ -80,7 +170,9 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 ),
                 prefixIcon: const Icon(Icons.lock),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                  icon: Icon(_obscurePassword
+                      ? Icons.visibility_off
+                      : Icons.visibility),
                   onPressed: () {
                     setState(() {
                       _obscurePassword = !_obscurePassword;
@@ -104,7 +196,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           borderRadius: BorderRadius.circular(4),
@@ -120,7 +213,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                       ),
                       const SizedBox(width: 12),
                       IconButton(
-                        onPressed: _refreshCaptcha,
+                        onPressed: _isLoading ? null : _refreshCaptcha,
                         icon: const Icon(Icons.refresh),
                       ),
                     ],
@@ -128,6 +221,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _captchaController,
+                    enabled: !_isLoading,
                     decoration: InputDecoration(
                       hintText: 'Enter captcha text',
                       border: OutlineInputBorder(
@@ -143,31 +237,28 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: () {
-                  if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please fill all fields')),
-                    );
-                    return;
-                  }
-                  if (!_validateCaptcha()) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Invalid captcha')),
-                    );
-                    _refreshCaptcha();
-                    return;
-                  }
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => const StudentHome()),
-                  );
-                },
+                onPressed: _isLoading ? null : _handleLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue.shade500,
+                  disabledBackgroundColor: Colors.grey[400],
                 ),
-                child: const Text(
-                  'Login',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'Login',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600),
+                      ),
               ),
             ),
           ],
@@ -178,7 +269,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _rollNumberController.dispose();
     _passwordController.dispose();
     _captchaController.dispose();
     super.dispose();

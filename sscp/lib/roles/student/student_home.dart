@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../screens/role_selection_screen.dart';
 import 'screens/academics_screen.dart';
@@ -11,8 +13,46 @@ import 'screens/exams_screen.dart';
 import 'screens/university_clubs_screen.dart';
 import 'screens/central_library_screen.dart';
 
-class StudentHome extends StatelessWidget {
+class StudentHome extends StatefulWidget {
   const StudentHome({super.key});
+
+  @override
+  State<StudentHome> createState() => _StudentHomeState();
+}
+
+class _StudentHomeState extends State<StudentHome> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late User _currentUser;
+  Map<String, dynamic>? _studentData;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStudentData();
+  }
+
+  Future<void> _loadStudentData() async {
+    try {
+      _currentUser = _auth.currentUser!;
+      // Extract roll number from email and convert to uppercase for Firestore query
+      final email = _currentUser.email ?? '';
+      final rollNumber = email.split('@')[0].toUpperCase();
+
+      final doc = await _firestore.collection('students').doc(rollNumber).get();
+      if (doc.exists) {
+        setState(() {
+          _studentData = doc.data();
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
 
   void _navigateToPage(BuildContext context, String pageName) {
     Widget page;
@@ -65,9 +105,32 @@ class StudentHome extends StatelessWidget {
     }
   }
 
+  Future<void> _logout() async {
+    await _auth.signOut();
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final name = _studentData?['name'] ?? 'Student';
+    final rollNumber = _currentUser.email?.split('@')[0].toUpperCase() ?? '';
+    final hallTicketNumber = _studentData?['hallTicketNumber'] ?? rollNumber;
+    final department =
+        _studentData?['department']?.toString().toUpperCase() ?? 'CSE';
+    final batchNumber = _studentData?['batchNumber'] ?? 'N/A';
+    final email = _studentData?['email'] ?? _currentUser.email ?? 'N/A';
+    final program = _studentData?['program'] ?? 'BTECH';
 
     return Scaffold(
       appBar: AppBar(
@@ -91,7 +154,7 @@ class StudentHome extends StatelessWidget {
                   const Text('Password', style: TextStyle(color: Colors.white)),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: _logout,
               child:
                   const Text('Logout', style: TextStyle(color: Colors.white)),
             ),
@@ -102,7 +165,7 @@ class StudentHome extends StatelessWidget {
             ),
             IconButton(
               icon: const Icon(Icons.logout),
-              onPressed: () {},
+              onPressed: _logout,
             ),
           ],
           const SizedBox(width: 16),
@@ -113,23 +176,19 @@ class StudentHome extends StatelessWidget {
           children: [
             _buildNavigationMenu(context),
             _buildStatusBar(context),
-            _buildWelcomeSection(context),
+            _buildWelcomeSection(
+                context, name, hallTicketNumber, program, department),
             _buildTimetableLink(context),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(
                 children: [
-                  _buildProfileCard(context),
-                  const SizedBox(height: 20),
-                  _buildInfoCardsGrid(context),
-                  const SizedBox(height: 12),
-                  _buildLargeInfoCard(
-                    'VIJAYA CHANDRA JADALA',
-                    'Contact No: 7032704281',
-                    'Mentoring Staff',
-                    Colors.amber,
-                    context,
-                  ),
+                  _buildStudentDetailsCard(context, hallTicketNumber, name,
+                      email, department, batchNumber),
+                  const SizedBox(height: 24),
+                  _buildAcademicsCardsGrid(context),
+                  const SizedBox(height: 24),
+                  _buildMentorCard(context),
                   const SizedBox(height: 24),
                   _buildChartSection('Last Week Attendance %', context),
                   const SizedBox(height: 24),
@@ -272,14 +331,15 @@ class StudentHome extends StatelessWidget {
     );
   }
 
-  Widget _buildWelcomeSection(BuildContext context) {
+  Widget _buildWelcomeSection(BuildContext context, String name,
+      String hallTicketNumber, String program, String department) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       child: Text(
-        'Welcome to GOTTIMUKKULA SHIVA KRISHNA REDDY - 2203A51291 - BTECH - CSE',
+        'Welcome to $name - $hallTicketNumber - $program - $department',
         style: TextStyle(
           color: Colors.yellow,
           fontSize: isMobile ? 12 : 14,
@@ -290,79 +350,115 @@ class StudentHome extends StatelessWidget {
     );
   }
 
-  Widget _buildTimetableLink(BuildContext context) {
+  Widget _buildStudentDetailsCard(BuildContext context, String hallTicketNumber,
+      String name, String email, String department, String batchNumber) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    return GestureDetector(
-      onTap: () {},
-      child: Container(
-        color: Colors.blue,
-        padding: EdgeInsets.all(isMobile ? 10 : 12),
-        width: double.infinity,
-        child: Text(
-          'Click Here to View Your Timetable',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: isMobile ? 12 : 14,
-            fontWeight: FontWeight.bold,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          textAlign: TextAlign.center,
-        ),
+        ],
+      ),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child:
+                    Icon(Icons.person, color: Colors.blue.shade700, size: 32),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: isMobile ? 14 : 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      hallTicketNumber,
+                      style: TextStyle(
+                        fontSize: isMobile ? 11 : 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          _buildDetailRow('Email', email, isMobile),
+          const SizedBox(height: 12),
+          _buildDetailRow('Department', department, isMobile),
+          const SizedBox(height: 12),
+          _buildDetailRow('Batch Number', batchNumber, isMobile),
+        ],
       ),
     );
   }
 
-  Widget _buildProfileCard(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final profileImageSize = isMobile ? 80.0 : 100.0;
-
+  Widget _buildDetailRow(String label, String value, bool isMobile) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: profileImageSize,
-          height: profileImageSize,
-          color: Colors.grey[300],
-          child: const Icon(Icons.person, size: 40),
+        SizedBox(
+          width: 100,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: isMobile ? 10 : 11,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+          ),
         ),
-        const SizedBox(width: 16),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '2203A51291 - GOTTIMUKKULA SHIVA KRISHNA REDDY',
-                style: TextStyle(
-                  fontSize: isMobile ? 14 : 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Father Name - GOTTIMUKKULA SRINIVAS REDDY',
-                style: TextStyle(fontSize: isMobile ? 11 : 12),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Batch Number - 22CSBTB09',
-                style: TextStyle(fontSize: isMobile ? 11 : 12),
-              ),
-            ],
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: isMobile ? 10 : 11,
+              color: Colors.grey.shade900,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildInfoCardsGrid(BuildContext context) {
+  Widget _buildAcademicsCardsGrid(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final crossAxisCount =
         isMobile ? 2 : (MediaQuery.of(context).size.width < 1024 ? 2 : 4);
-    final childAspectRatio = isMobile ? 1.2 : 1.4;
+    final childAspectRatio = isMobile ? 1.1 : 1.3;
 
     return GridView.count(
       crossAxisCount: crossAxisCount,
@@ -372,35 +468,35 @@ class StudentHome extends StatelessWidget {
       crossAxisSpacing: 12,
       childAspectRatio: childAspectRatio,
       children: [
-        _buildInfoCard(
-          'Year-Sem',
-          '22CSBTB09-4-2',
+        _buildAcademicsCard(
+          'Year-Semester',
+          _studentData?['yearSemester'] ?? 'N/A',
           Colors.teal,
           context,
         ),
-        _buildInfoCard(
+        _buildAcademicsCard(
           'Attendance %',
-          '0',
+          '${_studentData?['attendance'] ?? '0'}%',
           Colors.green,
           context,
         ),
-        _buildInfoCard(
-          'Overall CGPA %',
-          '8.676',
-          Colors.green,
+        _buildAcademicsCard(
+          'CGPA',
+          _studentData?['cgpa'] ?? '0.0',
+          Colors.orange,
           context,
         ),
-        _buildInfoCard(
-          'No.of Courses | Total Backlogs',
-          '50 | 0',
-          Colors.blue,
+        _buildAcademicsCard(
+          'Backlogs',
+          '${_studentData?['backlogs'] ?? '0'}',
+          Colors.red,
           context,
         ),
       ],
     );
   }
 
-  Widget _buildInfoCard(
+  Widget _buildAcademicsCard(
     String label,
     String value,
     Color backgroundColor,
@@ -411,17 +507,24 @@ class StudentHome extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: backgroundColor.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      padding: EdgeInsets.all(isMobile ? 12 : 14),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             value,
             style: TextStyle(
-              fontSize: isMobile ? 18 : 24,
+              fontSize: isMobile ? 20 : 26,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -432,86 +535,56 @@ class StudentHome extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: isMobile ? 10 : 12,
-              color: Colors.white,
+              fontSize: isMobile ? 10 : 11,
+              color: Colors.white.withOpacity(0.9),
+              fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Text(
-              'More info >',
-              style: TextStyle(
-                fontSize: isMobile ? 8 : 10,
-                color: Colors.white.withOpacity(0.8),
-              ),
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLargeInfoCard(
-    String title,
-    String subtitle,
-    String footer,
-    Color backgroundColor,
-    BuildContext context,
-  ) {
+  Widget _buildMentorCard(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
+    final mentorName = _studentData?['mentorName'] ?? 'N/A';
+    final mentorPhone = _studentData?['mentorPhone'] ?? 'N/A';
+    final mentorEmail = _studentData?['mentorEmail'] ?? 'N/A';
 
     return Container(
       decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.amber.shade50,
+        border: Border.all(color: Colors.amber.shade200, width: 2),
+        borderRadius: BorderRadius.circular(12),
       ),
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: isMobile ? 12 : 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: isMobile ? 10 : 12,
-              color: Colors.black,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              Icon(Icons.person_outline,
+                  color: Colors.amber.shade700, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Mentoring Staff',
+                style: TextStyle(
+                  fontSize: isMobile ? 13 : 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.amber.shade900,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
-          Text(
-            footer,
-            style: TextStyle(
-              fontSize: isMobile ? 11 : 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              'More info >',
-              style: TextStyle(
-                fontSize: isMobile ? 10 : 11,
-                color: Colors.black.withOpacity(0.7),
-              ),
-            ),
-          ),
+          _buildDetailRow('Name', mentorName, isMobile),
+          const SizedBox(height: 10),
+          _buildDetailRow('Phone', mentorPhone, isMobile),
+          const SizedBox(height: 10),
+          _buildDetailRow('Email', mentorEmail, isMobile),
         ],
       ),
     );
@@ -545,6 +618,30 @@ class StudentHome extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTimetableLink(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return GestureDetector(
+      onTap: () {
+        _launchURL('https://timetable.sruniv.com/batchReport');
+      },
+      child: Container(
+        color: Colors.blue,
+        padding: EdgeInsets.all(isMobile ? 10 : 12),
+        width: double.infinity,
+        child: Text(
+          'Click Here to View Your Timetable',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: isMobile ? 12 : 14,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
