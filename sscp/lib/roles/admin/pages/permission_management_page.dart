@@ -166,12 +166,14 @@ class _PermissionManagementPageState extends State<PermissionManagementPage>
                   const SizedBox(height: 6),
                   ...(request['fields'] as List<String>).map(
                     (field) => Padding(
-                      padding: const EdgeInsets.only(left: 8, top: 2, bottom: 2),
+                      padding:
+                          const EdgeInsets.only(left: 8, top: 2, bottom: 2),
                       child: Row(
                         children: [
                           const Icon(Icons.circle, size: 6),
                           const SizedBox(width: 8),
-                          Text(field, style: TextStyle(fontSize: isMobile ? 10 : 11)),
+                          Text(field,
+                              style: TextStyle(fontSize: isMobile ? 10 : 11)),
                         ],
                       ),
                     ),

@@ -20,7 +20,8 @@ class AdminHome extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const RoleSelectionScreen()),
             );
           },
         ),
@@ -28,15 +29,18 @@ class AdminHome extends StatelessWidget {
           if (!isMobile) ...[
             TextButton(
               onPressed: () {},
-              child: const Text('Settings', style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('Settings', style: TextStyle(color: Colors.white)),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const RoleSelectionScreen()),
                 );
               },
-              child: const Text('Logout', style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('Logout', style: TextStyle(color: Colors.white)),
             ),
           ] else ...[
             IconButton(
@@ -47,7 +51,8 @@ class AdminHome extends StatelessWidget {
               icon: const Icon(Icons.logout),
               onPressed: () {
                 Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const RoleSelectionScreen()),
                 );
               },
             ),
@@ -207,7 +212,8 @@ class AdminHome extends StatelessWidget {
           Colors.blue,
           context,
           () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const AccountCreationPage()),
+            MaterialPageRoute(
+                builder: (context) => const AccountCreationPage()),
           ),
         ),
         _buildActionCard(
@@ -225,7 +231,8 @@ class AdminHome extends StatelessWidget {
           Colors.orange,
           context,
           () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const PermissionManagementPage()),
+            MaterialPageRoute(
+                builder: (context) => const PermissionManagementPage()),
           ),
         ),
         _buildActionCard(
@@ -306,13 +313,17 @@ class AdminHome extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildActivityItem('New student registered', 'Today 10:30 AM', Icons.person_add),
+          _buildActivityItem(
+              'New student registered', 'Today 10:30 AM', Icons.person_add),
           const Divider(height: 16),
-          _buildActivityItem('Faculty password updated', 'Today 09:15 AM', Icons.security),
+          _buildActivityItem(
+              'Faculty password updated', 'Today 09:15 AM', Icons.security),
           const Divider(height: 16),
-          _buildActivityItem('Course schedule modified', 'Yesterday 3:45 PM', Icons.edit),
+          _buildActivityItem(
+              'Course schedule modified', 'Yesterday 3:45 PM', Icons.edit),
           const Divider(height: 16),
-          _buildActivityItem('System backup completed', 'Yesterday 2:20 PM', Icons.backup),
+          _buildActivityItem(
+              'System backup completed', 'Yesterday 2:20 PM', Icons.backup),
         ],
       ),
     );

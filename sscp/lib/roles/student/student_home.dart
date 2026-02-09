@@ -146,7 +146,8 @@ class _StudentHomeState extends State<StudentHome> {
 
     final isMobile = MediaQuery.of(context).size.width < 600;
     final name = _studentData?['name'] ?? 'Student';
-    final rollNumber = _currentUser?.email?.split('@')[0].toUpperCase() ?? 'DEMO';
+    final rollNumber =
+        _currentUser?.email?.split('@')[0].toUpperCase() ?? 'DEMO';
     final hallTicketNumber = _studentData?['hallTicketNumber'] ?? rollNumber;
     final department =
         _studentData?['department']?.toString().toUpperCase() ?? 'CSE';
