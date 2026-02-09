@@ -54,72 +54,20 @@ class _ViewOnlyPageState extends State<ViewOnlyPage>
     return ListView.builder(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       itemCount: 10,
-      itemBuilder: (context, index) => _buildStudentCard(index, isMobile),
-    );
-  }
-
-  Widget _buildStudentCard(int index, bool isMobile) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 12 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Student ${index + 1}',
-                  style: TextStyle(
-                    fontSize: isMobile ? 13 : 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green[100],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'Active',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.green[800],
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow('Hall Ticket', 'HT2022${1001 + index}', isMobile),
-            _buildInfoRow('Name', 'Student Name ${index + 1}', isMobile),
-            _buildInfoRow('Department', 'CSE', isMobile),
-            _buildInfoRow('Batch', '2022-2026', isMobile),
-            _buildInfoRow('Year', '2', isMobile),
-            _buildInfoRow('Email', 'student${index + 1}@email.com', isMobile),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildViewButton('Profile', Colors.blue, isMobile),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildViewButton('Marks', Colors.green, isMobile),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child:
-                      _buildViewButton('Attendance', Colors.orange, isMobile),
-                ),
-              ],
-            ),
-          ],
-        ),
+      itemBuilder: (context, index) => _buildDataCard(
+        'Student ${index + 1}',
+        {
+          'Hall Ticket': 'HT202201${1001 + index}',
+          'Name': 'Student Name ${index + 1}',
+          'Department': 'CSE',
+          'Batch': '2022-2026',
+          'Year': '2',
+          'Email': 'student${index + 1}@email.com',
+          'Status': 'Active',
+        },
+        index,
+        isMobile,
+        Colors.blue,
       ),
     );
   }
@@ -128,71 +76,82 @@ class _ViewOnlyPageState extends State<ViewOnlyPage>
     return ListView.builder(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       itemCount: 10,
-      itemBuilder: (context, index) => _buildFacultyCard(index, isMobile),
+      itemBuilder: (context, index) => _buildDataCard(
+        'Faculty ${index + 1}',
+        {
+          'Faculty ID': 'FAC${2000 + index}',
+          'Name': 'Faculty Name ${index + 1}',
+          'Department': 'CSE',
+          'Designation': 'Assistant Professor',
+          'Email': 'faculty${index + 1}@email.com',
+          'Subjects': 'DBMS, OS, DSA',
+          'Status': 'Active',
+        },
+        index,
+        isMobile,
+        Colors.green,
+      ),
     );
   }
 
-  Widget _buildFacultyCard(int index, bool isMobile) {
-    return Card(
+  Widget _buildDataCard(
+    String title,
+    Map<String, String> data,
+    int index,
+    bool isMobile,
+    Color statusColor,
+  ) {
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 12 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Faculty ${index + 1}',
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: isMobile ? 13 : 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  data['Status'] ?? 'Active',
                   style: TextStyle(
-                    fontSize: isMobile ? 13 : 14,
+                    fontSize: 10,
+                    color: statusColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green[100],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'Active',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.green[800],
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow('Faculty ID', 'FAC${2000 + index}', isMobile),
-            _buildInfoRow('Name', 'Faculty Name ${index + 1}', isMobile),
-            _buildInfoRow('Department', 'CSE', isMobile),
-            _buildInfoRow('Designation', 'Assistant Professor', isMobile),
-            _buildInfoRow('Email', 'faculty${index + 1}@email.com', isMobile),
-            _buildInfoRow('Subjects', 'DBMS, OS, DSA', isMobile),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildViewButton('Profile', Colors.blue, isMobile),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildViewButton('Marks', Colors.green, isMobile),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildViewButton('Records', Colors.purple, isMobile),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...data.entries
+              .where((e) => e.key != 'Status')
+              .map((e) => _buildInfoRow(e.key, e.value, isMobile))
+              .toList(),
+        ],
       ),
     );
   }
@@ -215,23 +174,10 @@ class _ViewOnlyPageState extends State<ViewOnlyPage>
             style: TextStyle(
               fontWeight: FontWeight.w500,
               fontSize: isMobile ? 11 : 12,
+              color: Colors.black87,
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildViewButton(String label, Color color, bool isMobile) {
-    return OutlinedButton(
-      onPressed: () {},
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: color),
-        padding: EdgeInsets.symmetric(vertical: isMobile ? 6 : 8),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontSize: isMobile ? 9 : 10),
       ),
     );
   }

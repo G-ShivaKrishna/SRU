@@ -9,7 +9,7 @@ class AdminLoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Login'),
+        title: const Text('Admin Portal'),
         backgroundColor: Colors.red,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -28,7 +28,14 @@ class AdminLoginScreen extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const AdminHome()),
             );
           },
-          child: const Text('Go to Admin Dashboard (Demo)'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+          ),
+          child: const Text(
+            'Go to Admin Dashboard',
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
         ),
       ),
     );

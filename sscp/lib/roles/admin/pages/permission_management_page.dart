@@ -98,114 +98,118 @@ class _PermissionManagementPageState extends State<PermissionManagementPage>
   }
 
   Widget _buildPendingRequestCard(Map<String, dynamic> request, bool isMobile) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 12 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  request['name'],
-                  style: TextStyle(
-                    fontSize: isMobile ? 13 : 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.orange[100],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    request['type'],
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.orange[900],
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              'ID',
-              request['hallTicket'] ?? request['facultyId'],
-              isMobile,
-            ),
-            if (request['fields'] != null)
-              _buildFieldsList(request['fields'], isMobile),
-            if (request['subject'] != null)
-              _buildInfoRow('Subject', request['subject'], isMobile),
-            _buildInfoRow('Requested At', request['requestedAt'], isMobile),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _grantPermission(request),
-                    icon: const Icon(Icons.check),
-                    label: const Text('Grant'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding:
-                          EdgeInsets.symmetric(vertical: isMobile ? 10 : 12),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _rejectPermission(request),
-                    icon: const Icon(Icons.close),
-                    label: const Text('Reject'),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.red),
-                      padding:
-                          EdgeInsets.symmetric(vertical: isMobile ? 10 : 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildFieldsList(List<String> fields, bool isMobile) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Editable Fields:',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: isMobile ? 10 : 11,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                request['name'],
+                style: TextStyle(
+                  fontSize: isMobile ? 13 : 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange[100],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  request['type'],
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.orange[900],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          ...fields.map(
-            (field) => Padding(
-              padding: const EdgeInsets.only(left: 8, top: 2, bottom: 2),
-              child: Row(
+          const SizedBox(height: 12),
+          _buildInfoRow(
+            'ID',
+            request['hallTicket'] ?? request['facultyId'],
+            isMobile,
+          ),
+          if (request['fields'] != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.circle, size: 6),
-                  const SizedBox(width: 8),
-                  Text(field, style: TextStyle(fontSize: isMobile ? 10 : 11)),
+                  Text(
+                    'Editable Fields:',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: isMobile ? 10 : 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ...(request['fields'] as List<String>).map(
+                    (field) => Padding(
+                      padding:
+                          const EdgeInsets.only(left: 8, top: 2, bottom: 2),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.circle, size: 6),
+                          const SizedBox(width: 8),
+                          Text(field,
+                              style: TextStyle(fontSize: isMobile ? 10 : 11)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
+          _buildInfoRow('Requested At', request['requestedAt'], isMobile),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _grantPermission(request),
+                  icon: const Icon(Icons.check),
+                  label: const Text('Grant'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: isMobile ? 10 : 12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _rejectPermission(request),
+                  icon: const Icon(Icons.close),
+                  label: const Text('Reject'),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    padding: EdgeInsets.symmetric(vertical: isMobile ? 10 : 12),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -223,61 +227,70 @@ class _PermissionManagementPageState extends State<PermissionManagementPage>
 
   Widget _buildActivePermissionCard(
       Map<String, dynamic> permission, bool isMobile) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 12 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  permission['name'],
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                permission['name'],
+                style: TextStyle(
+                  fontSize: isMobile ? 13 : 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green[100],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  permission['status'],
                   style: TextStyle(
-                    fontSize: isMobile ? 13 : 14,
+                    fontSize: 10,
+                    color: Colors.green[800],
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green[100],
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    permission['status'],
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.green[800],
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow('Permission Type', permission['type'], isMobile),
-            _buildInfoRow('Granted At', permission['grantedAt'], isMobile),
-            _buildInfoRow('Expires At', permission['expiresAt'], isMobile),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () => _revokePermission(permission),
-                icon: const Icon(Icons.block),
-                label: const Text('Revoke Permission'),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.red),
-                  foregroundColor: Colors.red,
-                  padding: EdgeInsets.symmetric(vertical: isMobile ? 10 : 12),
-                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildInfoRow('Permission Type', permission['type'], isMobile),
+          _buildInfoRow('Granted At', permission['grantedAt'], isMobile),
+          _buildInfoRow('Expires At', permission['expiresAt'], isMobile),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _revokePermission(permission),
+              icon: const Icon(Icons.block),
+              label: const Text('Revoke Permission'),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.red),
+                foregroundColor: Colors.red,
+                padding: EdgeInsets.symmetric(vertical: isMobile ? 10 : 12),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -300,6 +313,7 @@ class _PermissionManagementPageState extends State<PermissionManagementPage>
             style: TextStyle(
               fontWeight: FontWeight.w500,
               fontSize: isMobile ? 11 : 12,
+              color: Colors.black87,
             ),
           ),
         ],
