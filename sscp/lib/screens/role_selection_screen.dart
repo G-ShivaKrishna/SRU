@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../roles/student/student_login_screen.dart';
 import '../roles/faculty/faculty_login_screen.dart';
-import '../roles/admin/admin_login_screen.dart';
+import '../roles/admin/admin_home.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -98,7 +98,7 @@ class RoleSelectionScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
-                                builder: (context) => const AdminLoginScreen()),
+                                builder: (context) => const AdminHome()),
                           );
                         },
                       ),

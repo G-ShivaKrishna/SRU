@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../screens/role_selection_screen.dart';
+import '../../config/dev_config.dart';
 import 'screens/academics_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/course_registration_screen.dart';
@@ -23,7 +24,7 @@ class StudentHome extends StatefulWidget {
 class _StudentHomeState extends State<StudentHome> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  late User _currentUser;
+  User? _currentUser;
   Map<String, dynamic>? _studentData;
   bool _isLoading = true;
 
@@ -35,9 +36,30 @@ class _StudentHomeState extends State<StudentHome> {
 
   Future<void> _loadStudentData() async {
     try {
-      _currentUser = _auth.currentUser!;
+      final user = _auth.currentUser;
+
+      // If bypass is enabled or no user logged in, use default data
+      if (DevConfig.bypassLogin || user == null) {
+        setState(() {
+          _studentData = {
+            'name': 'Demo Student',
+            'hallTicketNumber': '2203A51318',
+            'department': 'cse',
+            'batchNumber': '18',
+            'email': 'demo@sru.edu.in',
+            'program': 'BTECH',
+            'mentorName': 'Dr. Demo Mentor',
+            'mentorPhone': '9999999999',
+            'mentorEmail': 'mentor@sru.edu.in',
+          };
+          _isLoading = false;
+        });
+        return;
+      }
+
+      _currentUser = user;
       // Extract roll number from email and convert to uppercase for Firestore query
-      final email = _currentUser.email ?? '';
+      final email = _currentUser?.email ?? '';
       final rollNumber = email.split('@')[0].toUpperCase();
 
       final doc = await _firestore.collection('students').doc(rollNumber).get();
@@ -124,12 +146,12 @@ class _StudentHomeState extends State<StudentHome> {
 
     final isMobile = MediaQuery.of(context).size.width < 600;
     final name = _studentData?['name'] ?? 'Student';
-    final rollNumber = _currentUser.email?.split('@')[0].toUpperCase() ?? '';
+    final rollNumber = _currentUser?.email?.split('@')[0].toUpperCase() ?? 'DEMO';
     final hallTicketNumber = _studentData?['hallTicketNumber'] ?? rollNumber;
     final department =
         _studentData?['department']?.toString().toUpperCase() ?? 'CSE';
     final batchNumber = _studentData?['batchNumber'] ?? 'N/A';
-    final email = _studentData?['email'] ?? _currentUser.email ?? 'N/A';
+    final email = _studentData?['email'] ?? _currentUser?.email ?? 'N/A';
     final program = _studentData?['program'] ?? 'BTECH';
 
     return Scaffold(

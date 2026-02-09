@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import 'student_home.dart';
 import '../../screens/role_selection_screen.dart';
+import '../../config/dev_config.dart';
 
 class StudentLoginScreen extends StatefulWidget {
   const StudentLoginScreen({super.key});
@@ -74,6 +75,16 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     if (!_validateCaptcha()) {
       _showError('Invalid CAPTCHA. Please try again.');
       _refreshCaptcha();
+      return;
+    }
+
+    // Check if bypass is enabled
+    if (DevConfig.bypassLogin) {
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const StudentHome()),
+        );
+      }
       return;
     }
 
