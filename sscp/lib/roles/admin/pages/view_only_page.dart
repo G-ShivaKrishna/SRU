@@ -77,7 +77,8 @@ class _ViewOnlyPageState extends State<ViewOnlyPage>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.green[100],
                     borderRadius: BorderRadius.circular(4),
@@ -112,7 +113,8 @@ class _ViewOnlyPageState extends State<ViewOnlyPage>
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _buildViewButton('Attendance', Colors.orange, isMobile),
+                  child:
+                      _buildViewButton('Attendance', Colors.orange, isMobile),
                 ),
               ],
             ),
@@ -149,7 +151,8 @@ class _ViewOnlyPageState extends State<ViewOnlyPage>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.green[100],
                     borderRadius: BorderRadius.circular(4),

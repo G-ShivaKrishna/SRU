@@ -11,14 +11,16 @@ class AccountCreationPage extends StatefulWidget {
 }
 
 class _AccountCreationPageState extends State<AccountCreationPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+    with TickerProviderStateMixin {
+  late TabController _methodTabController;
+  late TabController _typeTabController;
   bool _isLoading = false;
   Map<String, dynamic>? _uploadResult;
   File? _selectedFile;
   String? _selectedFileName;
 
-  final List<String> _tabs = ['Students', 'Faculty'];
+  final List<String> _methods = ['Excel Upload', 'Manual Entry'];
+  final List<String> _types = ['Students', 'Faculty'];
   final Map<String, List<String>> _requiredColumns = {
     'Students': [
       'HallTicketNumber',
@@ -38,17 +40,40 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     ],
   };
 
+  // Form controllers for manual entry
+  final Map<String, TextEditingController> _studentControllers = {
+    'hallTicketNumber': TextEditingController(),
+    'studentName': TextEditingController(),
+    'department': TextEditingController(),
+    'batchNumber': TextEditingController(),
+    'year': TextEditingController(),
+    'email': TextEditingController(),
+  };
+
+  final Map<String, TextEditingController> _facultyControllers = {
+    'facultyId': TextEditingController(),
+    'facultyName': TextEditingController(),
+    'department': TextEditingController(),
+    'designation': TextEditingController(),
+    'email': TextEditingController(),
+    'subjects': TextEditingController(),
+  };
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _tabController.addListener(_resetUploadState);
+    _methodTabController = TabController(length: _methods.length, vsync: this);
+    _typeTabController = TabController(length: _types.length, vsync: this);
+    _methodTabController.addListener(_resetUploadState);
   }
 
   @override
   void dispose() {
-    _tabController.removeListener(_resetUploadState);
-    _tabController.dispose();
+    _methodTabController.removeListener(_resetUploadState);
+    _methodTabController.dispose();
+    _typeTabController.dispose();
+    _studentControllers.forEach((_, controller) => controller.dispose());
+    _facultyControllers.forEach((_, controller) => controller.dispose());
     super.dispose();
   }
 
@@ -57,7 +82,13 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       _selectedFile = null;
       _selectedFileName = null;
       _uploadResult = null;
+      _clearFormControllers();
     });
+  }
+
+  void _clearFormControllers() {
+    _studentControllers.forEach((_, controller) => controller.clear());
+    _facultyControllers.forEach((_, controller) => controller.clear());
   }
 
   @override
@@ -70,20 +101,22 @@ class _AccountCreationPageState extends State<AccountCreationPage>
         backgroundColor: const Color(0xFF1e3a5f),
         foregroundColor: Colors.white,
         bottom: TabBar(
-          controller: _tabController,
-          tabs: _tabs.map((tab) => Tab(text: tab)).toList(),
+          controller: _methodTabController,
+          tabs: _methods.map((method) => Tab(text: method)).toList(),
         ),
       ),
       body: TabBarView(
-        controller: _tabController,
-        children: _tabs
-            .map((type) => _buildUploadSection(type, isMobile))
-            .toList(),
+        controller: _methodTabController,
+        children: [
+          _buildExcelUploadSection(isMobile),
+          _buildManualEntrySection(isMobile),
+        ],
       ),
     );
   }
 
-  Widget _buildUploadSection(String type, bool isMobile) {
+  // ============ EXCEL UPLOAD SECTION ============
+  Widget _buildExcelUploadSection(bool isMobile) {
     return SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.all(isMobile ? 12 : 16),
@@ -91,14 +124,15 @@ class _AccountCreationPageState extends State<AccountCreationPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
-            _buildRequiredColumnsCard(type, isMobile),
+            _buildTypeSelector(isMobile),
+            const SizedBox(height: 24),
+            _buildRequiredColumnsCard(_typeTabController.index == 0 ? 'Students' : 'Faculty', isMobile),
             const SizedBox(height: 24),
             _buildFileSelectionCard(isMobile),
             const SizedBox(height: 24),
-            if (_selectedFile != null)
-              _buildSelectedFileCard(isMobile),
+            if (_selectedFile != null) _buildSelectedFileCard(isMobile),
             const SizedBox(height: 24),
-            _buildUploadButton(type, isMobile),
+            _buildUploadButton(_typeTabController.index == 0 ? 'Students' : 'Faculty', isMobile),
             if (_uploadResult != null) ...[
               const SizedBox(height: 24),
               _buildResultCard(isMobile),
@@ -109,6 +143,224 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     );
   }
 
+  Widget _buildTypeSelector(bool isMobile) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: TabBar(
+        controller: _typeTabController,
+        tabs: _types.map((type) => Tab(text: type)).toList(),
+      ),
+    );
+  }
+
+  // ============ MANUAL ENTRY SECTION ============
+  Widget _buildManualEntrySection(bool isMobile) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.all(isMobile ? 12 : 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+            _buildManualTypeSelector(isMobile),
+            const SizedBox(height: 24),
+            if (_typeTabController.index == 0)
+              _buildStudentManualForm(isMobile)
+            else
+              _buildFacultyManualForm(isMobile),
+            const SizedBox(height: 24),
+            _buildManualSubmitButton(isMobile),
+            if (_uploadResult != null) ...[
+              const SizedBox(height: 24),
+              _buildResultCard(isMobile),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManualTypeSelector(bool isMobile) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: TabBar(
+        controller: _typeTabController,
+        onTap: (index) => setState(() {}),
+        tabs: _types.map((type) => Tab(text: type)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildStudentManualForm(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Enter Student Details',
+          style: TextStyle(
+            fontSize: isMobile ? 14 : 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildFormField(
+          'Hall Ticket Number',
+          'e.g., 2203A51291',
+          _studentControllers['hallTicketNumber']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Student Name',
+          'e.g., John Doe',
+          _studentControllers['studentName']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Department',
+          'e.g., CSE',
+          _studentControllers['department']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Batch Number',
+          'e.g., 22CSBTB09',
+          _studentControllers['batchNumber']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Year',
+          'e.g., 2',
+          _studentControllers['year']!,
+          isMobile,
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Email',
+          'e.g., student@email.com',
+          _studentControllers['email']!,
+          isMobile,
+          keyboardType: TextInputType.emailAddress,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFacultyManualForm(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Enter Faculty Details',
+          style: TextStyle(
+            fontSize: isMobile ? 14 : 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildFormField(
+          'Faculty ID',
+          'e.g., FAC2001',
+          _facultyControllers['facultyId']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Faculty Name',
+          'e.g., Dr. Jane Doe',
+          _facultyControllers['facultyName']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Department',
+          'e.g., CSE',
+          _facultyControllers['department']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Designation',
+          'e.g., Assistant Professor',
+          _facultyControllers['designation']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Email',
+          'e.g., faculty@email.com',
+          _facultyControllers['email']!,
+          isMobile,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Subjects',
+          'e.g., DBMS, OS, DSA',
+          _facultyControllers['subjects']!,
+          isMobile,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormField(
+    String label,
+    String hint,
+    TextEditingController controller,
+    bool isMobile, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: isMobile ? 10 : 12,
+        ),
+        prefixIcon: Icon(_getIconForField(label)),
+      ),
+    );
+  }
+
+  IconData _getIconForField(String label) {
+    switch (label.toLowerCase()) {
+      case 'hall ticket number':
+      case 'faculty id':
+        return Icons.badge;
+      case 'student name':
+      case 'faculty name':
+        return Icons.person;
+      case 'department':
+        return Icons.business;
+      case 'email':
+        return Icons.email;
+      case 'year':
+        return Icons.calendar_today;
+      default:
+        return Icons.edit;
+    }
+  }
+
+  // ============ SHARED WIDGETS ============
   Widget _buildRequiredColumnsCard(String type, bool isMobile) {
     final columns = _requiredColumns[type]!;
     return Container(
@@ -267,7 +519,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: isDisabled ? null : () => _handleUpload(type),
+        onPressed: isDisabled ? null : () => _handleExcelUpload(type),
         icon: _isLoading
             ? const SizedBox(
                 width: 20,
@@ -284,6 +536,36 @@ class _AccountCreationPageState extends State<AccountCreationPage>
               : _selectedFile == null
                   ? 'Select File First'
                   : 'Upload Excel File',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: const Color(0xFF1e3a5f),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey[400],
+          disabledForegroundColor: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManualSubmitButton(bool isMobile) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isLoading ? null : _handleManualSubmit,
+        icon: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Icon(Icons.person_add),
+        label: Text(
+          _isLoading ? 'Creating...' : 'Create Account',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         style: ElevatedButton.styleFrom(
@@ -322,7 +604,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  result['message'] ?? 'Upload completed',
+                  result['message'] ?? 'Operation completed',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: isMobile ? 12 : 13,
@@ -365,10 +647,11 @@ class _AccountCreationPageState extends State<AccountCreationPage>
                   _selectedFile = null;
                   _selectedFileName = null;
                   _uploadResult = null;
+                  _clearFormControllers();
                 });
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('Upload Another File'),
+              label: const Text('Create Another Account'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
@@ -401,6 +684,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     );
   }
 
+  // ============ HANDLERS ============
   Future<void> _pickFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -423,7 +707,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     }
   }
 
-  Future<void> _handleUpload(String type) async {
+  Future<void> _handleExcelUpload(String type) async {
     if (_selectedFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a file first')),
@@ -443,6 +727,39 @@ class _AccountCreationPageState extends State<AccountCreationPage>
         _uploadResult = {
           'success': false,
           'message': 'Upload failed: $e',
+        };
+      });
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleManualSubmit() async {
+    final type = _typeTabController.index == 0 ? 'Students' : 'Faculty';
+    final controllers = type == 'Students' ? _studentControllers : _facultyControllers;
+
+    // Validate all fields are filled
+    if (controllers.values.any((controller) => controller.text.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final result = await ExcelUploadService.createAccountManually(
+        type,
+        Map.fromEntries(
+          controllers.entries.map((e) => MapEntry(e.key, e.value.text)),
+        ),
+      );
+      setState(() => _uploadResult = result);
+    } catch (e) {
+      setState(() {
+        _uploadResult = {
+          'success': false,
+          'message': 'Account creation failed: $e',
         };
       });
     } finally {

@@ -61,4 +61,95 @@ class ExcelUploadService {
       };
     }
   }
+
+  static Future<Map<String, dynamic>> createAccountManually(
+    String type,
+    Map<String, String> data,
+  ) async {
+    try {
+      await Future.delayed(const Duration(seconds: 1));
+
+      // Validate data
+      if (data.values.any((value) => value.isEmpty)) {
+        return {
+          'success': false,
+          'message': 'All fields are required',
+          'totalRows': 1,
+          'created': 0,
+          'failed': 1,
+          'failedReasons': ['Missing required fields'],
+        };
+      }
+
+      // Mock validation for specific fields
+      if (type == 'Students') {
+        if (!_isValidHallTicket(data['hallTicketNumber'] ?? '')) {
+          return {
+            'success': false,
+            'message': 'Invalid Hall Ticket Number format',
+            'totalRows': 1,
+            'created': 0,
+            'failed': 1,
+            'failedReasons': ['Invalid Hall Ticket Number format (e.g., 2203A51291)'],
+          };
+        }
+        if (!_isValidEmail(data['email'] ?? '')) {
+          return {
+            'success': false,
+            'message': 'Invalid email format',
+            'totalRows': 1,
+            'created': 0,
+            'failed': 1,
+            'failedReasons': ['Invalid email format'],
+          };
+        }
+      } else {
+        if (!_isValidEmail(data['email'] ?? '')) {
+          return {
+            'success': false,
+            'message': 'Invalid email format',
+            'totalRows': 1,
+            'created': 0,
+            'failed': 1,
+            'failedReasons': ['Invalid email format'],
+          };
+        }
+      }
+
+      return {
+        'success': true,
+        'message': '${type == 'Students' ? 'Student' : 'Faculty'} account created successfully',
+        'totalRows': 1,
+        'created': 1,
+        'failed': 0,
+        'failedReasons': [],
+        'accountDetails': {
+          'id': type == 'Students' ? data['hallTicketNumber'] : data['facultyId'],
+          'name': type == 'Students' ? data['studentName'] : data['facultyName'],
+          'password': _generateRandomPassword(),
+        },
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error creating account: $e',
+      };
+    }
+  }
+
+  static bool _isValidHallTicket(String value) {
+    final pattern = RegExp(r'^[0-9]{4}[A-Z][0-9]{5}$');
+    return pattern.hasMatch(value);
+  }
+
+  static bool _isValidEmail(String value) {
+    final pattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    return pattern.hasMatch(value);
+  }
+
+  static String _generateRandomPassword() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#\$%';
+    final random = List.generate(8, (index) => chars[(index * 7) % chars.length]);
+    return random.join();
+  }
 }

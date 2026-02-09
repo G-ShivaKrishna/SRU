@@ -116,7 +116,8 @@ class _PermissionManagementPageState extends State<PermissionManagementPage>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.orange[100],
                     borderRadius: BorderRadius.circular(4),
@@ -154,7 +155,8 @@ class _PermissionManagementPageState extends State<PermissionManagementPage>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: isMobile ? 10 : 12),
+                      padding:
+                          EdgeInsets.symmetric(vertical: isMobile ? 10 : 12),
                     ),
                   ),
                 ),
@@ -166,7 +168,8 @@ class _PermissionManagementPageState extends State<PermissionManagementPage>
                     label: const Text('Reject'),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.red),
-                      padding: EdgeInsets.symmetric(vertical: isMobile ? 10 : 12),
+                      padding:
+                          EdgeInsets.symmetric(vertical: isMobile ? 10 : 12),
                     ),
                   ),
                 ),
@@ -218,7 +221,8 @@ class _PermissionManagementPageState extends State<PermissionManagementPage>
     );
   }
 
-  Widget _buildActivePermissionCard(Map<String, dynamic> permission, bool isMobile) {
+  Widget _buildActivePermissionCard(
+      Map<String, dynamic> permission, bool isMobile) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -237,7 +241,8 @@ class _PermissionManagementPageState extends State<PermissionManagementPage>
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.green[100],
                     borderRadius: BorderRadius.circular(4),
@@ -311,7 +316,8 @@ class _PermissionManagementPageState extends State<PermissionManagementPage>
 
   void _rejectPermission(Map<String, dynamic> request) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Permission request rejected for ${request['name']}')),
+      SnackBar(
+          content: Text('Permission request rejected for ${request['name']}')),
     );
     setState(() => _pendingRequests.remove(request));
   }

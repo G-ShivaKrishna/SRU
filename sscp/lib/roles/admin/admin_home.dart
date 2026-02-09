@@ -470,19 +470,24 @@ class AdminHome extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildActivityItem('150 Students uploaded', '2 hours ago', Icons.check_circle, Colors.green),
+          _buildActivityItem('150 Students uploaded', '2 hours ago',
+              Icons.check_circle, Colors.green),
           const SizedBox(height: 12),
-          _buildActivityItem('45 Faculty accounts updated', '5 hours ago', Icons.info, Colors.blue),
+          _buildActivityItem('45 Faculty accounts updated', '5 hours ago',
+              Icons.info, Colors.blue),
           const SizedBox(height: 12),
-          _buildActivityItem('12 Permission requests pending', 'Today', Icons.schedule, Colors.orange),
+          _buildActivityItem('12 Permission requests pending', 'Today',
+              Icons.schedule, Colors.orange),
           const SizedBox(height: 12),
-          _buildActivityItem('System backup completed', 'Yesterday', Icons.backup, Colors.teal),
+          _buildActivityItem('System backup completed', 'Yesterday',
+              Icons.backup, Colors.teal),
         ],
       ),
     );
   }
 
-  Widget _buildActivityItem(String title, String time, IconData icon, Color color) {
+  Widget _buildActivityItem(
+      String title, String time, IconData icon, Color color) {
     return Row(
       children: [
         Icon(icon, color: color, size: 20),
