@@ -28,7 +28,9 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
   void _generateCaptcha() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    _captchaText = List.generate(6, (index) => chars[Random().nextInt(chars.length)]).join();
+    _captchaText =
+        List.generate(6, (index) => chars[Random().nextInt(chars.length)])
+            .join();
   }
 
   void _refreshCaptcha() {
@@ -77,11 +79,11 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
     // Authenticate using Firebase Auth
     setState(() => _isLoading = true);
-    
+
     try {
       // Use lowercase for Firebase Auth email
       final email = '${rollNumber.toLowerCase()}@sru.edu.in';
-      
+
       await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -95,7 +97,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     } on FirebaseAuthException catch (e) {
       setState(() => _isLoading = false);
       _refreshCaptcha();
-      
+
       if (e.code == 'user-not-found') {
         _showError('Student account not found. Contact admin.');
       } else if (e.code == 'wrong-password') {
@@ -132,7 +134,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const RoleSelectionScreen()),
             );
           },
         ),
@@ -167,7 +170,9 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 ),
                 prefixIcon: const Icon(Icons.lock),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                  icon: Icon(_obscurePassword
+                      ? Icons.visibility_off
+                      : Icons.visibility),
                   onPressed: () {
                     setState(() {
                       _obscurePassword = !_obscurePassword;
@@ -191,7 +196,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           borderRadius: BorderRadius.circular(4),
@@ -242,12 +248,16 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                         width: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     : const Text(
                         'Login',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600),
                       ),
               ),
             ),

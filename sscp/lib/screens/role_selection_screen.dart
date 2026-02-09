@@ -85,7 +85,9 @@ class RoleSelectionScreen extends StatelessWidget {
                         label: 'Teacher/Faculty',
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (context) => const FacultyLoginScreen()),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const FacultyLoginScreen()),
                           );
                         },
                       ),
@@ -95,7 +97,8 @@ class RoleSelectionScreen extends StatelessWidget {
                         label: 'Admin',
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
+                            MaterialPageRoute(
+                                builder: (context) => const AdminLoginScreen()),
                           );
                         },
                       ),

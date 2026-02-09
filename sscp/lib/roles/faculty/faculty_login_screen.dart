@@ -15,7 +15,8 @@ class FacultyLoginScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const RoleSelectionScreen()),
             );
           },
         ),

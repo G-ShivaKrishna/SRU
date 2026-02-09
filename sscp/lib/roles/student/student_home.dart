@@ -39,7 +39,7 @@ class _StudentHomeState extends State<StudentHome> {
       // Extract roll number from email and convert to uppercase for Firestore query
       final email = _currentUser.email ?? '';
       final rollNumber = email.split('@')[0].toUpperCase();
-      
+
       final doc = await _firestore.collection('students').doc(rollNumber).get();
       if (doc.exists) {
         setState(() {
@@ -126,7 +126,8 @@ class _StudentHomeState extends State<StudentHome> {
     final name = _studentData?['name'] ?? 'Student';
     final rollNumber = _currentUser.email?.split('@')[0].toUpperCase() ?? '';
     final hallTicketNumber = _studentData?['hallTicketNumber'] ?? rollNumber;
-    final department = _studentData?['department']?.toString().toUpperCase() ?? 'CSE';
+    final department =
+        _studentData?['department']?.toString().toUpperCase() ?? 'CSE';
     final batchNumber = _studentData?['batchNumber'] ?? 'N/A';
     final email = _studentData?['email'] ?? _currentUser.email ?? 'N/A';
     final program = _studentData?['program'] ?? 'BTECH';
@@ -175,13 +176,15 @@ class _StudentHomeState extends State<StudentHome> {
           children: [
             _buildNavigationMenu(context),
             _buildStatusBar(context),
-            _buildWelcomeSection(context, name, hallTicketNumber, program, department),
+            _buildWelcomeSection(
+                context, name, hallTicketNumber, program, department),
             _buildTimetableLink(context),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(
                 children: [
-                  _buildStudentDetailsCard(context, hallTicketNumber, name, email, department, batchNumber),
+                  _buildStudentDetailsCard(context, hallTicketNumber, name,
+                      email, department, batchNumber),
                   const SizedBox(height: 24),
                   _buildAcademicsCardsGrid(context),
                   const SizedBox(height: 24),
@@ -328,7 +331,8 @@ class _StudentHomeState extends State<StudentHome> {
     );
   }
 
-  Widget _buildWelcomeSection(BuildContext context, String name, String hallTicketNumber, String program, String department) {
+  Widget _buildWelcomeSection(BuildContext context, String name,
+      String hallTicketNumber, String program, String department) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
@@ -346,7 +350,8 @@ class _StudentHomeState extends State<StudentHome> {
     );
   }
 
-  Widget _buildStudentDetailsCard(BuildContext context, String hallTicketNumber, String name, String email, String department, String batchNumber) {
+  Widget _buildStudentDetailsCard(BuildContext context, String hallTicketNumber,
+      String name, String email, String department, String batchNumber) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
@@ -374,7 +379,8 @@ class _StudentHomeState extends State<StudentHome> {
                   color: Colors.blue.shade100,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.person, color: Colors.blue.shade700, size: 32),
+                child:
+                    Icon(Icons.person, color: Colors.blue.shade700, size: 32),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -560,7 +566,8 @@ class _StudentHomeState extends State<StudentHome> {
         children: [
           Row(
             children: [
-              Icon(Icons.person_outline, color: Colors.amber.shade700, size: 24),
+              Icon(Icons.person_outline,
+                  color: Colors.amber.shade700, size: 24),
               const SizedBox(width: 8),
               Text(
                 'Mentoring Staff',
