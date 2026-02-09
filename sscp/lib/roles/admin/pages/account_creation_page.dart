@@ -126,13 +126,17 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             const SizedBox(height: 12),
             _buildTypeSelector(isMobile),
             const SizedBox(height: 24),
-            _buildRequiredColumnsCard(_typeTabController.index == 0 ? 'Students' : 'Faculty', isMobile),
+            _buildRequiredColumnsCard(
+                _typeTabController.index == 0 ? 'Students' : 'Faculty',
+                isMobile),
             const SizedBox(height: 24),
             _buildFileSelectionCard(isMobile),
             const SizedBox(height: 24),
             if (_selectedFile != null) _buildSelectedFileCard(isMobile),
             const SizedBox(height: 24),
-            _buildUploadButton(_typeTabController.index == 0 ? 'Students' : 'Faculty', isMobile),
+            _buildUploadButton(
+                _typeTabController.index == 0 ? 'Students' : 'Faculty',
+                isMobile),
             if (_uploadResult != null) ...[
               const SizedBox(height: 24),
               _buildResultCard(isMobile),
@@ -382,15 +386,16 @@ class _AccountCreationPageState extends State<AccountCreationPage>
           ),
           const SizedBox(height: 12),
           ...columns.map((col) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                const SizedBox(width: 8),
-                Text(col, style: const TextStyle(fontSize: 12)),
-              ],
-            ),
-          )),
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle,
+                        color: Colors.green, size: 16),
+                    const SizedBox(width: 8),
+                    Text(col, style: const TextStyle(fontSize: 12)),
+                  ],
+                ),
+              )),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(8),
@@ -615,9 +620,12 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             ],
           ),
           const SizedBox(height: 12),
-          _buildResultRow('Total Rows', result['totalRows'].toString(), isMobile),
-          _buildResultRow('Created', result['created'].toString(), isMobile, Colors.green),
-          _buildResultRow('Failed', result['failed'].toString(), isMobile, Colors.red),
+          _buildResultRow(
+              'Total Rows', result['totalRows'].toString(), isMobile),
+          _buildResultRow(
+              'Created', result['created'].toString(), isMobile, Colors.green),
+          _buildResultRow(
+              'Failed', result['failed'].toString(), isMobile, Colors.red),
           if (result['failedReasons'] != null &&
               (result['failedReasons'] as List).isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -664,7 +672,8 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     );
   }
 
-  Widget _buildResultRow(String label, String value, bool isMobile, [Color? valueColor]) {
+  Widget _buildResultRow(String label, String value, bool isMobile,
+      [Color? valueColor]) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -736,7 +745,8 @@ class _AccountCreationPageState extends State<AccountCreationPage>
 
   Future<void> _handleManualSubmit() async {
     final type = _typeTabController.index == 0 ? 'Students' : 'Faculty';
-    final controllers = type == 'Students' ? _studentControllers : _facultyControllers;
+    final controllers =
+        type == 'Students' ? _studentControllers : _facultyControllers;
 
     // Validate all fields are filled
     if (controllers.values.any((controller) => controller.text.isEmpty)) {

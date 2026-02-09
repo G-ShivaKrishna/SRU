@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'firebase_service.dart';
 
 class ExcelUploadService {
   static Future<Map<String, dynamic>> uploadAccounts(
@@ -6,10 +7,10 @@ class ExcelUploadService {
     File file,
   ) async {
     try {
-      // Simulate file processing delay
+      // In production, parse the Excel file here
+      // For now, return mock data
       await Future.delayed(const Duration(seconds: 2));
 
-      // Validate file exists
       if (!await file.exists()) {
         return {
           'success': false,
@@ -17,10 +18,8 @@ class ExcelUploadService {
         };
       }
 
-      // Mock parsing based on file extension
       final fileName = file.path.split('/').last.toLowerCase();
-      final isValidFormat =
-          fileName.endsWith('.xlsx') ||
+      final isValidFormat = fileName.endsWith('.xlsx') ||
           fileName.endsWith('.xls') ||
           fileName.endsWith('.csv');
 
@@ -31,28 +30,41 @@ class ExcelUploadService {
         };
       }
 
-      // Mock data processing
+      // Mock data - in production, parse from file
       if (type == 'Students') {
-        return {
-          'success': true,
-          'message': 'Students uploaded successfully',
-          'totalRows': 150,
-          'created': 148,
-          'failed': 2,
-          'failedReasons': [
-            'Row 45: Invalid Hall Ticket Number (duplicate HT2022001)',
-            'Row 89: Missing required field: Email',
-          ],
-        };
+        final mockStudents = [
+          {
+            'hallTicketNumber': '2203A51291',
+            'studentName': 'John Doe',
+            'department': 'CSE',
+            'batchNumber': '22CSBTB09',
+            'year': '2',
+            'email': 'john@example.com',
+          },
+          {
+            'hallTicketNumber': '2203A51292',
+            'studentName': 'Jane Smith',
+            'department': 'CSE',
+            'batchNumber': '22CSBTB09',
+            'year': '2',
+            'email': 'jane@example.com',
+          },
+        ];
+
+        return await FirebaseService.bulkCreateStudents(mockStudents);
       } else {
-        return {
-          'success': true,
-          'message': 'Faculty uploaded successfully',
-          'totalRows': 45,
-          'created': 45,
-          'failed': 0,
-          'failedReasons': [],
-        };
+        final mockFaculty = [
+          {
+            'facultyId': 'FAC2001',
+            'facultyName': 'Dr. John Smith',
+            'department': 'CSE',
+            'designation': 'Assistant Professor',
+            'email': 'john.smith@sru.edu',
+            'subjects': 'DBMS, OS, DSA',
+          },
+        ];
+
+        return await FirebaseService.bulkCreateFaculty(mockFaculty);
       }
     } catch (e) {
       return {
@@ -67,68 +79,38 @@ class ExcelUploadService {
     Map<String, String> data,
   ) async {
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      final future = type == 'Students'
+          ? FirebaseService.createStudentAccount(
+              hallTicketNumber: data['hallTicketNumber'] ?? '',
+              studentName: data['studentName'] ?? '',
+              department: data['department'] ?? '',
+              batchNumber: data['batchNumber'] ?? '',
+              year: data['year'] ?? '1',
+              email: data['email'] ?? '',
+            )
+          : FirebaseService.createFacultyAccount(
+              facultyId: data['facultyId'] ?? '',
+              facultyName: data['facultyName'] ?? '',
+              department: data['department'] ?? '',
+              designation: data['designation'] ?? '',
+              email: data['email'] ?? '',
+              subjects: data['subjects'] ?? '',
+            );
 
-      // Validate data
-      if (data.values.any((value) => value.isEmpty)) {
-        return {
+      final result = await future.timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => {
           'success': false,
-          'message': 'All fields are required',
-          'totalRows': 1,
-          'created': 0,
-          'failed': 1,
-          'failedReasons': ['Missing required fields'],
-        };
-      }
-
-      // Mock validation for specific fields
-      if (type == 'Students') {
-        if (!_isValidHallTicket(data['hallTicketNumber'] ?? '')) {
-          return {
-            'success': false,
-            'message': 'Invalid Hall Ticket Number format',
-            'totalRows': 1,
-            'created': 0,
-            'failed': 1,
-            'failedReasons': ['Invalid Hall Ticket Number format (e.g., 2203A51291)'],
-          };
-        }
-        if (!_isValidEmail(data['email'] ?? '')) {
-          return {
-            'success': false,
-            'message': 'Invalid email format',
-            'totalRows': 1,
-            'created': 0,
-            'failed': 1,
-            'failedReasons': ['Invalid email format'],
-          };
-        }
-      } else {
-        if (!_isValidEmail(data['email'] ?? '')) {
-          return {
-            'success': false,
-            'message': 'Invalid email format',
-            'totalRows': 1,
-            'created': 0,
-            'failed': 1,
-            'failedReasons': ['Invalid email format'],
-          };
-        }
-      }
-
-      return {
-        'success': true,
-        'message': '${type == 'Students' ? 'Student' : 'Faculty'} account created successfully',
-        'totalRows': 1,
-        'created': 1,
-        'failed': 0,
-        'failedReasons': [],
-        'accountDetails': {
-          'id': type == 'Students' ? data['hallTicketNumber'] : data['facultyId'],
-          'name': type == 'Students' ? data['studentName'] : data['facultyName'],
-          'password': _generateRandomPassword(),
+          'message': 'Request timeout. Please try again.',
         },
-      };
+      );
+
+      return result is Map<String, dynamic>
+          ? result
+          : {
+              'success': false,
+              'message': 'Invalid response from server',
+            };
     } catch (e) {
       return {
         'success': false,
@@ -143,13 +125,8 @@ class ExcelUploadService {
   }
 
   static bool _isValidEmail(String value) {
-    final pattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    final pattern =
+        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     return pattern.hasMatch(value);
-  }
-
-  static String _generateRandomPassword() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#\$%';
-    final random = List.generate(8, (index) => chars[(index * 7) % chars.length]);
-    return random.join();
   }
 }
