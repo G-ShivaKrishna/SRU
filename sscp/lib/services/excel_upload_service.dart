@@ -125,8 +125,7 @@ class ExcelUploadService {
   }
 
   static bool _isValidEmail(String value) {
-    final pattern =
-        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    final pattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     return pattern.hasMatch(value);
   }
 }
