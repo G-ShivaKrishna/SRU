@@ -3,7 +3,7 @@ class DevConfig {
   static const bool bypassLogin = false;
 
   // Render demo data in actual pages when bypassing login
-  // Automatically true when bypassLogin is true
+  // Automatically true when bypassLogin is true,
   static const bool useDemoData = bypassLogin;
 
   // Default role when bypassing login (ignored if bypass applies to all roles)
