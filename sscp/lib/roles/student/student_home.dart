@@ -17,6 +17,8 @@ import 'screens/central_library_screen.dart';
 class StudentHome extends StatefulWidget {
   const StudentHome({super.key});
 
+  static const String routeName = '/studentHome';
+
   @override
   State<StudentHome> createState() => _StudentHomeState();
 }

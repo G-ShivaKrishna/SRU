@@ -7,6 +7,8 @@ import 'pages/account_creation_page.dart';
 class AdminHome extends StatelessWidget {
   const AdminHome({super.key});
 
+  static const String routeName = '/adminHome';
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;

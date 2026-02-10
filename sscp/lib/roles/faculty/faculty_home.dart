@@ -4,6 +4,8 @@ import '../../screens/role_selection_screen.dart';
 class FacultyHome extends StatelessWidget {
   const FacultyHome({super.key});
 
+  static const String routeName = '/facultyHome';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../config/dev_config.dart';
 import '../roles/student/student_login_screen.dart';
+import '../roles/student/student_home.dart';
 import '../roles/faculty/faculty_login_screen.dart';
+import '../roles/faculty/faculty_home.dart';
 import '../roles/admin/admin_home.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
@@ -74,7 +77,9 @@ class RoleSelectionScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
-                              builder: (context) => const StudentLoginScreen(),
+                              builder: (context) => DevConfig.bypassLogin
+                                  ? const StudentHome()
+                                  : const StudentLoginScreen(),
                             ),
                           );
                         },
@@ -86,8 +91,10 @@ class RoleSelectionScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    const FacultyLoginScreen()),
+                              builder: (context) => DevConfig.bypassLogin
+                                  ? const FacultyHome()
+                                  : const FacultyLoginScreen(),
+                            ),
                           );
                         },
                       ),
