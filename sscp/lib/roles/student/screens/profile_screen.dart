@@ -1,11 +1,124 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
+import '../../../config/dev_config.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  Map<String, dynamic>? _studentData;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStudentData();
+  }
+
+  Future<void> _loadStudentData() async {
+    try {
+      final user = _auth.currentUser;
+
+      // Only use demo data when both bypass and useDemoData are enabled
+      if (DevConfig.bypassLogin && DevConfig.useDemoData) {
+        setState(() {
+          _studentData = _getDemoData();
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // No user and bypass not enabled - show error
+      if (user == null) {
+        setState(() {
+          _studentData = _getDemoData();
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Fetch from Firestore
+      final email = user.email ?? '';
+      final rollNumber = email.split('@')[0].toUpperCase();
+
+      final doc = await _firestore.collection('students').doc(rollNumber).get();
+      if (doc.exists) {
+        setState(() {
+          _studentData = doc.data();
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _studentData = _getDemoData();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _studentData = _getDemoData();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Map<String, dynamic> _getDemoData() {
+    return {
+      'hallTicketNumber': '2203A51318',
+      'name': 'DEMO STUDENT',
+      'fatherName': 'DEMO FATHER',
+      'rollNumber': '22CSBTB18',
+      'dateOfBirth': '01/01/2004',
+      'gender': 'MALE',
+      'bloodGroup': 'O+',
+      'admissionYear': '2022',
+      'admissionType': 'Convener (EAMCET)',
+      'program': 'BTECH',
+      'department': 'CSE',
+      'batchNumber': '18',
+      'dateOfAdmission': '15-07-2022',
+      'nationality': 'Indian',
+      'religion': 'Hindu',
+      'caste': 'OC',
+      'motherTongue': 'Telugu',
+      'identificationMark': 'Mole on Right Hand',
+      'placeOfBirth': 'HYDERABAD',
+      'addressLine1': 'Demo Address Line 1',
+      'addressLine2': 'Demo Address Line 2',
+      'city': 'HYDERABAD',
+      'state': 'TELANGANA',
+      'country': 'India',
+      'postalCode': '500001',
+      'phoneNumber': '9999999999',
+      'sscSchool': 'Demo High School',
+      'sscBoard': 'SSC',
+      'sscPercentage': '9.5',
+      'interCollege': 'Demo Junior College',
+      'interBoard': 'INTERMEDIATE',
+      'interPercentage': '9.6',
+      'cetType': 'EAMCET',
+      'cetRank': '12345',
+      'cetMarks': '600',
+      'cetScore': '10',
+      'aadharNumber': '****5678',
+    };
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
@@ -25,100 +138,136 @@ class ProfileScreen extends StatelessWidget {
                   _buildSectionCard(
                       'Student Basic Information',
                       [
-                        _buildInfoRow('Registration Number', '2203A51291'),
+                        _buildInfoRow('Registration Number',
+                            _studentData?['hallTicketNumber'] ?? 'N/A'),
                         _buildInfoRow(
-                            'Student Name', 'GOTTIMUKKULA SHIVA KRISHNA REDDY'),
+                            'Student Name', _studentData?['name'] ?? 'N/A'),
                         _buildInfoRow('Father\'s Name or Guardian',
-                            'GOTTIMUKKULA SRINIVAS REDDY'),
-                        _buildInfoRow('Roll Number', '22CSBTB09'),
-                        _buildInfoRow('Date of Birth', '18/08/2004'),
-                        _buildInfoRow('Gender', 'MALE'),
-                        _buildInfoRow('Blood Transfusion', 'O+'),
+                            _studentData?['fatherName'] ?? 'N/A'),
+                        _buildInfoRow('Roll Number',
+                            _studentData?['rollNumber'] ?? 'N/A'),
+                        _buildInfoRow('Date of Birth',
+                            _studentData?['dateOfBirth'] ?? 'N/A'),
+                        _buildInfoRow(
+                            'Gender', _studentData?['gender'] ?? 'N/A'),
+                        _buildInfoRow('Blood Transfusion',
+                            _studentData?['bloodGroup'] ?? 'N/A'),
                       ],
                       context),
                   const SizedBox(height: 16),
                   _buildSectionCard(
                       'Student Admission Information',
                       [
-                        _buildInfoRow('Admission Year', '2022'),
-                        _buildInfoRow('Admission Type', 'Convener (EAMCET)'),
-                        _buildInfoRow('Course Name', 'BTECH'),
-                        _buildInfoRow('Branch', 'CSE'),
-                        _buildInfoRow('Batch Number', '22CSBTB09'),
-                        _buildInfoRow('Date of Admission', '15-07-2022'),
+                        _buildInfoRow('Admission Year',
+                            _studentData?['admissionYear'] ?? 'N/A'),
+                        _buildInfoRow('Admission Type',
+                            _studentData?['admissionType'] ?? 'N/A'),
+                        _buildInfoRow(
+                            'Course Name', _studentData?['program'] ?? 'N/A'),
+                        _buildInfoRow(
+                            'Branch', _studentData?['department'] ?? 'N/A'),
+                        _buildInfoRow('Batch Number',
+                            _studentData?['batchNumber'] ?? 'N/A'),
+                        _buildInfoRow('Date of Admission',
+                            _studentData?['dateOfAdmission'] ?? 'N/A'),
                       ],
                       context),
                   const SizedBox(height: 16),
                   _buildSectionCard(
                       'Student Personal Details',
                       [
-                        _buildInfoRow('Nationality', 'Indian'),
-                        _buildInfoRow('Religion', 'Hindu'),
-                        _buildInfoRow('Caste', 'SC'),
-                        _buildInfoRow('Mother Tongue', 'Telugu'),
+                        _buildInfoRow('Nationality',
+                            _studentData?['nationality'] ?? 'N/A'),
                         _buildInfoRow(
-                            'Identification Mark', 'Mole on Left Shoulder'),
-                        _buildInfoRow('Place of Birth', 'HYDERABAD'),
+                            'Religion', _studentData?['religion'] ?? 'N/A'),
+                        _buildInfoRow('Caste', _studentData?['caste'] ?? 'N/A'),
+                        _buildInfoRow('Mother Tongue',
+                            _studentData?['motherTongue'] ?? 'N/A'),
+                        _buildInfoRow('Identification Mark',
+                            _studentData?['identificationMark'] ?? 'N/A'),
+                        _buildInfoRow('Place of Birth',
+                            _studentData?['placeOfBirth'] ?? 'N/A'),
                       ],
                       context),
                   const SizedBox(height: 16),
                   _buildSectionCard(
                       'Contact Address',
                       [
+                        _buildInfoRow('Address Line 1',
+                            _studentData?['addressLine1'] ?? 'N/A'),
+                        _buildInfoRow('Address Line 2',
+                            _studentData?['addressLine2'] ?? 'N/A'),
+                        _buildInfoRow('City', _studentData?['city'] ?? 'N/A'),
+                        _buildInfoRow('State', _studentData?['state'] ?? 'N/A'),
                         _buildInfoRow(
-                            'Address Line 1', 'H.NO.6-3-RAMA KRISHNA NAGAR'),
-                        _buildInfoRow('Address Line 2', 'JANGAON'),
-                        _buildInfoRow('City', 'JANGAON'),
-                        _buildInfoRow('State', 'TELANGANA'),
-                        _buildInfoRow('Country', 'India'),
-                        _buildInfoRow('Postal Code', '506167'),
-                        _buildInfoRow('Phone Number', '7032704281'),
+                            'Country', _studentData?['country'] ?? 'N/A'),
+                        _buildInfoRow('Postal Code',
+                            _studentData?['postalCode'] ?? 'N/A'),
+                        _buildInfoRow('Phone Number',
+                            _studentData?['phoneNumber'] ?? 'N/A'),
                       ],
                       context),
                   const SizedBox(height: 16),
                   _buildSectionCard(
                       'Academic Details',
                       [
-                        _buildInfoRow('SSC School Name', 'Sri Saraswathi'),
-                        _buildInfoRow('Board of SSC', 'SSC'),
-                        _buildInfoRow('SSC Percentage', '9.2'),
-                        _buildInfoRow('Intermediate College',
-                            'Sri Saraswathi Junior College'),
+                        _buildInfoRow('SSC School Name',
+                            _studentData?['sscSchool'] ?? 'N/A'),
                         _buildInfoRow(
-                            'Board of Intermediate', 'JUNIOR COLLEGE'),
-                        _buildInfoRow('Intermediate Percentage', '9.4'),
+                            'Board of SSC', _studentData?['sscBoard'] ?? 'N/A'),
+                        _buildInfoRow('SSC Percentage',
+                            _studentData?['sscPercentage'] ?? 'N/A'),
+                        _buildInfoRow('Intermediate College',
+                            _studentData?['interCollege'] ?? 'N/A'),
+                        _buildInfoRow('Board of Intermediate',
+                            _studentData?['interBoard'] ?? 'N/A'),
+                        _buildInfoRow('Intermediate Percentage',
+                            _studentData?['interPercentage'] ?? 'N/A'),
                       ],
                       context),
                   const SizedBox(height: 16),
                   _buildSectionCard(
                       'CET Details',
                       [
-                        _buildInfoRow('CET Type', 'EAMCET'),
-                        _buildInfoRow('CET Rank', '45846'),
-                        _buildInfoRow('CET Marks', '515'),
-                        _buildInfoRow('CET Score', '9'),
+                        _buildInfoRow(
+                            'CET Type', _studentData?['cetType'] ?? 'N/A'),
+                        _buildInfoRow(
+                            'CET Rank', _studentData?['cetRank'] ?? 'N/A'),
+                        _buildInfoRow(
+                            'CET Marks', _studentData?['cetMarks'] ?? 'N/A'),
+                        _buildInfoRow(
+                            'CET Score', _studentData?['cetScore'] ?? 'N/A'),
                       ],
                       context),
                   const SizedBox(height: 16),
                   _buildSectionCard(
                       'Permanent Address',
                       [
+                        _buildInfoRow('Address Line 1',
+                            _studentData?['addressLine1'] ?? 'N/A'),
+                        _buildInfoRow('Address Line 2',
+                            _studentData?['addressLine2'] ?? 'N/A'),
+                        _buildInfoRow('City', _studentData?['city'] ?? 'N/A'),
+                        _buildInfoRow('State', _studentData?['state'] ?? 'N/A'),
                         _buildInfoRow(
-                            'Address Line 1', 'H.NO.6-3-RAMA KRISHNA NAGAR'),
-                        _buildInfoRow('Address Line 2', 'JANGAON'),
-                        _buildInfoRow('City', 'JANGAON'),
-                        _buildInfoRow('State', 'TELANGANA'),
-                        _buildInfoRow('Country', 'India'),
-                        _buildInfoRow('Postal Code', '506167'),
+                            'Country', _studentData?['country'] ?? 'N/A'),
+                        _buildInfoRow('Postal Code',
+                            _studentData?['postalCode'] ?? 'N/A'),
                       ],
                       context),
                   const SizedBox(height: 16),
                   _buildSectionCard(
                       'Aadhar Card Details',
                       [
-                        _buildInfoRow('Aadhar Number', '****1234'),
-                        _buildInfoRow('Address',
-                            'H.NO.6-3-RAMA KRISHNA NAGAR\nJANGAON\nJANGAON\nTELANGANA\n506167'),
+                        _buildInfoRow('Aadhar Number',
+                            _studentData?['aadharNumber'] ?? 'N/A'),
+                        _buildInfoRow(
+                            'Address',
+                            '${_studentData?['addressLine1'] ?? 'N/A'}\n'
+                                '${_studentData?['addressLine2'] ?? ''}\n'
+                                '${_studentData?['city'] ?? 'N/A'}\n'
+                                '${_studentData?['state'] ?? 'N/A'}\n'
+                                '${_studentData?['postalCode'] ?? 'N/A'}'),
                         _buildInfoRow('Area Identifier by Postal Office', ''),
                       ],
                       context),

@@ -40,8 +40,8 @@ class _StudentHomeState extends State<StudentHome> {
     try {
       final user = _auth.currentUser;
 
-      // If bypass is enabled or no user logged in, use default data
-      if (DevConfig.bypassLogin || user == null) {
+      // Only use demo data when both bypass and useDemoData are enabled
+      if (DevConfig.bypassLogin && DevConfig.useDemoData) {
         setState(() {
           _studentData = {
             'name': 'Demo Student',
@@ -56,6 +56,12 @@ class _StudentHomeState extends State<StudentHome> {
           };
           _isLoading = false;
         });
+        return;
+      }
+
+      // No user logged in - fetch would fail
+      if (user == null) {
+        setState(() => _isLoading = false);
         return;
       }
 
