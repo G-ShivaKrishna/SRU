@@ -104,7 +104,8 @@ class _StudentNameEditPageState extends State<StudentNameEditPage> {
     });
 
     try {
-      final hallTicketNumber = _selectedStudent!['hallTicketNumber'] ?? _selectedStudent!['id'];
+      final hallTicketNumber =
+          _selectedStudent!['hallTicketNumber'] ?? _selectedStudent!['id'];
       final result = await StudentAccessService.updateStudentNameAsAdmin(
         hallTicketNumber,
         _newNameController.text.trim(),
@@ -345,7 +346,8 @@ class _StudentNameEditPageState extends State<StudentNameEditPage> {
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: _isLoading ? null : _updateStudentName,
+                                onPressed:
+                                    _isLoading ? null : _updateStudentName,
                                 icon: _isLoading
                                     ? const SizedBox(
                                         width: 20,
