@@ -3,6 +3,7 @@ import '../../screens/role_selection_screen.dart';
 import 'pages/view_only_page.dart';
 import 'pages/permission_management_page.dart';
 import 'pages/account_creation_page.dart';
+import 'pages/student_profile_edit_access_page.dart';
 
 class AdminHome extends StatelessWidget {
   const AdminHome({super.key});
@@ -219,6 +220,16 @@ class AdminHome extends StatelessWidget {
           ),
         ),
         _buildActionCard(
+          'Grant Edit\nAccess',
+          Icons.edit_note,
+          Colors.cyan,
+          context,
+          () => Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (context) => const StudentProfileEditAccessPage()),
+          ),
+        ),
+        _buildActionCard(
           'View\nData',
           Icons.visibility,
           Colors.green,
@@ -236,13 +247,6 @@ class AdminHome extends StatelessWidget {
             MaterialPageRoute(
                 builder: (context) => const PermissionManagementPage()),
           ),
-        ),
-        _buildActionCard(
-          'View\nReports',
-          Icons.bar_chart,
-          Colors.purple,
-          context,
-          () => _showComingSoon(context, 'Reports'),
         ),
       ],
     );
