@@ -4,6 +4,7 @@ import 'pages/view_only_page.dart';
 import 'pages/permission_management_page.dart';
 import 'pages/account_creation_page.dart';
 import 'pages/student_profile_edit_access_page.dart';
+import 'pages/student_name_edit_page.dart';
 
 class AdminHome extends StatelessWidget {
   const AdminHome({super.key});
@@ -227,6 +228,16 @@ class AdminHome extends StatelessWidget {
           () => Navigator.of(context).push(
             MaterialPageRoute(
                 builder: (context) => const StudentProfileEditAccessPage()),
+          ),
+        ),
+        _buildActionCard(
+          'Edit Student\nNames',
+          Icons.person_outline,
+          Colors.purple,
+          context,
+          () => Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (context) => const StudentNameEditPage()),
           ),
         ),
         _buildActionCard(
