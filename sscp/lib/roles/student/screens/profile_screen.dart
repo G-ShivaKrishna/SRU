@@ -45,13 +45,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextEditingController(text: _studentData?['bloodGroup'] ?? ''),
       'nationality':
           TextEditingController(text: _studentData?['nationality'] ?? ''),
-      'religion':
-          TextEditingController(text: _studentData?['religion'] ?? ''),
+      'religion': TextEditingController(text: _studentData?['religion'] ?? ''),
       'caste': TextEditingController(text: _studentData?['caste'] ?? ''),
       'motherTongue':
           TextEditingController(text: _studentData?['motherTongue'] ?? ''),
-      'identificationMark':
-          TextEditingController(text: _studentData?['identificationMark'] ?? ''),
+      'identificationMark': TextEditingController(
+          text: _studentData?['identificationMark'] ?? ''),
       'placeOfBirth':
           TextEditingController(text: _studentData?['placeOfBirth'] ?? ''),
       'addressLine1':
@@ -67,8 +66,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextEditingController(text: _studentData?['phoneNumber'] ?? ''),
       'sscSchool':
           TextEditingController(text: _studentData?['sscSchool'] ?? ''),
-      'sscBoard':
-          TextEditingController(text: _studentData?['sscBoard'] ?? ''),
+      'sscBoard': TextEditingController(text: _studentData?['sscBoard'] ?? ''),
       'sscPercentage':
           TextEditingController(text: _studentData?['sscPercentage'] ?? ''),
       'interCollege':
@@ -210,8 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final rollNumber = email.split('@')[0].toUpperCase();
 
       // Check if student has edit access
-      final hasAccess =
-          await StudentAccessService.hasEditAccess(rollNumber);
+      final hasAccess = await StudentAccessService.hasEditAccess(rollNumber);
 
       if (!hasAccess) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -417,7 +414,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         if (_isEditMode)
                           _buildEditableField('Caste', 'caste')
                         else
-                          _buildInfoRow('Caste', _studentData?['caste'] ?? 'N/A'),
+                          _buildInfoRow(
+                              'Caste', _studentData?['caste'] ?? 'N/A'),
                         if (_isEditMode)
                           _buildEditableField('Mother Tongue', 'motherTongue')
                         else
@@ -457,7 +455,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         if (_isEditMode)
                           _buildEditableField('State', 'state')
                         else
-                          _buildInfoRow('State', _studentData?['state'] ?? 'N/A'),
+                          _buildInfoRow(
+                              'State', _studentData?['state'] ?? 'N/A'),
                         if (_isEditMode)
                           _buildEditableField('Country', 'country')
                         else
@@ -487,25 +486,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         if (_isEditMode)
                           _buildEditableField('Board of SSC', 'sscBoard')
                         else
-                          _buildInfoRow(
-                              'Board of SSC', _studentData?['sscBoard'] ?? 'N/A'),
+                          _buildInfoRow('Board of SSC',
+                              _studentData?['sscBoard'] ?? 'N/A'),
                         if (_isEditMode)
                           _buildEditableField('SSC Percentage', 'sscPercentage')
                         else
                           _buildInfoRow('SSC Percentage',
                               _studentData?['sscPercentage'] ?? 'N/A'),
                         if (_isEditMode)
-                          _buildEditableField('Intermediate College', 'interCollege')
+                          _buildEditableField(
+                              'Intermediate College', 'interCollege')
                         else
                           _buildInfoRow('Intermediate College',
                               _studentData?['interCollege'] ?? 'N/A'),
                         if (_isEditMode)
-                          _buildEditableField('Board of Intermediate', 'interBoard')
+                          _buildEditableField(
+                              'Board of Intermediate', 'interBoard')
                         else
                           _buildInfoRow('Board of Intermediate',
                               _studentData?['interBoard'] ?? 'N/A'),
                         if (_isEditMode)
-                          _buildEditableField('Intermediate Percentage', 'interPercentage')
+                          _buildEditableField(
+                              'Intermediate Percentage', 'interPercentage')
                         else
                           _buildInfoRow('Intermediate Percentage',
                               _studentData?['interPercentage'] ?? 'N/A'),
@@ -562,8 +564,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     width: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
                                         Colors.white,
                                       ),
                                     ),
@@ -854,4 +855,3 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
-

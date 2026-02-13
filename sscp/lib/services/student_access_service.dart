@@ -8,11 +8,11 @@ class StudentAccessService {
     try {
       if (query.isEmpty) {
         // Return all students if query is empty
-        final snapshot = await _firestore.collection('students').limit(50).get();
-        return snapshot.docs.map((doc) => {
-          'id': doc.id,
-          ...doc.data()
-        }).toList();
+        final snapshot =
+            await _firestore.collection('students').limit(50).get();
+        return snapshot.docs
+            .map((doc) => {'id': doc.id, ...doc.data()})
+            .toList();
       }
 
       final queryLower = query.toLowerCase();
@@ -21,7 +21,8 @@ class StudentAccessService {
       // Search by hallTicketNumber (roll number)
       final rollNumberQuery = await _firestore
           .collection('students')
-          .where('hallTicketNumber', isGreaterThanOrEqualTo: query.toUpperCase())
+          .where('hallTicketNumber',
+              isGreaterThanOrEqualTo: query.toUpperCase())
           .where('hallTicketNumber', isLessThan: query.toUpperCase() + 'z')
           .limit(20)
           .get();
@@ -35,16 +36,13 @@ class StudentAccessService {
       }
 
       // Search by name (case-insensitive)
-      final nameQuery = await _firestore
-          .collection('students')
-          .limit(50)
-          .get();
+      final nameQuery = await _firestore.collection('students').limit(50).get();
 
       for (var doc in nameQuery.docs) {
         final data = doc.data();
         final studentName = (data['name'] ?? '').toString().toLowerCase();
-        
-        if (studentName.contains(queryLower) && 
+
+        if (studentName.contains(queryLower) &&
             !results.any((r) => r['id'] == doc.id)) {
           results.add({
             'id': doc.id,
@@ -65,13 +63,10 @@ class StudentAccessService {
     String hallTicketNumber,
   ) async {
     try {
-      await _firestore
-          .collection('students')
-          .doc(hallTicketNumber)
-          .update({
-            'canEditProfile': true,
-            'editAccessGrantedAt': FieldValue.serverTimestamp(),
-          });
+      await _firestore.collection('students').doc(hallTicketNumber).update({
+        'canEditProfile': true,
+        'editAccessGrantedAt': FieldValue.serverTimestamp(),
+      });
 
       return {
         'success': true,
@@ -90,13 +85,10 @@ class StudentAccessService {
     String hallTicketNumber,
   ) async {
     try {
-      await _firestore
-          .collection('students')
-          .doc(hallTicketNumber)
-          .update({
-            'canEditProfile': false,
-            'editAccessRevokedAt': FieldValue.serverTimestamp(),
-          });
+      await _firestore.collection('students').doc(hallTicketNumber).update({
+        'canEditProfile': false,
+        'editAccessRevokedAt': FieldValue.serverTimestamp(),
+      });
 
       return {
         'success': true,
@@ -113,10 +105,8 @@ class StudentAccessService {
   // Check if student has edit access
   static Future<bool> hasEditAccess(String hallTicketNumber) async {
     try {
-      final doc = await _firestore
-          .collection('students')
-          .doc(hallTicketNumber)
-          .get();
+      final doc =
+          await _firestore.collection('students').doc(hallTicketNumber).get();
 
       if (!doc.exists) {
         return false;
@@ -138,10 +128,7 @@ class StudentAccessService {
           .where('canEditProfile', isEqualTo: true)
           .get();
 
-      return snapshot.docs.map((doc) => {
-        'id': doc.id,
-        ...doc.data()
-      }).toList();
+      return snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
     } catch (e) {
       print('Error getting students with edit access: $e');
       return [];
@@ -156,7 +143,7 @@ class StudentAccessService {
     try {
       // Check if student has edit access
       final hasAccess = await hasEditAccess(hallTicketNumber);
-      
+
       if (!hasAccess) {
         return {
           'success': false,
@@ -164,13 +151,10 @@ class StudentAccessService {
         };
       }
 
-      await _firestore
-          .collection('students')
-          .doc(hallTicketNumber)
-          .update({
-            ...updates,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+      await _firestore.collection('students').doc(hallTicketNumber).update({
+        ...updates,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
 
       return {
         'success': true,
@@ -189,19 +173,14 @@ class StudentAccessService {
     String hallTicketNumber,
   ) async {
     try {
-      final doc = await _firestore
-          .collection('students')
-          .doc(hallTicketNumber)
-          .get();
+      final doc =
+          await _firestore.collection('students').doc(hallTicketNumber).get();
 
       if (!doc.exists) {
         return null;
       }
 
-      return {
-        'id': doc.id,
-        ...doc.data() as Map<String, dynamic>
-      };
+      return {'id': doc.id, ...doc.data() as Map<String, dynamic>};
     } catch (e) {
       print('Error getting student: $e');
       return null;
@@ -217,10 +196,8 @@ class StudentAccessService {
       final timestamp = FieldValue.serverTimestamp();
 
       for (var hallTicketNumber in hallTicketNumbers) {
-        final docRef = _firestore
-            .collection('students')
-            .doc(hallTicketNumber);
-        
+        final docRef = _firestore.collection('students').doc(hallTicketNumber);
+
         batch.update(docRef, {
           'canEditProfile': true,
           'editAccessGrantedAt': timestamp,
@@ -231,7 +208,8 @@ class StudentAccessService {
 
       return {
         'success': true,
-        'message': 'Edit access granted to ${hallTicketNumbers.length} students',
+        'message':
+            'Edit access granted to ${hallTicketNumbers.length} students',
         'count': hallTicketNumbers.length,
       };
     } catch (e) {
