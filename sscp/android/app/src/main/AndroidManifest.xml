@@ -19,7 +19,7 @@
     </queries>
 
     <application
-        android:label="sscp_new"
+        android:label="SRU"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
