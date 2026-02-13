@@ -106,7 +106,6 @@ class _SplashAnimationScreenState extends State<SplashAnimationScreen>
                           child: _buildText("s"),
                         ),
                       ),
-
                       Transform.translate(
                         offset: Offset(_finalSpacing * _slideOut.value, 0),
                         child: Opacity(
@@ -114,7 +113,6 @@ class _SplashAnimationScreenState extends State<SplashAnimationScreen>
                           child: _buildText("u"),
                         ),
                       ),
-
                       Transform(
                         alignment: Alignment.centerLeft,
                         transform: Matrix4.identity()
@@ -125,8 +123,8 @@ class _SplashAnimationScreenState extends State<SplashAnimationScreen>
                           child: Container(
                             width: _fontSize * _doorWidthRatio,
                             height: _fontSize,
-                                decoration: BoxDecoration(
-                                    color: Colors.white,
+                            decoration: BoxDecoration(
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(4),
                                 boxShadow: const [
                                   BoxShadow(
@@ -159,7 +157,6 @@ class _SplashAnimationScreenState extends State<SplashAnimationScreen>
                           ),
                         ),
                       ),
-
                       Transform.scale(
                         scale: _rScaleIn.value,
                         child: Opacity(
