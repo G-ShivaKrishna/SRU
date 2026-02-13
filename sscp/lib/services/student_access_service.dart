@@ -219,4 +219,34 @@ class StudentAccessService {
       };
     }
   }
+
+  // Admin method to update student name (no permission check required)
+  static Future<Map<String, dynamic>> updateStudentNameAsAdmin(
+    String hallTicketNumber,
+    String newName,
+  ) async {
+    try {
+      if (newName.trim().isEmpty) {
+        return {
+          'success': false,
+          'message': 'Student name cannot be empty',
+        };
+      }
+
+      await _firestore.collection('students').doc(hallTicketNumber).update({
+        'name': newName.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return {
+        'success': true,
+        'message': 'Student name updated successfully',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error updating student name: $e',
+      };
+    }
+  }
 }
