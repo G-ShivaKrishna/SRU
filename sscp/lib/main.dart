@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'config/dev_config.dart';
+import 'splash_animation.dart';
 import 'screens/role_selection_screen.dart';
 import 'roles/student/student_home.dart';
 import 'roles/admin/admin_home.dart';
@@ -25,7 +26,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: _getHome(),
+      home: SplashAnimationScreen(next: _getHome()),
     );
   }
 
