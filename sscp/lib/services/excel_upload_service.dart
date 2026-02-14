@@ -84,7 +84,7 @@ class ExcelUploadService {
 
       // Parse the Excel file
       final excel = Excel.decodeBytes(bytes);
-      
+
       if (excel.sheets.isEmpty) {
         return {
           'success': false,
@@ -98,7 +98,7 @@ class ExcelUploadService {
 
       // Get the first sheet
       final sheet = excel.sheets.values.first;
-      
+
       if (sheet.rows.isEmpty) {
         return {
           'success': false,
@@ -111,7 +111,8 @@ class ExcelUploadService {
       }
 
       // Get required columns based on type
-      final requiredColumns = type == 'Students' ? studentRequiredColumns : facultyRequiredColumns;
+      final requiredColumns =
+          type == 'Students' ? studentRequiredColumns : facultyRequiredColumns;
 
       // Parse header row (first row)
       final headerRow = sheet.rows.first;
@@ -142,9 +143,7 @@ class ExcelUploadService {
           'totalRows': sheet.rows.length - 1, // Exclude header
           'created': 0,
           'failed': sheet.rows.length - 1,
-          'failedReasons': [
-            'Missing columns: ${missingColumns.join(", ")}'
-          ],
+          'failedReasons': ['Missing columns: ${missingColumns.join(", ")}'],
         };
       }
 
@@ -183,20 +182,23 @@ class ExcelUploadService {
         if (type == 'Students') {
           // Validate Hall Ticket Number
           if (!_isValidHallTicket(rowData['hallTicketNumber'] ?? '')) {
-            rowErrorMessages.add('Row ${rowIndex + 1}: Invalid Hall Ticket Number "${rowData['hallTicketNumber']}" (Format: 4 digits + 1 letter + 5 digits, e.g., 2203A51291)');
+            rowErrorMessages.add(
+                'Row ${rowIndex + 1}: Invalid Hall Ticket Number "${rowData['hallTicketNumber']}" (Format: 4 digits + 1 letter + 5 digits, e.g., 2203A51291)');
             isValidRow = false;
           }
 
           // Validate Email
           if (!_isValidEmail(rowData['email'] ?? '')) {
-            rowErrorMessages.add('Row ${rowIndex + 1}: Invalid email "${rowData['email']}"');
+            rowErrorMessages.add(
+                'Row ${rowIndex + 1}: Invalid email "${rowData['email']}"');
             isValidRow = false;
           }
 
           // Validate Year
           final year = rowData['year'] ?? '';
           if (!['1', '2', '3', '4'].contains(year)) {
-            rowErrorMessages.add('Row ${rowIndex + 1}: Invalid year "$year" (must be 1, 2, 3, or 4)');
+            rowErrorMessages.add(
+                'Row ${rowIndex + 1}: Invalid year "$year" (must be 1, 2, 3, or 4)');
             isValidRow = false;
           }
 
@@ -204,16 +206,18 @@ class ExcelUploadService {
           final admissionDate = rowData['dateOfAdmission'] ?? '';
           if (!_isValidDateFormat(admissionDate)) {
             // Extract just the date part for display if it's ISO format
-            final displayDate = admissionDate.contains('T') 
-                ? admissionDate.substring(0, 10) 
+            final displayDate = admissionDate.contains('T')
+                ? admissionDate.substring(0, 10)
                 : admissionDate;
-            rowErrorMessages.add('Row ${rowIndex + 1}: Invalid date format "$displayDate" (use YYYY-MM-DD)');
+            rowErrorMessages.add(
+                'Row ${rowIndex + 1}: Invalid date format "$displayDate" (use YYYY-MM-DD)');
             isValidRow = false;
           }
         } else {
           // Validate Faculty Email
           if (!_isValidEmail(rowData['email'] ?? '')) {
-            rowErrorMessages.add('Row ${rowIndex + 1}: Invalid email "${rowData['email']}"');
+            rowErrorMessages.add(
+                'Row ${rowIndex + 1}: Invalid email "${rowData['email']}"');
             isValidRow = false;
           }
         }
@@ -229,7 +233,8 @@ class ExcelUploadService {
       if (dataRows.isEmpty) {
         return {
           'success': false,
-          'message': 'No valid data found in Excel file. Please check the errors below.',
+          'message':
+              'No valid data found in Excel file. Please check the errors below.',
           'totalRows': sheet.rows.length - 1,
           'created': 0,
           'failed': sheet.rows.length - 1,
@@ -289,10 +294,11 @@ class ExcelUploadService {
         },
       );
 
-      return result as Map<String, dynamic>? ?? {
-        'success': false,
-        'message': 'Invalid response from server',
-      };
+      return result as Map<String, dynamic>? ??
+          {
+            'success': false,
+            'message': 'Invalid response from server',
+          };
     } catch (e) {
       return {
         'success': false,
@@ -313,20 +319,20 @@ class ExcelUploadService {
 
   static bool _isValidDateFormat(String value) {
     if (value.isEmpty) return false;
-    
+
     // Handle ISO 8601 datetime format (e.g., "2022-09-10T00:00:00.000Z")
     // Extract just the date part (first 10 characters)
     String dateOnly = value;
     if (value.contains('T')) {
       dateOnly = value.substring(0, 10);
     }
-    
+
     // Check if date format is YYYY-MM-DD
     final pattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
     if (!pattern.hasMatch(dateOnly)) {
       return false;
     }
-    
+
     // Try to parse the date
     try {
       DateTime.parse(dateOnly);
@@ -336,4 +342,3 @@ class ExcelUploadService {
     }
   }
 }
-

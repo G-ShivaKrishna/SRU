@@ -141,7 +141,8 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             const SizedBox(height: 24),
             _buildFileSelectionCard(isMobile),
             const SizedBox(height: 24),
-            if (_selectedFile != null || _selectedFilePickerResult != null) _buildSelectedFileCard(isMobile),
+            if (_selectedFile != null || _selectedFilePickerResult != null)
+              _buildSelectedFileCard(isMobile),
             const SizedBox(height: 24),
             _buildUploadButton(
                 _typeTabController.index == 0 ? 'Students' : 'Faculty',
@@ -568,7 +569,9 @@ class _AccountCreationPageState extends State<AccountCreationPage>
   }
 
   Widget _buildUploadButton(String type, bool isMobile) {
-    final isDisabled = (_selectedFile == null && _selectedFilePickerResult == null) || _isLoading;
+    final isDisabled =
+        (_selectedFile == null && _selectedFilePickerResult == null) ||
+            _isLoading;
 
     return SizedBox(
       width: double.infinity,
@@ -674,12 +677,12 @@ class _AccountCreationPageState extends State<AccountCreationPage>
                 'Total Rows', (result['totalRows'] ?? 0).toString(), isMobile),
           ],
           if (result.containsKey('created')) ...[
-            _buildResultRow(
-                'Created', (result['created'] ?? 0).toString(), isMobile, Colors.green),
+            _buildResultRow('Created', (result['created'] ?? 0).toString(),
+                isMobile, Colors.green),
           ],
           if (result.containsKey('failed')) ...[
-            _buildResultRow(
-                'Failed', (result['failed'] ?? 0).toString(), isMobile, Colors.red),
+            _buildResultRow('Failed', (result['failed'] ?? 0).toString(),
+                isMobile, Colors.red),
           ],
           if ((result['failedReasons'] as List?)?.isNotEmpty ?? false) ...[
             const SizedBox(height: 12),
@@ -762,7 +765,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
           _selectedFilePickerResult = result;
           _selectedFileName = result.files.single.name;
           _uploadResult = null;
-          
+
           // On web, path is not available - only use bytes
           if (!kIsWeb && result.files.single.path != null) {
             _selectedFile = File(result.files.single.path!);
