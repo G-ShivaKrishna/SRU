@@ -388,8 +388,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildInfoRow('Admission Type',
                             _studentData?['admissionType'] ?? 'N/A'),
                         _buildInfoRow(
-                            'Course Name', _studentData?['program'] ?? 'N/A'),
-                        _buildInfoRow(
                             'Branch', _studentData?['department'] ?? 'N/A'),
                         _buildInfoRow('Batch Number',
                             _studentData?['batchNumber'] ?? 'N/A'),

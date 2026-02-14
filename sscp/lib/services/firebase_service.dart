@@ -15,6 +15,9 @@ class FirebaseService {
     required String batchNumber,
     required String year,
     required String email,
+    String? admissionYear,
+    String? admissionType,
+    String? dateOfAdmission,
   }) async {
     try {
       // Generate Firebase email from Hall Ticket Number
@@ -51,6 +54,9 @@ class FirebaseService {
         'year': int.tryParse(year) ?? 1,
         'email': email,
         'firebaseEmail': firebaseEmail,
+        'admissionYear': admissionYear,
+        'admissionType': admissionType,
+        'dateOfAdmission': dateOfAdmission,
         'role': 'student',
         'status': 'active',
         'passwordHash': _hashPassword(firebasePassword),
@@ -293,6 +299,9 @@ class FirebaseService {
           batchNumber: student['batchNumber'] ?? '',
           year: student['year'] ?? '1',
           email: student['email'] ?? '',
+          admissionYear: student['admissionYear'],
+          admissionType: student['admissionType'],
+          dateOfAdmission: student['dateOfAdmission'],
         );
 
         if (result['success'] == true) {

@@ -249,4 +249,48 @@ class StudentAccessService {
       };
     }
   }
+
+  // Admin method to update student admission information
+  static Future<Map<String, dynamic>> updateStudentAdmissionInfoAsAdmin(
+    String hallTicketNumber,
+    String? admissionYear,
+    String? admissionType,
+    String? dateOfAdmission,
+  ) async {
+    try {
+      final updates = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (admissionYear != null && admissionYear.isNotEmpty) {
+        updates['admissionYear'] = admissionYear;
+      }
+      if (admissionType != null && admissionType.isNotEmpty) {
+        updates['admissionType'] = admissionType;
+      }
+      if (dateOfAdmission != null && dateOfAdmission.isNotEmpty) {
+        updates['dateOfAdmission'] = dateOfAdmission;
+      }
+
+      if (updates.length == 1) {
+        // Only timestamp, no other updates
+        return {
+          'success': false,
+          'message': 'Please provide at least one field to update',
+        };
+      }
+
+      await _firestore.collection('students').doc(hallTicketNumber).update(updates);
+
+      return {
+        'success': true,
+        'message': 'Student admission information updated successfully',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error updating admission information: $e',
+      };
+    }
+  }
 }

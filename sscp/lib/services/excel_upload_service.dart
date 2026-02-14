@@ -40,6 +40,9 @@ class ExcelUploadService {
             'batchNumber': '22CSBTB09',
             'year': '2',
             'email': 'john@example.com',
+            'admissionYear': '2022',
+            'admissionType': 'Regular',
+            'dateOfAdmission': '2022-08-15',
           },
           {
             'hallTicketNumber': '2203A51292',
@@ -48,6 +51,9 @@ class ExcelUploadService {
             'batchNumber': '22CSBTB09',
             'year': '2',
             'email': 'jane@example.com',
+            'admissionYear': '2022',
+            'admissionType': 'Regular',
+            'dateOfAdmission': '2022-08-15',
           },
         ];
 
@@ -87,6 +93,9 @@ class ExcelUploadService {
               batchNumber: data['batchNumber'] ?? '',
               year: data['year'] ?? '1',
               email: data['email'] ?? '',
+              admissionYear: data['admissionYear'],
+              admissionType: data['admissionType'],
+              dateOfAdmission: data['dateOfAdmission'],
             )
           : FirebaseService.createFacultyAccount(
               facultyId: data['facultyId'] ?? '',

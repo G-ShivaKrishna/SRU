@@ -28,7 +28,10 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       'Department',
       'BatchNumber',
       'Year',
-      'Email'
+      'Email',
+      'AdmissionYear',
+      'AdmissionType',
+      'DateOfAdmission'
     ],
     'Faculty': [
       'FacultyID',
@@ -48,6 +51,9 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     'batchNumber': TextEditingController(),
     'year': TextEditingController(),
     'email': TextEditingController(),
+    'admissionYear': TextEditingController(),
+    'admissionType': TextEditingController(),
+    'dateOfAdmission': TextEditingController(),
   };
 
   final Map<String, TextEditingController> _facultyControllers = {
@@ -257,6 +263,45 @@ class _AccountCreationPageState extends State<AccountCreationPage>
           _studentControllers['email']!,
           isMobile,
           keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: Colors.blue, width: 1),
+          ),
+          child: const Text(
+            'Admission Information',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Admission Year',
+          'e.g., 2022',
+          _studentControllers['admissionYear']!,
+          isMobile,
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Admission Type',
+          'e.g., Regular, Lateral, etc.',
+          _studentControllers['admissionType']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Date of Admission',
+          'e.g., 2022-08-15',
+          _studentControllers['dateOfAdmission']!,
+          isMobile,
         ),
       ],
     );
