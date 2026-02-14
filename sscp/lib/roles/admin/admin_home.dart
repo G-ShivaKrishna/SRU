@@ -5,6 +5,7 @@ import 'pages/permission_management_page.dart';
 import 'pages/account_creation_page.dart';
 import 'pages/student_profile_edit_access_page.dart';
 import 'pages/student_name_edit_page.dart';
+import 'pages/student_admission_edit_page.dart';
 
 class AdminHome extends StatelessWidget {
   const AdminHome({super.key});
@@ -238,6 +239,16 @@ class AdminHome extends StatelessWidget {
           () => Navigator.of(context).push(
             MaterialPageRoute(
                 builder: (context) => const StudentNameEditPage()),
+          ),
+        ),
+        _buildActionCard(
+          'Edit Admission\nInfo',
+          Icons.school,
+          Colors.teal,
+          context,
+          () => Navigator.of(context).push(
+            MaterialPageRoute(
+                builder: (context) => const StudentAdmissionEditPage()),
           ),
         ),
         _buildActionCard(

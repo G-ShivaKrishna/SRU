@@ -15,6 +15,9 @@ class FirebaseService {
     required String batchNumber,
     required String year,
     required String email,
+    String? admissionYear,
+    String? admissionType,
+    String? dateOfAdmission,
   }) async {
     try {
       // Generate Firebase email from Hall Ticket Number
@@ -24,10 +27,12 @@ class FirebaseService {
       // Create Firebase Auth user with timeout
       UserCredential userCredential;
       try {
-        userCredential = await _auth.createUserWithEmailAndPassword(
-          email: firebaseEmail,
-          password: firebasePassword,
-        ).timeout(const Duration(seconds: 15));
+        userCredential = await _auth
+            .createUserWithEmailAndPassword(
+              email: firebaseEmail,
+              password: firebasePassword,
+            )
+            .timeout(const Duration(seconds: 15));
       } on FirebaseAuthException catch (e) {
         if (e.code == 'email-already-in-use') {
           return {
@@ -51,6 +56,9 @@ class FirebaseService {
         'year': int.tryParse(year) ?? 1,
         'email': email,
         'firebaseEmail': firebaseEmail,
+        'admissionYear': admissionYear,
+        'admissionType': admissionType,
+        'dateOfAdmission': dateOfAdmission,
         'role': 'student',
         'status': 'active',
         'passwordHash': _hashPassword(firebasePassword),
@@ -108,10 +116,12 @@ class FirebaseService {
       // Create Firebase Auth user with timeout
       UserCredential userCredential;
       try {
-        userCredential = await _auth.createUserWithEmailAndPassword(
-          email: firebaseEmail,
-          password: firebasePassword,
-        ).timeout(const Duration(seconds: 15));
+        userCredential = await _auth
+            .createUserWithEmailAndPassword(
+              email: firebaseEmail,
+              password: firebasePassword,
+            )
+            .timeout(const Duration(seconds: 15));
       } on FirebaseAuthException catch (e) {
         if (e.code == 'email-already-in-use') {
           return {
@@ -293,6 +303,9 @@ class FirebaseService {
           batchNumber: student['batchNumber'] ?? '',
           year: student['year'] ?? '1',
           email: student['email'] ?? '',
+          admissionYear: student['admissionYear'],
+          admissionType: student['admissionType'],
+          dateOfAdmission: student['dateOfAdmission'],
         );
 
         if (result['success'] == true) {
