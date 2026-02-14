@@ -373,8 +373,7 @@ class _StudentAdmissionEditPageState extends State<StudentAdmissionEditPage> {
                           decoration: BoxDecoration(
                             color: Colors.orange[50],
                             borderRadius: BorderRadius.circular(4),
-                            border:
-                                Border.all(color: Colors.orange, width: 1),
+                            border: Border.all(color: Colors.orange, width: 1),
                           ),
                           child: const Text(
                             '📝 Update all or some fields. Leave empty to keep existing values.',
@@ -395,19 +394,18 @@ class _StudentAdmissionEditPageState extends State<StudentAdmissionEditPage> {
                                     height: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(
-                                              Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                     ),
                                   )
                                 : const Icon(Icons.save),
                             label: Text(
                               _isLoading ? 'Updating...' : 'Update Information',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             style: ElevatedButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                               backgroundColor: const Color(0xFF1e3a5f),
                               foregroundColor: Colors.white,
                               disabledBackgroundColor: Colors.grey[400],

@@ -27,10 +27,12 @@ class FirebaseService {
       // Create Firebase Auth user with timeout
       UserCredential userCredential;
       try {
-        userCredential = await _auth.createUserWithEmailAndPassword(
-          email: firebaseEmail,
-          password: firebasePassword,
-        ).timeout(const Duration(seconds: 15));
+        userCredential = await _auth
+            .createUserWithEmailAndPassword(
+              email: firebaseEmail,
+              password: firebasePassword,
+            )
+            .timeout(const Duration(seconds: 15));
       } on FirebaseAuthException catch (e) {
         if (e.code == 'email-already-in-use') {
           return {
@@ -114,10 +116,12 @@ class FirebaseService {
       // Create Firebase Auth user with timeout
       UserCredential userCredential;
       try {
-        userCredential = await _auth.createUserWithEmailAndPassword(
-          email: firebaseEmail,
-          password: firebasePassword,
-        ).timeout(const Duration(seconds: 15));
+        userCredential = await _auth
+            .createUserWithEmailAndPassword(
+              email: firebaseEmail,
+              password: firebasePassword,
+            )
+            .timeout(const Duration(seconds: 15));
       } on FirebaseAuthException catch (e) {
         if (e.code == 'email-already-in-use') {
           return {

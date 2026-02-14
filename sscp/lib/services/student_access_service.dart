@@ -280,7 +280,10 @@ class StudentAccessService {
         };
       }
 
-      await _firestore.collection('students').doc(hallTicketNumber).update(updates);
+      await _firestore
+          .collection('students')
+          .doc(hallTicketNumber)
+          .update(updates);
 
       return {
         'success': true,
