@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../../../services/excel_upload_service.dart';
@@ -17,6 +18,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
   bool _isLoading = false;
   Map<String, dynamic>? _uploadResult;
   File? _selectedFile;
+  FilePickerResult? _selectedFilePickerResult;
   String? _selectedFileName;
 
   final List<String> _methods = ['Excel Upload', 'Manual Entry'];
@@ -86,6 +88,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
   void _resetUploadState() {
     setState(() {
       _selectedFile = null;
+      _selectedFilePickerResult = null;
       _selectedFileName = null;
       _uploadResult = null;
       _clearFormControllers();
@@ -138,7 +141,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             const SizedBox(height: 24),
             _buildFileSelectionCard(isMobile),
             const SizedBox(height: 24),
-            if (_selectedFile != null) _buildSelectedFileCard(isMobile),
+            if (_selectedFile != null || _selectedFilePickerResult != null) _buildSelectedFileCard(isMobile),
             const SizedBox(height: 24),
             _buildUploadButton(
                 _typeTabController.index == 0 ? 'Students' : 'Faculty',
@@ -554,6 +557,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             onPressed: () {
               setState(() {
                 _selectedFile = null;
+                _selectedFilePickerResult = null;
                 _selectedFileName = null;
               });
             },
@@ -564,7 +568,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
   }
 
   Widget _buildUploadButton(String type, bool isMobile) {
-    final isDisabled = _selectedFile == null || _isLoading;
+    final isDisabled = (_selectedFile == null && _selectedFilePickerResult == null) || _isLoading;
 
     return SizedBox(
       width: double.infinity,
@@ -583,7 +587,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
         label: Text(
           _isLoading
               ? 'Uploading...'
-              : _selectedFile == null
+              : (_selectedFile == null && _selectedFilePickerResult == null)
                   ? 'Select File First'
                   : 'Upload Excel File',
           style: const TextStyle(fontWeight: FontWeight.bold),
@@ -665,14 +669,19 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             ],
           ),
           const SizedBox(height: 12),
-          _buildResultRow(
-              'Total Rows', result['totalRows'].toString(), isMobile),
-          _buildResultRow(
-              'Created', result['created'].toString(), isMobile, Colors.green),
-          _buildResultRow(
-              'Failed', result['failed'].toString(), isMobile, Colors.red),
-          if (result['failedReasons'] != null &&
-              (result['failedReasons'] as List).isNotEmpty) ...[
+          if (result.containsKey('totalRows')) ...[
+            _buildResultRow(
+                'Total Rows', (result['totalRows'] ?? 0).toString(), isMobile),
+          ],
+          if (result.containsKey('created')) ...[
+            _buildResultRow(
+                'Created', (result['created'] ?? 0).toString(), isMobile, Colors.green),
+          ],
+          if (result.containsKey('failed')) ...[
+            _buildResultRow(
+                'Failed', (result['failed'] ?? 0).toString(), isMobile, Colors.red),
+          ],
+          if ((result['failedReasons'] as List?)?.isNotEmpty ?? false) ...[
             const SizedBox(height: 12),
             const Divider(),
             const SizedBox(height: 12),
@@ -698,6 +707,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
               onPressed: () {
                 setState(() {
                   _selectedFile = null;
+                  _selectedFilePickerResult = null;
                   _selectedFileName = null;
                   _uploadResult = null;
                   _clearFormControllers();
@@ -747,11 +757,18 @@ class _AccountCreationPageState extends State<AccountCreationPage>
         allowMultiple: false,
       );
 
-      if (result != null && result.files.single.path != null) {
+      if (result != null) {
         setState(() {
-          _selectedFile = File(result.files.single.path!);
+          _selectedFilePickerResult = result;
           _selectedFileName = result.files.single.name;
           _uploadResult = null;
+          
+          // On web, path is not available - only use bytes
+          if (!kIsWeb && result.files.single.path != null) {
+            _selectedFile = File(result.files.single.path!);
+          } else {
+            _selectedFile = null; // Web platform - will use bytes instead
+          }
         });
       }
     } catch (e) {
@@ -762,7 +779,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
   }
 
   Future<void> _handleExcelUpload(String type) async {
-    if (_selectedFile == null) {
+    if (_selectedFile == null && _selectedFilePickerResult == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a file first')),
       );
@@ -773,7 +790,9 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     try {
       final result = await ExcelUploadService.uploadAccounts(
         type,
-        _selectedFile!,
+        _selectedFile,
+        fileBytes: _selectedFilePickerResult?.files.single.bytes,
+        fileName: _selectedFileName,
       );
       setState(() => _uploadResult = result);
     } catch (e) {
