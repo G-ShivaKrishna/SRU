@@ -284,8 +284,8 @@ class _AdminHomeState extends State<AdminHome> {
     );
   }
 
-  Widget _buildWelcomeSection(BuildContext context, String name,
-      String adminId, String designation) {
+  Widget _buildWelcomeSection(
+      BuildContext context, String name, String adminId, String designation) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
@@ -514,8 +514,7 @@ class _AdminHomeState extends State<AdminHome> {
         children: [
           Row(
             children: [
-              Icon(Icons.dashboard,
-                  color: Colors.blue.shade700, size: 24),
+              Icon(Icons.dashboard, color: Colors.blue.shade700, size: 24),
               const SizedBox(width: 8),
               Text(
                 'System Overview',
@@ -528,8 +527,8 @@ class _AdminHomeState extends State<AdminHome> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildSystemMetric('Database Status', 'Healthy', Colors.green,
-              isMobile),
+          _buildSystemMetric(
+              'Database Status', 'Healthy', Colors.green, isMobile),
           const SizedBox(height: 10),
           _buildSystemMetric('Server Load', '35%', Colors.orange, isMobile),
           const SizedBox(height: 10),
@@ -693,9 +692,7 @@ class _AdminHomeState extends State<AdminHome> {
         children: [
           Row(
             children: [
-              Icon(Icons.history,
-                  color: const Color(0xFF1e3a5f),
-                  size: 24),
+              Icon(Icons.history, color: const Color(0xFF1e3a5f), size: 24),
               const SizedBox(width: 8),
               Text(
                 'Recent Activity',
@@ -711,17 +708,17 @@ class _AdminHomeState extends State<AdminHome> {
           _buildActivityItem(
               'Student accounts uploaded', '30 min ago', isMobile),
           const SizedBox(height: 10),
-          _buildActivityItem('Permissions granted to 5 users', '2 hours ago',
-              isMobile),
+          _buildActivityItem(
+              'Permissions granted to 5 users', '2 hours ago', isMobile),
           const SizedBox(height: 10),
-          _buildActivityItem('System backup completed', '5 hours ago', isMobile),
+          _buildActivityItem(
+              'System backup completed', '5 hours ago', isMobile),
         ],
       ),
     );
   }
 
-  Widget _buildActivityItem(
-      String activity, String time, bool isMobile) {
+  Widget _buildActivityItem(String activity, String time, bool isMobile) {
     return Row(
       children: [
         Container(
