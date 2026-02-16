@@ -296,4 +296,194 @@ class StudentAccessService {
       };
     }
   }
+
+  // Student requests edit access
+  static Future<Map<String, dynamic>> requestEditAccess(
+    String hallTicketNumber,
+    String studentName,
+    List<String> fieldsToEdit,
+  ) async {
+    try {
+      // Check if already has access
+      final hasAccess = await hasEditAccess(hallTicketNumber);
+      if (hasAccess) {
+        return {
+          'success': false,
+          'message': 'You already have edit access granted',
+        };
+      }
+
+      // Check if request already pending
+      final existingRequest = await _firestore
+          .collection('editAccessRequests')
+          .where('hallTicketNumber', isEqualTo: hallTicketNumber)
+          .where('status', isEqualTo: 'pending')
+          .limit(1)
+          .get();
+
+      if (existingRequest.docs.isNotEmpty) {
+        return {
+          'success': false,
+          'message': 'You already have a pending request',
+        };
+      }
+
+      // Create new request
+      await _firestore.collection('editAccessRequests').add({
+        'hallTicketNumber': hallTicketNumber,
+        'studentName': studentName,
+        'fieldsToEdit': fieldsToEdit,
+        'status': 'pending', // pending, approved, rejected
+        'requestedAt': FieldValue.serverTimestamp(),
+        'approvedAt': null,
+        'rejectedAt': null,
+        'approvedBy': null,
+      });
+
+      return {
+        'success': true,
+        'message': 'Edit access request submitted successfully',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error submitting request: $e',
+      };
+    }
+  }
+
+  // Get pending edit access requests
+  static Future<List<Map<String, dynamic>>>
+      getPendingEditAccessRequests() async {
+    try {
+      final snapshot = await _firestore
+          .collection('editAccessRequests')
+          .where('status', isEqualTo: 'pending')
+          .orderBy('requestedAt', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => {
+                'requestId': doc.id,
+                ...doc.data(),
+              })
+          .toList();
+    } catch (e) {
+      print('Error getting pending requests: $e');
+      return [];
+    }
+  }
+
+  // Get all edit access requests (pending and processed)
+  static Future<List<Map<String, dynamic>>> getAllEditAccessRequests() async {
+    try {
+      final snapshot = await _firestore
+          .collection('editAccessRequests')
+          .orderBy('requestedAt', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => {
+                'requestId': doc.id,
+                ...doc.data(),
+              })
+          .toList();
+    } catch (e) {
+      print('Error getting requests: $e');
+      return [];
+    }
+  }
+
+  // Approve edit access request
+  static Future<Map<String, dynamic>> approveEditAccessRequest(
+    String requestId,
+    String hallTicketNumber,
+  ) async {
+    try {
+      final batch = _firestore.batch();
+      final timestamp = FieldValue.serverTimestamp();
+
+      // Update request status
+      batch.update(
+        _firestore.collection('editAccessRequests').doc(requestId),
+        {
+          'status': 'approved',
+          'approvedAt': timestamp,
+          'approvedBy': 'admin',
+        },
+      );
+
+      // Grant access to student
+      batch.update(
+        _firestore.collection('students').doc(hallTicketNumber),
+        {
+          'canEditProfile': true,
+          'editAccessGrantedAt': timestamp,
+        },
+      );
+
+      await batch.commit();
+
+      return {
+        'success': true,
+        'message': 'Edit access approved successfully',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error approving request: $e',
+      };
+    }
+  }
+
+  // Reject edit access request
+  static Future<Map<String, dynamic>> rejectEditAccessRequest(
+    String requestId,
+    String? reason,
+  ) async {
+    try {
+      await _firestore.collection('editAccessRequests').doc(requestId).update({
+        'status': 'rejected',
+        'rejectedAt': FieldValue.serverTimestamp(),
+        'rejectionReason': reason ?? 'Rejected by admin',
+      });
+
+      return {
+        'success': true,
+        'message': 'Request rejected successfully',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error rejecting request: $e',
+      };
+    }
+  }
+
+  // Get request status for a student
+  static Future<Map<String, dynamic>?> getStudentRequestStatus(
+    String hallTicketNumber,
+  ) async {
+    try {
+      final snapshot = await _firestore
+          .collection('editAccessRequests')
+          .where('hallTicketNumber', isEqualTo: hallTicketNumber)
+          .orderBy('requestedAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return null;
+      }
+
+      final doc = snapshot.docs.first;
+      return {
+        'requestId': doc.id,
+        ...doc.data(),
+      };
+    } catch (e) {
+      print('Error getting request status: $e');
+      return null;
+    }
+  }
 }
