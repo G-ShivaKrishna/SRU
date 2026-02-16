@@ -5,8 +5,7 @@ class UnifiedPermissionsPage extends StatefulWidget {
   const UnifiedPermissionsPage({super.key});
 
   @override
-  State<UnifiedPermissionsPage> createState() =>
-      _UnifiedPermissionsPageState();
+  State<UnifiedPermissionsPage> createState() => _UnifiedPermissionsPageState();
 }
 
 class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
@@ -38,18 +37,14 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
     });
 
     try {
-      final allRequests =
-          await StudentAccessService.getAllEditAccessRequests();
+      final allRequests = await StudentAccessService.getAllEditAccessRequests();
 
-      final pending = allRequests
-          .where((req) => req['status'] == 'pending')
-          .toList();
-      final approved = allRequests
-          .where((req) => req['status'] == 'approved')
-          .toList();
-      final rejected = allRequests
-          .where((req) => req['status'] == 'rejected')
-          .toList();
+      final pending =
+          allRequests.where((req) => req['status'] == 'pending').toList();
+      final approved =
+          allRequests.where((req) => req['status'] == 'approved').toList();
+      final rejected =
+          allRequests.where((req) => req['status'] == 'rejected').toList();
 
       setState(() {
         _pendingRequests = pending;
@@ -518,8 +513,7 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () =>
-                      _revokeAccess(request['hallTicketNumber']),
+                  onPressed: () => _revokeAccess(request['hallTicketNumber']),
                   icon: const Icon(Icons.block),
                   label: const Text('Revoke Access'),
                   style: OutlinedButton.styleFrom(
@@ -545,7 +539,8 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
       runSpacing: 8,
       children: fields
           .map((field) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.blue.shade50,
                   border: Border.all(color: Colors.blue.shade200),

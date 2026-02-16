@@ -353,7 +353,8 @@ class StudentAccessService {
   }
 
   // Get pending edit access requests
-  static Future<List<Map<String, dynamic>>> getPendingEditAccessRequests() async {
+  static Future<List<Map<String, dynamic>>>
+      getPendingEditAccessRequests() async {
     try {
       final snapshot = await _firestore
           .collection('editAccessRequests')
