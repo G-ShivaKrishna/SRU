@@ -148,6 +148,193 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _showRequestAccessDialog() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User not authenticated')),
+      );
+      return;
+    }
+
+    final email = user.email ?? '';
+    final rollNumber = email.split('@')[0].toUpperCase();
+
+    // Check if already has pending request
+    final requestStatus =
+        await StudentAccessService.getStudentRequestStatus(rollNumber);
+
+    if (requestStatus != null) {
+      String statusText = '';
+      Color statusColor = Colors.grey;
+
+      if (requestStatus['status'] == 'pending') {
+        statusText = 'Your request is pending admin approval';
+        statusColor = Colors.orange;
+      } else if (requestStatus['status'] == 'approved') {
+        statusText = 'Your request was approved. Edit access is now available.';
+        statusColor = Colors.green;
+      } else if (requestStatus['status'] == 'rejected') {
+        statusText =
+            'Your request was rejected.\n\nReason: ${requestStatus['rejectionReason'] ?? 'Not specified'}';
+        statusColor = Colors.red;
+      }
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Request Status'),
+            content: Text(
+              statusText,
+              style: TextStyle(color: statusColor),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show request form
+    final selectedFields = <String>{
+      'Father\'s Name',
+      'Date of Birth',
+      'Gender',
+      'Blood Group',
+      'Nationality',
+      'Religion',
+      'Caste',
+      'Mother Tongue',
+      'Identification Mark',
+      'Place of Birth',
+      'Address Line 1',
+      'Address Line 2',
+      'City',
+      'State',
+      'Country',
+      'Postal Code',
+      'Phone Number',
+      'SSC Details',
+      'Inter Details',
+    };
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: const Text('Request Edit Access'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Select the fields you need to edit:',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Note: Your name and registration details can only be edited by administrators.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.orange,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...selectedFields.map((field) {
+                    final isSelected = selectedFields.contains(field);
+                    return CheckboxListTile(
+                      title: Text(field),
+                      value: isSelected,
+                      onChanged: (value) {
+                        setState(() {
+                          if (value == true) {
+                            selectedFields.add(field);
+                          } else {
+                            selectedFields.remove(field);
+                          }
+                        });
+                      },
+                    );
+                  }),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: selectedFields.isEmpty
+                    ? null
+                    : () async {
+                        Navigator.pop(context);
+                        await _submitEditAccessRequest(
+                          rollNumber,
+                          selectedFields.toList(),
+                        );
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Submit Request'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _submitEditAccessRequest(
+      String rollNumber, List<String> fieldsToEdit) async {
+    try {
+      final studentName = _studentData?['name'] ?? 'Unknown';
+
+      final result = await StudentAccessService.requestEditAccess(
+        rollNumber,
+        studentName,
+        fieldsToEdit,
+      );
+
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Edit access request submitted successfully. Please wait for admin approval.',
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error submitting request: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Map<String, dynamic> _getDemoData() {
     return {
       'hallTicketNumber': '2203A51318',
@@ -319,6 +506,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+            )
+          else
+            TextButton(
+              onPressed: () => _showRequestAccessDialog(),
+              child: const Text(
+                'Request Edit Access',
+                style: TextStyle(
+                  color: Colors.yellow,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
         ],
       ),
@@ -340,9 +538,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
-                        'You are in edit mode. You can update all your profile information (except Name, Registration Number, and Hall Ticket Number). Once saved, your edit access will be automatically revoked.',
+                        'You are in edit mode. You can update your profile information except:\n• Student Name (can only be edited by admin)\n• Registration/Hall Ticket Number (fixed records)\n\nOnce saved, your edit access will be automatically revoked.',
                         style: TextStyle(
                           color: Colors.orange,
+                          fontSize: 12,
+                        ),
+                      ),
+                    )
+                  else if (!_canEditProfile)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        border: Border.all(color: Colors.blue),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'To edit your profile, you need to request edit access from your admin. Click the "Request Edit Access" button in the top-right corner.',
+                        style: TextStyle(
+                          color: Colors.blue,
                           fontSize: 12,
                         ),
                       ),

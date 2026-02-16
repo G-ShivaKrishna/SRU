@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../screens/role_selection_screen.dart';
 import 'pages/view_only_page.dart';
-import 'pages/permission_management_page.dart';
+import 'pages/unified_permissions_page.dart';
 import 'pages/account_creation_page.dart';
-import 'pages/student_profile_edit_access_page.dart';
 import 'pages/student_name_edit_page.dart';
 import 'pages/student_admission_edit_page.dart';
 
@@ -48,13 +47,11 @@ class _AdminHomeState extends State<AdminHome> {
       return;
     } else if (pageName == 'Accounts') {
       page = const AccountCreationPage();
-    } else if (pageName == 'Permissions') {
-      page = const PermissionManagementPage();
-    } else if (pageName == 'Edit Access') {
-      page = const StudentProfileEditAccessPage();
-    } else if (pageName == 'Names') {
+    } else if (pageName == 'Manage Access' || pageName == 'Permissions') {
+      page = const UnifiedPermissionsPage();
+    } else if (pageName == 'Edit Names' || pageName == 'Names') {
       page = const StudentNameEditPage();
-    } else if (pageName == 'Admission') {
+    } else if (pageName == 'Edit Admission' || pageName == 'Admission') {
       page = const StudentAdmissionEditPage();
     } else if (pageName == 'View Only') {
       page = const ViewOnlyPage();
@@ -161,10 +158,9 @@ class _AdminHomeState extends State<AdminHome> {
     final menuItems = [
       'Home',
       'Accounts',
-      'Permissions',
-      'Edit Access',
-      'Names',
-      'Admission',
+      'Manage Access',
+      'Edit Names',
+      'Edit Admission',
       'View Only',
     ];
 
@@ -596,25 +592,25 @@ class _AdminHomeState extends State<AdminHome> {
           () => _navigateToPage(context, 'Accounts'),
         ),
         _buildActionCard(
-          'Manage\nPermissions',
+          'Manage\nAccess',
           Icons.security,
           Colors.purple,
           context,
           () => _navigateToPage(context, 'Permissions'),
         ),
         _buildActionCard(
-          'Grant Edit\nAccess',
-          Icons.edit_note,
-          Colors.cyan,
-          context,
-          () => _navigateToPage(context, 'Edit Access'),
-        ),
-        _buildActionCard(
           'Edit Names',
           Icons.person_outline,
-          Colors.teal,
+          Colors.cyan,
           context,
           () => _navigateToPage(context, 'Names'),
+        ),
+        _buildActionCard(
+          'Edit Admission',
+          Icons.school,
+          Colors.teal,
+          context,
+          () => _navigateToPage(context, 'Admission'),
         ),
       ],
     );
