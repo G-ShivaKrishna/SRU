@@ -63,7 +63,11 @@ class StudentAccessService {
     String hallTicketNumber,
   ) async {
     try {
-      await _firestore.collection('students').doc(hallTicketNumber).update({
+      // Determine if faculty or student
+      final isFaculty = hallTicketNumber.startsWith('FAC');
+      final collection = isFaculty ? 'faculty' : 'students';
+
+      await _firestore.collection(collection).doc(hallTicketNumber).update({
         'canEditProfile': true,
         'editAccessGrantedAt': FieldValue.serverTimestamp(),
       });
@@ -85,7 +89,11 @@ class StudentAccessService {
     String hallTicketNumber,
   ) async {
     try {
-      await _firestore.collection('students').doc(hallTicketNumber).update({
+      // Determine if faculty or student
+      final isFaculty = hallTicketNumber.startsWith('FAC');
+      final collection = isFaculty ? 'faculty' : 'students';
+
+      await _firestore.collection(collection).doc(hallTicketNumber).update({
         'canEditProfile': false,
         'editAccessRevokedAt': FieldValue.serverTimestamp(),
       });
@@ -105,8 +113,12 @@ class StudentAccessService {
   // Check if student has edit access
   static Future<bool> hasEditAccess(String hallTicketNumber) async {
     try {
+      // Determine if faculty or student
+      final isFaculty = hallTicketNumber.startsWith('FAC');
+      final collection = isFaculty ? 'faculty' : 'students';
+
       final doc =
-          await _firestore.collection('students').doc(hallTicketNumber).get();
+          await _firestore.collection(collection).doc(hallTicketNumber).get();
 
       if (!doc.exists) {
         return false;
@@ -151,7 +163,11 @@ class StudentAccessService {
         };
       }
 
-      await _firestore.collection('students').doc(hallTicketNumber).update({
+      // Determine if faculty or student
+      final isFaculty = hallTicketNumber.startsWith('FAC');
+      final collection = isFaculty ? 'faculty' : 'students';
+
+      await _firestore.collection(collection).doc(hallTicketNumber).update({
         ...updates,
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -173,8 +189,12 @@ class StudentAccessService {
     String hallTicketNumber,
   ) async {
     try {
+      // Determine if faculty or student
+      final isFaculty = hallTicketNumber.startsWith('FAC');
+      final collection = isFaculty ? 'faculty' : 'students';
+
       final doc =
-          await _firestore.collection('students').doc(hallTicketNumber).get();
+          await _firestore.collection(collection).doc(hallTicketNumber).get();
 
       if (!doc.exists) {
         return null;
@@ -338,6 +358,7 @@ class StudentAccessService {
         'approvedAt': null,
         'rejectedAt': null,
         'approvedBy': null,
+        'rejectionReason': null,
       });
 
       return {
@@ -413,9 +434,13 @@ class StudentAccessService {
         },
       );
 
-      // Grant access to student
+      // Determine if faculty or student
+      final isFaculty = hallTicketNumber.startsWith('FAC');
+      final collection = isFaculty ? 'faculty' : 'students';
+
+      // Grant access to student/faculty
       batch.update(
-        _firestore.collection('students').doc(hallTicketNumber),
+        _firestore.collection(collection).doc(hallTicketNumber),
         {
           'canEditProfile': true,
           'editAccessGrantedAt': timestamp,

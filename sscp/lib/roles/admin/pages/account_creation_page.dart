@@ -126,6 +126,9 @@ class _AccountCreationPageState extends State<AccountCreationPage>
 
   // ============ EXCEL UPLOAD SECTION ============
   Widget _buildExcelUploadSection(bool isMobile) {
+    final isStudents = _typeTabController.index == 0;
+    final userType = isStudents ? 'Students' : 'Faculty';
+
     return SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.all(isMobile ? 12 : 16),
@@ -135,18 +138,34 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             const SizedBox(height: 12),
             _buildTypeSelector(isMobile),
             const SizedBox(height: 24),
-            _buildRequiredColumnsCard(
-                _typeTabController.index == 0 ? 'Students' : 'Faculty',
-                isMobile),
+            // Dedicated heading for each role
+            Text(
+              isStudents ? 'Upload Student Accounts' : 'Upload Faculty Accounts',
+              style: TextStyle(
+                fontSize: isMobile ? 18 : 22,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1e3a5f),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isStudents
+                  ? 'Upload multiple student accounts via Excel file'
+                  : 'Upload multiple faculty accounts via Excel file',
+              style: TextStyle(
+                fontSize: isMobile ? 12 : 13,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildRequiredColumnsCard(userType, isMobile),
             const SizedBox(height: 24),
             _buildFileSelectionCard(isMobile),
             const SizedBox(height: 24),
             if (_selectedFile != null || _selectedFilePickerResult != null)
               _buildSelectedFileCard(isMobile),
             const SizedBox(height: 24),
-            _buildUploadButton(
-                _typeTabController.index == 0 ? 'Students' : 'Faculty',
-                isMobile),
+            _buildUploadButton(userType, isMobile),
             if (_uploadResult != null) ...[
               const SizedBox(height: 24),
               _buildResultCard(isMobile),
@@ -166,6 +185,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       ),
       child: TabBar(
         controller: _typeTabController,
+        onTap: (index) => setState(() {}),
         tabs: _types.map((type) => Tab(text: type)).toList(),
       ),
     );
@@ -173,6 +193,8 @@ class _AccountCreationPageState extends State<AccountCreationPage>
 
   // ============ MANUAL ENTRY SECTION ============
   Widget _buildManualEntrySection(bool isMobile) {
+    final isStudents = _typeTabController.index == 0;
+
     return SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.all(isMobile ? 12 : 16),
@@ -181,6 +203,26 @@ class _AccountCreationPageState extends State<AccountCreationPage>
           children: [
             const SizedBox(height: 12),
             _buildManualTypeSelector(isMobile),
+            const SizedBox(height: 24),
+            // Dedicated heading for each role
+            Text(
+              isStudents ? 'Create Student Account' : 'Create Faculty Account',
+              style: TextStyle(
+                fontSize: isMobile ? 18 : 22,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1e3a5f),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isStudents
+                  ? 'Manually enter a new student account'
+                  : 'Manually enter a new faculty account',
+              style: TextStyle(
+                fontSize: isMobile ? 12 : 13,
+                color: Colors.grey[600],
+              ),
+            ),
             const SizedBox(height: 24),
             if (_typeTabController.index == 0)
               _buildStudentManualForm(isMobile)
@@ -217,14 +259,6 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Enter Student Details',
-          style: TextStyle(
-            fontSize: isMobile ? 14 : 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
         _buildFormField(
           'Hall Ticket Number',
           'e.g., 2203A51291',
@@ -315,17 +349,9 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Enter Faculty Details',
-          style: TextStyle(
-            fontSize: isMobile ? 14 : 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
         _buildFormField(
           'Faculty ID',
-          'e.g., FAC2001',
+          'e.g., FAC001',
           _facultyControllers['facultyId']!,
           isMobile,
         ),
@@ -357,13 +383,6 @@ class _AccountCreationPageState extends State<AccountCreationPage>
           _facultyControllers['email']!,
           isMobile,
           keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 12),
-        _buildFormField(
-          'Subjects',
-          'e.g., DBMS, OS, DSA',
-          _facultyControllers['subjects']!,
-          isMobile,
         ),
       ],
     );
