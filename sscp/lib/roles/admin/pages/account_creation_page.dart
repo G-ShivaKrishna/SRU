@@ -40,8 +40,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       'FacultyName',
       'Department',
       'Designation',
-      'Email',
-      'Subjects'
+      'Email'
     ],
   };
 
@@ -64,7 +63,6 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     'department': TextEditingController(),
     'designation': TextEditingController(),
     'email': TextEditingController(),
-    'subjects': TextEditingController(),
   };
 
   @override
@@ -166,6 +164,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       ),
       child: TabBar(
         controller: _typeTabController,
+        onTap: (index) => setState(() {}),
         tabs: _types.map((type) => Tab(text: type)).toList(),
       ),
     );
@@ -207,7 +206,10 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       ),
       child: TabBar(
         controller: _typeTabController,
-        onTap: (index) => setState(() {}),
+        onTap: (index) {
+          setState(() {});
+          _clearFormControllers();
+        },
         tabs: _types.map((type) => Tab(text: type)).toList(),
       ),
     );
@@ -325,7 +327,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
         const SizedBox(height: 16),
         _buildFormField(
           'Faculty ID',
-          'e.g., FAC2001',
+          'e.g., FAC001',
           _facultyControllers['facultyId']!,
           isMobile,
         ),
@@ -357,13 +359,6 @@ class _AccountCreationPageState extends State<AccountCreationPage>
           _facultyControllers['email']!,
           isMobile,
           keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: 12),
-        _buildFormField(
-          'Subjects',
-          'e.g., DBMS, OS, DSA',
-          _facultyControllers['subjects']!,
-          isMobile,
         ),
       ],
     );
@@ -671,6 +666,50 @@ class _AccountCreationPageState extends State<AccountCreationPage>
               ),
             ],
           ),
+          // Show credentials for single account creation
+          if (result['success'] &&
+              result.containsKey('username') &&
+              result.containsKey('password')) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[100],
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.blue, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '🔐 Login Credentials',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildCredentialRow(
+                    'Username/ID:',
+                    result['username'] ?? '',
+                    isMobile,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildCredentialRow(
+                    'Password:',
+                    result['password'] ?? '',
+                    isMobile,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildCredentialRow(
+                    'Email:',
+                    result['firebaseEmail'] ?? result['email'] ?? '',
+                    isMobile,
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           if (result.containsKey('totalRows')) ...[
             _buildResultRow(
@@ -727,6 +766,32 @@ class _AccountCreationPageState extends State<AccountCreationPage>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCredentialRow(String label, String value, bool isMobile) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isMobile ? 11 : 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SelectableText(
+            value,
+            style: TextStyle(
+              fontSize: isMobile ? 11 : 12,
+              fontFamily: 'monospace',
+              color: Colors.black87,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -823,6 +888,19 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       return;
     }
 
+    // Validate Faculty ID format if Faculty
+    if (type == 'Faculty') {
+      final facultyId = _facultyControllers['facultyId']!.text;
+      if (!_isValidFacultyId(facultyId)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Invalid Faculty ID format. Use format like FAC001, FAC002, etc.')),
+        );
+        return;
+      }
+    }
+
     setState(() => _isLoading = true);
     try {
       final result = await ExcelUploadService.createAccountManually(
@@ -842,5 +920,11 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  bool _isValidFacultyId(String value) {
+    // Faculty ID format: FAC followed by 3 digits (e.g., FAC001, FAC002)
+    final pattern = RegExp(r'^FAC\d{3}$', caseSensitive: false);
+    return pattern.hasMatch(value);
   }
 }

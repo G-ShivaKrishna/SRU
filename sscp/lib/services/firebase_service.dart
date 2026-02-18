@@ -22,7 +22,7 @@ class FirebaseService {
     try {
       // Generate Firebase email from Hall Ticket Number
       final firebaseEmail = '${hallTicketNumber.toLowerCase()}@sru.edu.in';
-      final firebasePassword = hallTicketNumber; // Same as username
+      final firebasePassword = _generateStrongPassword(hallTicketNumber);
 
       // Create Firebase Auth user with timeout
       UserCredential userCredential;
@@ -106,12 +106,11 @@ class FirebaseService {
     required String department,
     required String designation,
     required String email,
-    required String subjects,
   }) async {
     try {
       // Generate Firebase email from Faculty ID
       final firebaseEmail = '${facultyId.toLowerCase()}@sru.edu.in';
-      final firebasePassword = facultyId; // Same as username
+      final firebasePassword = _generateStrongPassword(facultyId);
 
       // Create Firebase Auth user with timeout
       UserCredential userCredential;
@@ -144,7 +143,6 @@ class FirebaseService {
         'designation': designation,
         'email': email,
         'firebaseEmail': firebaseEmail,
-        'subjects': subjects.split(',').map((s) => s.trim()).toList(),
         'role': 'faculty',
         'status': 'active',
         'passwordHash': _hashPassword(firebasePassword),
@@ -348,7 +346,6 @@ class FirebaseService {
           department: faculty['department'] ?? '',
           designation: faculty['designation'] ?? '',
           email: faculty['email'] ?? '',
-          subjects: faculty['subjects'] ?? '',
         );
 
         if (result['success'] == true) {
@@ -376,6 +373,11 @@ class FirebaseService {
   }
 
   // ============ HELPER METHODS ============
+  static String _generateStrongPassword(String id) {
+    // Password is same as the ID
+    return id;
+  }
+
   static String _hashPassword(String password) {
     return sha256.convert(utf8.encode(password)).toString();
   }
