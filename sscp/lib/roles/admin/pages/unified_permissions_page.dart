@@ -12,15 +12,18 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  List<Map<String, dynamic>> _pendingRequests = [];
-  List<Map<String, dynamic>> _approvedRequests = [];
-  List<Map<String, dynamic>> _rejectedRequests = [];
+  List<Map<String, dynamic>> _studentPendingRequests = [];
+  List<Map<String, dynamic>> _studentApprovedRequests = [];
+  List<Map<String, dynamic>> _studentRejectedRequests = [];
+  List<Map<String, dynamic>> _facultyPendingRequests = [];
+  List<Map<String, dynamic>> _facultyApprovedRequests = [];
+  List<Map<String, dynamic>> _facultyRejectedRequests = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _loadData();
   }
 
@@ -39,17 +42,39 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
     try {
       final allRequests = await StudentAccessService.getAllEditAccessRequests();
 
-      final pending =
-          allRequests.where((req) => req['status'] == 'pending').toList();
-      final approved =
-          allRequests.where((req) => req['status'] == 'approved').toList();
-      final rejected =
-          allRequests.where((req) => req['status'] == 'rejected').toList();
+      // Separate by user type (student or faculty)
+      final studentRequests = allRequests.where((req) {
+        final hallTicket = req['hallTicketNumber'] ?? '';
+        // Students have format like 2203A51291, Faculty have format like FAC001
+        return !hallTicket.startsWith('FAC');
+      }).toList();
+
+      final facultyRequests = allRequests.where((req) {
+        final hallTicket = req['hallTicketNumber'] ?? '';
+        return hallTicket.startsWith('FAC');
+      }).toList();
+
+      final studentPending =
+          studentRequests.where((req) => req['status'] == 'pending').toList();
+      final studentApproved =
+          studentRequests.where((req) => req['status'] == 'approved').toList();
+      final studentRejected =
+          studentRequests.where((req) => req['status'] == 'rejected').toList();
+
+      final facultyPending =
+          facultyRequests.where((req) => req['status'] == 'pending').toList();
+      final facultyApproved =
+          facultyRequests.where((req) => req['status'] == 'approved').toList();
+      final facultyRejected =
+          facultyRequests.where((req) => req['status'] == 'rejected').toList();
 
       setState(() {
-        _pendingRequests = pending;
-        _approvedRequests = approved;
-        _rejectedRequests = rejected;
+        _studentPendingRequests = studentPending;
+        _studentApprovedRequests = studentApproved;
+        _studentRejectedRequests = studentRejected;
+        _facultyPendingRequests = facultyPending;
+        _facultyApprovedRequests = facultyApproved;
+        _facultyRejectedRequests = facultyRejected;
         _isLoading = false;
       });
     } catch (e) {
@@ -232,15 +257,27 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
           unselectedLabelColor: Colors.white70,
           tabs: [
             Tab(
-              text: 'Pending (${_pendingRequests.length})',
+              text: 'Students - Pending (${_studentPendingRequests.length})',
               icon: const Icon(Icons.pending_actions),
             ),
             Tab(
-              text: 'Approved (${_approvedRequests.length})',
+              text: 'Students - Approved (${_studentApprovedRequests.length})',
               icon: const Icon(Icons.check_circle),
             ),
             Tab(
-              text: 'Rejected (${_rejectedRequests.length})',
+              text: 'Students - Rejected (${_studentRejectedRequests.length})',
+              icon: const Icon(Icons.cancel),
+            ),
+            Tab(
+              text: 'Faculty - Pending (${_facultyPendingRequests.length})',
+              icon: const Icon(Icons.pending_actions),
+            ),
+            Tab(
+              text: 'Faculty - Approved (${_facultyApprovedRequests.length})',
+              icon: const Icon(Icons.check_circle),
+            ),
+            Tab(
+              text: 'Faculty - Rejected (${_facultyRejectedRequests.length})',
               icon: const Icon(Icons.cancel),
             ),
             const Tab(
@@ -253,9 +290,12 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildPendingRequestsTab(isMobile),
-          _buildApprovedRequestsTab(isMobile),
-          _buildRejectedRequestsTab(isMobile),
+          _buildPendingRequestsTab(_studentPendingRequests, isMobile),
+          _buildApprovedRequestsTab(_studentApprovedRequests, isMobile),
+          _buildRejectedRequestsTab(_studentRejectedRequests, isMobile),
+          _buildPendingRequestsTab(_facultyPendingRequests, isMobile),
+          _buildApprovedRequestsTab(_facultyApprovedRequests, isMobile),
+          _buildRejectedRequestsTab(_facultyRejectedRequests, isMobile),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -279,8 +319,9 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
     );
   }
 
-  Widget _buildPendingRequestsTab(bool isMobile) {
-    if (_pendingRequests.isEmpty) {
+  Widget _buildPendingRequestsTab(
+      List<Map<String, dynamic>> requests, bool isMobile) {
+    if (requests.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -298,16 +339,17 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
 
     return ListView.builder(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
-      itemCount: _pendingRequests.length,
+      itemCount: requests.length,
       itemBuilder: (context, index) {
-        final request = _pendingRequests[index];
+        final request = requests[index];
         return _buildRequestCard(request, 'pending', isMobile);
       },
     );
   }
 
-  Widget _buildApprovedRequestsTab(bool isMobile) {
-    if (_approvedRequests.isEmpty) {
+  Widget _buildApprovedRequestsTab(
+      List<Map<String, dynamic>> requests, bool isMobile) {
+    if (requests.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -325,16 +367,17 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
 
     return ListView.builder(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
-      itemCount: _approvedRequests.length,
+      itemCount: requests.length,
       itemBuilder: (context, index) {
-        final request = _approvedRequests[index];
+        final request = requests[index];
         return _buildRequestCard(request, 'approved', isMobile);
       },
     );
   }
 
-  Widget _buildRejectedRequestsTab(bool isMobile) {
-    if (_rejectedRequests.isEmpty) {
+  Widget _buildRejectedRequestsTab(
+      List<Map<String, dynamic>> requests, bool isMobile) {
+    if (requests.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -352,9 +395,9 @@ class _UnifiedPermissionsPageState extends State<UnifiedPermissionsPage>
 
     return ListView.builder(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
-      itemCount: _rejectedRequests.length,
+      itemCount: requests.length,
       itemBuilder: (context, index) {
-        final request = _rejectedRequests[index];
+        final request = requests[index];
         return _buildRequestCard(request, 'rejected', isMobile);
       },
     );
