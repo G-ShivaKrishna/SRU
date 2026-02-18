@@ -5,6 +5,7 @@ import 'pages/unified_permissions_page.dart';
 import 'pages/account_creation_page.dart';
 import 'pages/student_name_edit_page.dart';
 import 'pages/student_admission_edit_page.dart';
+import 'pages/academic_calendar_management_page.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -55,6 +56,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const StudentAdmissionEditPage();
     } else if (pageName == 'View Only') {
       page = const ViewOnlyPage();
+    } else if (pageName == 'Academic Calendar') {
+      page = const AcademicCalendarManagementPage();
     } else {
       return;
     }
@@ -161,6 +164,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Manage Access',
       'Edit Names',
       'Edit Admission',
+      'Academic Calendar',
       'View Only',
     ];
 
@@ -211,9 +215,7 @@ class _AdminHomeState extends State<AdminHome> {
             itemBuilder: (BuildContext context) {
               return menuItems
                   .where((item) =>
-                      item != 'Home' &&
-                      !['Accounts', 'Permissions', 'Edit Access']
-                          .contains(item))
+                      item != 'Home')
                   .map((String choice) {
                 return PopupMenuItem<String>(
                   value: choice,

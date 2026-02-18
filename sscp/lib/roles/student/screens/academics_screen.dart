@@ -1,5 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../../../widgets/app_header.dart';
+
+// Model for Academic Calendar
+class AcademicCalendarModel {
+  final String id;
+  final String academicYear;
+  final String degree;
+  final int year;
+  final int semester;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String pdfUrl;
+
+  AcademicCalendarModel({
+    required this.id,
+    required this.academicYear,
+    required this.degree,
+    required this.year,
+    required this.semester,
+    required this.startDate,
+    required this.endDate,
+    required this.pdfUrl,
+  });
+
+  factory AcademicCalendarModel.fromFirestore(
+      DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    return AcademicCalendarModel(
+      id: doc.id,
+      academicYear: data['academicYear'] ?? '',
+      degree: data['degree'] ?? '',
+      year: data['year'] ?? 0,
+      semester: data['semester'] ?? 0,
+      startDate: (data['startDate'] as Timestamp).toDate(),
+      endDate: (data['endDate'] as Timestamp).toDate(),
+      pdfUrl: data['pdfUrl'] ?? '',
+    );
+  }
+}
 
 class AcademicsScreen extends StatefulWidget {
   const AcademicsScreen({super.key});
@@ -12,11 +53,14 @@ class _AcademicsScreenState extends State<AcademicsScreen> {
   String? selectedYear;
   String? selectedDegree;
   String? selectedSem;
-  bool isCalendarFetched = false;
+  List<AcademicCalendarModel> calendarData = [];
+  bool isLoading = false;
 
-  final academicYears = ['2022-23', '2023-24', '2024-25', '2025-26'];
+  final academicYears = ['2025-26'];
   final degrees = ['BTECH', 'MTECH', 'MBA', 'MCA'];
-  final semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
+  final semesters = ['1', '2'];
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +82,8 @@ class _AcademicsScreenState extends State<AcademicsScreen> {
                 children: [
                   _buildFilterCard(context),
                   const SizedBox(height: 24),
-                  if (isCalendarFetched)
-                    _buildCalendarContent(context)
+                  if (calendarData.isNotEmpty)
+                    _buildTableContent(context)
                   else
                     _buildNoDataMessage(context),
                 ],
@@ -47,24 +91,6 @@ class _AcademicsScreenState extends State<AcademicsScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderSection(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    return Container(
-      color: const Color(0xFF1e3a5f),
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
-      child: Text(
-        'Academic Calendar',
-        style: TextStyle(
-          color: Colors.yellow,
-          fontSize: isMobile ? 14 : 16,
-          fontWeight: FontWeight.bold,
-        ),
-        textAlign: TextAlign.center,
       ),
     );
   }
@@ -221,9 +247,47 @@ class _AcademicsScreenState extends State<AcademicsScreen> {
     );
   }
 
-  void _onSearchPressed() {
+  void _onSearchPressed() async {
     if (selectedYear != null && selectedDegree != null && selectedSem != null) {
-      setState(() => isCalendarFetched = true);
+      setState(() => isLoading = true);
+      
+      try {
+        // Query Firestore for matching academic calendars
+        final QuerySnapshot<Map<String, dynamic>> snapshot =
+            await _firestore
+                .collection('academic_calendars')
+                .where('academicYear', isEqualTo: selectedYear)
+                .where('degree', isEqualTo: selectedDegree)
+                .where('semester', isEqualTo: int.parse(selectedSem!))
+                .get();
+
+        if (!mounted) return;
+
+        setState(() {
+          calendarData = snapshot.docs
+              .map((doc) => AcademicCalendarModel.fromFirestore(doc))
+              .toList();
+          isLoading = false;
+        });
+
+        if (calendarData.isEmpty && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No academic calendars found'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -274,141 +338,169 @@ class _AcademicsScreenState extends State<AcademicsScreen> {
     );
   }
 
-  Widget _buildCalendarContent(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    final calendarEvents = [
-      {'event': 'Semester Starts', 'date': '15-Jul-2025', 'type': 'start'},
-      {'event': 'Add/Drop Courses', 'date': '22-Jul-2025', 'type': 'important'},
-      {'event': 'Mid Sem Exams', 'date': '15-Sep-2025', 'type': 'exam'},
-      {
-        'event': 'Project Submission',
-        'date': '10-Oct-2025',
-        'type': 'deadline'
-      },
-      {'event': 'End Sem Exams', 'date': '20-Nov-2025', 'type': 'exam'},
-      {
-        'event': 'Results Declaration',
-        'date': '05-Dec-2025',
-        'type': 'important'
-      },
-      {'event': 'Semester Ends', 'date': '10-Dec-2025', 'type': 'end'},
-    ];
-
+  Widget _buildTableContent(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey[300]!, width: 1),
         borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(isMobile ? 12 : 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1e3a5f),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(7),
-                topRight: Radius.circular(7),
-              ),
-            ),
-            child: Text(
-              'Academic Calendar - $selectedYear | $selectedDegree | Semester $selectedSem',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: isMobile ? 12 : 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columns: const [
+            DataColumn(label: Text('S.No')),
+            DataColumn(label: Text('Academic Year')),
+            DataColumn(label: Text('Degree')),
+            DataColumn(label: Text('Year')),
+            DataColumn(label: Text('Sem')),
+            DataColumn(label: Text('S Date')),
+            DataColumn(label: Text('E Date')),
+            DataColumn(label: Text('View')),
+          ],
+          rows: List.generate(
+            calendarData.length,
+            (index) {
+              final item = calendarData[index];
+              return DataRow(
+                cells: [
+                  DataCell(Text('${index + 1}')),
+                  DataCell(Text(item.academicYear)),
+                  DataCell(Text(item.degree)),
+                  DataCell(Text('${item.year}')),
+                  DataCell(Text('${item.semester}')),
+                  DataCell(Text(
+                    DateFormat('yyyy-MM-dd').format(item.startDate),
+                  )),
+                  DataCell(Text(
+                    DateFormat('yyyy-MM-dd').format(item.endDate),
+                  )),
+                  DataCell(
+                    GestureDetector(
+                      onTap: () => _openPdfViewer(context, item.pdfUrl),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[100],
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(
+                          Icons.picture_as_pdf,
+                          color: Colors.blue[700],
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
-          Padding(
-            padding: EdgeInsets.all(isMobile ? 12 : 14),
-            child: Column(
-              children: calendarEvents.asMap().entries.map((entry) {
-                int index = entry.key;
-                Map<String, String> event = entry.value;
-                return Column(
-                  children: [
-                    if (index > 0) Divider(color: Colors.grey[300], height: 16),
-                    _buildCalendarEventRow(event, isMobile),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildCalendarEventRow(Map<String, String> event, bool isMobile) {
-    Color eventColor;
-    IconData eventIcon;
-
-    switch (event['type']) {
-      case 'exam':
-        eventColor = Colors.red[100]!;
-        eventIcon = Icons.event_available;
-        break;
-      case 'important':
-        eventColor = Colors.orange[100]!;
-        eventIcon = Icons.flag;
-        break;
-      case 'deadline':
-        eventColor = Colors.purple[100]!;
-        eventIcon = Icons.assignment_turned_in;
-        break;
-      case 'start':
-        eventColor = Colors.green[100]!;
-        eventIcon = Icons.play_circle;
-        break;
-      case 'end':
-        eventColor = Colors.blue[100]!;
-        eventIcon = Icons.stop_circle;
-        break;
-      default:
-        eventColor = Colors.grey[100]!;
-        eventIcon = Icons.event;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: eventColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(eventIcon, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event['event']!,
-                  style: TextStyle(
-                    fontSize: isMobile ? 12 : 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  event['date']!,
-                  style: TextStyle(
-                    fontSize: isMobile ? 11 : 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+  void _openPdfViewer(BuildContext context, String pdfUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PdfViewerScreen(pdfUrl: pdfUrl),
       ),
+    );
+  }
+}
+
+// PDF Viewer Screen with Syncfusion
+class PdfViewerScreen extends StatefulWidget {
+  final String pdfUrl;
+
+  const PdfViewerScreen({super.key, required this.pdfUrl});
+
+  @override
+  State<PdfViewerScreen> createState() => _PdfViewerScreenState();
+}
+
+class _PdfViewerScreenState extends State<PdfViewerScreen> {
+  late String _pdfUrl;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _preparePdfUrl();
+  }
+
+  Future<void> _preparePdfUrl() async {
+    try {
+      String pdfUrl = widget.pdfUrl;
+      
+      // Handle GitHub URLs - convert to raw content URL
+      if (pdfUrl.contains('github.com')) {
+        pdfUrl = pdfUrl.replaceFirst('github.com/', 'raw.githubusercontent.com/');
+        pdfUrl = pdfUrl.replaceFirst('/blob/', '/');
+      }
+      
+      // Handle Google Drive URLs
+      if (pdfUrl.contains('drive.google.com')) {
+        final RegExp regExp = RegExp(r'/d/([a-zA-Z0-9-_]+)');
+        final match = regExp.firstMatch(pdfUrl);
+        if (match != null) {
+          final fileId = match.group(1);
+          pdfUrl = 'https://drive.google.com/uc?id=$fileId&export=download&confirm=t';
+        }
+      }
+
+      setState(() {
+        _pdfUrl = pdfUrl;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Error preparing PDF: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Academic Calendar PDF'),
+        backgroundColor: const Color(0xFF1e3a5f),
+        foregroundColor: Colors.white,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline,
+                          size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Error: $_error'),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Go Back'),
+                      ),
+                    ],
+                  ),
+                )
+              : SfPdfViewer.network(
+                  _pdfUrl,
+                  onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to load PDF: ${details.error}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }
