@@ -1,11 +1,13 @@
 # Academic Calendar Backend Setup Guide
 
 ## Overview
+
 This guide explains the complete workflow for managing academic calendars. The **Admin Panel** handles all data entry, PDF uploads, and Firestore management. **Students** simply view the data through the student screens.
 
 ## Admin vs Student Workflow
 
 ### Admin Side (Responsibility)
+
 ✅ Upload PDF files to Firebase Storage
 ✅ Fill in academic calendar details
 ✅ Manage start/end dates  
@@ -13,6 +15,7 @@ This guide explains the complete workflow for managing academic calendars. The *
 ✅ Everything is automated through the admin panel
 
 ### Student Side (Read Only)
+
 ✅ View available academic calendars
 ✅ Filter by year, degree, semester
 ✅ Download and view PDFs
@@ -64,6 +67,7 @@ academic_calendars/ (Collection)
 ### 2. Firebase Storage Structure (Auto-Created)
 
 When admin uploads PDFs, folders are automatically created:
+
 ```
 academic_calendars/
 ├─ 2025-26/
@@ -119,6 +123,7 @@ service firebase.storage {
 ## How to Set Admin Role in Firebase
 
 ### Option 1: Firebase Console (Manual)
+
 1. Go to Authentication → Users
 2. Click on admin user
 3. Click "Custom claims" (pencil icon)
@@ -126,26 +131,28 @@ service firebase.storage {
 5. Save
 
 ### Option 2: Firebase CLI (Recommended)
+
 ```bash
 firebase functions:config:set auth.admin_uid="user_uid_here"
 ```
 
 ### Option 3: Create a Cloud Function
+
 ```javascript
 // Set admin claims via a callable function
-const admin = require('firebase-admin');
+const admin = require("firebase-admin");
 
 exports.setAdminRole = functions.https.onCall(async (data, context) => {
   const uid = data.uid;
-  
+
   if (!context.auth || !context.auth.token.admin) {
     throw new functions.https.HttpsError(
-      'permission-denied',
-      'Only admins can set roles'
+      "permission-denied",
+      "Only admins can set roles",
     );
   }
-  
-  await admin.auth().setCustomUserClaims(uid, { role: 'admin' });
+
+  await admin.auth().setCustomUserClaims(uid, { role: "admin" });
   return { message: `Admin role set for user ${uid}` };
 });
 ```
@@ -161,7 +168,7 @@ import 'package:sscp/roles/admin/pages/academic_calendar_management_page.dart';
 
 // In your navigation
 if (userRole == 'admin') {
-  routes['/academic-calendar-management'] = (context) => 
+  routes['/academic-calendar-management'] = (context) =>
     const AcademicCalendarManagementPage();
 }
 ```
@@ -211,6 +218,7 @@ if (userRole == 'admin')
 ## Student View (Automatic)
 
 Once admin adds calendars:
+
 1. Students go to "Academic Calendar" screen
 2. Select filters (Academic Year, Degree, Semester)
 3. Click "Search"
@@ -250,13 +258,13 @@ Once admin adds calendars:
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
+| Issue                              | Solution                                                     |
+| ---------------------------------- | ------------------------------------------------------------ |
 | "Permission denied" when uploading | Make sure user has `admin` custom claim set in Firebase Auth |
-| PDF not uploading | Check file size (max 50MB) and storage quota |
-| Form won't submit | Ensure all fields are filled including PDF |
-| Students can't see data | Check Firestore security rules allow authenticated reads |
-| PDF icon doesn't work | Verify pdfUrl in Firestore is correct and accessible |
+| PDF not uploading                  | Check file size (max 50MB) and storage quota                 |
+| Form won't submit                  | Ensure all fields are filled including PDF                   |
+| Students can't see data            | Check Firestore security rules allow authenticated reads     |
+| PDF icon doesn't work              | Verify pdfUrl in Firestore is correct and accessible         |
 
 ## Database Backup
 
@@ -316,15 +324,16 @@ Follow these steps in order:
 
 ## File Locations
 
-| File | Purpose |
-|------|---------|
+| File                                                           | Purpose                            |
+| -------------------------------------------------------------- | ---------------------------------- |
 | `lib/roles/admin/pages/academic_calendar_management_page.dart` | Admin panel for managing calendars |
-| `lib/roles/student/screens/academics_screen.dart` | Student view of calendars |
-| `ACADEMIC_CALENDAR_SETUP.md` | This setup guide |
+| `lib/roles/student/screens/academics_screen.dart`              | Student view of calendars          |
+| `ACADEMIC_CALENDAR_SETUP.md`                                   | This setup guide                   |
 
 ## Support
 
 For issues:
+
 1. Check the Troubleshooting section
 2. Verify Firebase Console settings
 3. Check app logs for detailed errors

@@ -3,31 +3,35 @@
 ## What Was Done
 
 ### 1. **Updated UI to Table Format**
-   - Changed from event-based calendar view to a data table
-   - Table displays columns: S.No, Academic Year, Degree, Year, Sem, S Date, E Date, View
-   - Matches your design image exactly
+
+- Changed from event-based calendar view to a data table
+- Table displays columns: S.No, Academic Year, Degree, Year, Sem, S Date, E Date, View
+- Matches your design image exactly
 
 ### 2. **Firebase Integration**
-   - Added Firestore queries to fetch academic calendar data
-   - Filters data by: Academic Year, Degree, and Semester
-   - Returns results in a structured table format
+
+- Added Firestore queries to fetch academic calendar data
+- Filters data by: Academic Year, Degree, and Semester
+- Returns results in a structured table format
 
 ### 3. **PDF Viewer Implementation**
-   - Added `PdfViewerScreen` widget for viewing PDFs
-   - PDF icon in the "View" column is clickable
-   - Opens Firebase Storage PDFs directly in the app
-   - Supports zoom, pan, and page navigation
+
+- Added `PdfViewerScreen` widget for viewing PDFs
+- PDF icon in the "View" column is clickable
+- Opens Firebase Storage PDFs directly in the app
+- Supports zoom, pan, and page navigation
 
 ### 4. **Data Model**
-   - Created `AcademicCalendarModel` class
-   - Maps Firestore documents to Dart objects
-   - Handles date conversion from Firestore Timestamps
+
+- Created `AcademicCalendarModel` class
+- Maps Firestore documents to Dart objects
+- Handles date conversion from Firestore Timestamps
 
 ## Dependencies Added
 
 ```yaml
-pdfx: ^2.9.2  # PDF viewing library with pinch to zoom
-intl: ^0.19.0  # Date formatting (yyyy-MM-dd)
+pdfx: ^2.9.2 # PDF viewing library with pinch to zoom
+intl: ^0.19.0 # Date formatting (yyyy-MM-dd)
 ```
 
 ## File Changes
@@ -40,7 +44,7 @@ intl: ^0.19.0  # Date formatting (yyyy-MM-dd)
    - Firestore document mapper
    - Parses timestamps, dates, and URLs
 
-2. **_AcademicsScreenState** (lines 52-412)
+2. **\_AcademicsScreenState** (lines 52-412)
    - Manages state and Firebase queries
    - Methods:
      - `build()` - Main UI layout
@@ -74,11 +78,13 @@ academic_calendars/
 ## How to Use
 
 ### Step 1: Set Up Firebase
+
 1. Create Firestore collection: `academic_calendars`
 2. Upload PDF files to Firebase Storage
 3. Create documents with the structure above
 
 ### Step 2: Add Sample Data
+
 ```json
 {
   "academicYear": "2025-26",
@@ -92,6 +98,7 @@ academic_calendars/
 ```
 
 ### Step 3: Test in App
+
 1. Select Academic Year, Degree, and Semester
 2. Click "Search"
 3. Results appear in table
@@ -125,6 +132,7 @@ Student can scroll, zoom, read
 Add these rules to allow students to read academic calendars:
 
 **Firestore:**
+
 ```
 match /academic_calendars/{document=**} {
   allow read: if request.auth.uid != null;
@@ -133,6 +141,7 @@ match /academic_calendars/{document=**} {
 ```
 
 **Cloud Storage:**
+
 ```
 match /academic_calendars/{allPaths=**} {
   allow read: if request.auth.uid != null;
@@ -174,7 +183,7 @@ When you query Firestore for 2025-26, BTECH, Semester 2:
 ## Backend Upload Example (Node.js)
 
 ```javascript
-const admin = require('firebase-admin');
+const admin = require("firebase-admin");
 const bucket = admin.storage().bucket();
 const db = admin.firestore();
 
@@ -182,17 +191,17 @@ async function uploadAcademicCalendar(pdfPath, metadata) {
   // Upload PDF to Storage
   const destination = `academic_calendars/${metadata.academicYear}/${metadata.degree}/sem_${metadata.semester}/calendar.pdf`;
   await bucket.upload(pdfPath, { destination });
-  
+
   // Get download URL
   const file = bucket.file(destination);
   const [url] = await file.getSignedUrl({
-    version: 'v4',
-    action: 'read',
+    version: "v4",
+    action: "read",
     expires: Date.now() + 15778800000, // 6 months
   });
-  
+
   // Add to Firestore
-  await db.collection('academic_calendars').add({
+  await db.collection("academic_calendars").add({
     academicYear: metadata.academicYear,
     degree: metadata.degree,
     year: metadata.year,
@@ -206,13 +215,13 @@ async function uploadAcademicCalendar(pdfPath, metadata) {
 
 ## Troubleshooting
 
-| Error | Solution |
-|-------|----------|
-| **No data found** | Check Firestore has documents matching your filters |
-| **PDF not loading** | Verify pdfUrl is publicly accessible (check Storage rules) |
-| **"Please select all filters"** | Ensure all three dropdowns have values selected |
-| **Firebase permission error** | Check Firestore/Storage security rules |
-| **PDF loads slowly** | Check PDF file size (keep under 50MB) |
+| Error                           | Solution                                                   |
+| ------------------------------- | ---------------------------------------------------------- |
+| **No data found**               | Check Firestore has documents matching your filters        |
+| **PDF not loading**             | Verify pdfUrl is publicly accessible (check Storage rules) |
+| **"Please select all filters"** | Ensure all three dropdowns have values selected            |
+| **Firebase permission error**   | Check Firestore/Storage security rules                     |
+| **PDF loads slowly**            | Check PDF file size (keep under 50MB)                      |
 
 ## Next Steps
 

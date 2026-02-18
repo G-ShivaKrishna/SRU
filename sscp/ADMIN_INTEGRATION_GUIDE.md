@@ -3,17 +3,20 @@
 ## What's Ready
 
 ✅ **Admin Panel** - Complete academic calendar management page with:
+
 - Form to add new academic calendars
 - PDF file upload to Firebase Storage (automatic)
 - View all existing calendars
 - Delete calendars
 
 ✅ **Student Screen** - View academic calendars with:
+
 - Filter by Academic Year, Degree, Semester
 - Table display of calendars
 - PDF viewer from Firebase Storage
 
 ✅ **Backend** - Firebase setup ready:
+
 - Firestore collection structure
 - Storage folder hierarchy
 - Security rules template
@@ -49,6 +52,7 @@ ListTile(
    - (Fields auto-create on first add)
 
 2. **Set Security Rules**
+
    ```firestore
    rules_version = '2';
    service cloud.firestore {
@@ -63,6 +67,7 @@ ListTile(
    ```
 
 3. **Set Storage Rules**
+
    ```
    rules_version = '2';
    service firebase.storage {
@@ -85,6 +90,7 @@ ListTile(
 ### Step 3: Test
 
 **Admin Flow:**
+
 1. Login as admin
 2. Go to "Academic Calendar" menu
 3. Fill form with calendar details
@@ -93,6 +99,7 @@ ListTile(
 6. View in "Existing Academic Calendars" list
 
 **Student Flow:**
+
 1. Login as student
 2. Go to "Academic Calendar" screen
 3. Select year, degree, semester
@@ -102,15 +109,16 @@ ListTile(
 
 ## File Locations
 
-| File | Purpose |
-|------|---------|
-| `lib/roles/admin/pages/academic_calendar_management_page.dart` | Admin panel |
-| `lib/roles/student/screens/academics_screen.dart` | Student view |
-| `ACADEMIC_CALENDAR_SETUP.md` | Complete setup guide |
+| File                                                           | Purpose              |
+| -------------------------------------------------------------- | -------------------- |
+| `lib/roles/admin/pages/academic_calendar_management_page.dart` | Admin panel          |
+| `lib/roles/student/screens/academics_screen.dart`              | Student view         |
+| `ACADEMIC_CALENDAR_SETUP.md`                                   | Complete setup guide |
 
 ## Key Features
 
 ### Admin Panel
+
 - ✅ Add academic calendars
 - ✅ Upload PDFs automatically
 - ✅ View all calendars
@@ -119,6 +127,7 @@ ListTile(
 - ✅ Displays success/error messages
 
 ### Student Screen
+
 - ✅ Filter by Year, Degree, Semester
 - ✅ Table view matching your design
 - ✅ View PDF files
@@ -126,6 +135,7 @@ ListTile(
 - ✅ Zoom & scroll in PDF viewer
 
 ### Backend (Firebase)
+
 - ✅ Firestore storage (documents)
 - ✅ Firebase Storage (PDF files)
 - ✅ Automatic URL generation
@@ -135,6 +145,7 @@ ListTile(
 ## Admin User Setup
 
 ### Method 1: Firebase Console (Easiest)
+
 1. Go to Firebase Console
 2. Authentication → Users
 3. Click on the user you want to make admin
@@ -143,6 +154,7 @@ ListTile(
 6. Save
 
 ### Method 2: Firebase CLI
+
 ```bash
 firebase auth:set --custom-claims='{"role":"admin"}' user_uid
 ```
@@ -163,6 +175,7 @@ firebase auth:set --custom-claims='{"role":"admin"}' user_uid
 Reference the complete setup guide: **ACADEMIC_CALENDAR_SETUP.md**
 
 For issues:
+
 1. Check Firebase Console
 2. Verify security rules
 3. Confirm admin role is set
