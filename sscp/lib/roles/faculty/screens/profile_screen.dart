@@ -65,6 +65,37 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     };
   }
 
+  Future<void> _selectDate(String fieldKey) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _parseDate(_editControllers[fieldKey]?.text ?? ''),
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now(),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _editControllers[fieldKey]?.text =
+            '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+      });
+    }
+  }
+
+  DateTime _parseDate(String dateString) {
+    if (dateString.isEmpty) return DateTime.now();
+    try {
+      // Handle DD/MM/YYYY format
+      final parts = dateString.split('/');
+      if (parts.length == 3) {
+        return DateTime(int.parse(parts[2]), int.parse(parts[1]),
+            int.parse(parts[0]));
+      }
+      return DateTime.now();
+    } catch (e) {
+      return DateTime.now();
+    }
+  }
+
   Future<void> _loadFacultyData() async {
     try {
       final user = _auth.currentUser;
@@ -176,6 +207,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
       'Address',
       'Qualification',
       'Specialization',
+      'Date of Birth',
+      'Experience',
     };
 
     if (mounted) {
@@ -201,6 +234,8 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                     'Address',
                     'Qualification',
                     'Specialization',
+                    'Date of Birth',
+                    'Experience',
                   ].map((field) => CheckboxListTile(
                         value: selectedFields.contains(field),
                         onChanged: (value) {
@@ -323,6 +358,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
         'specialization': _editControllers['specialization']!.text,
         'experience': _editControllers['experience']!.text,
         'dateOfJoining': _editControllers['dateOfJoining']!.text,
+        'dateOfBirth': _editControllers['dateOfBirth']!.text,
       };
 
       // Update in Firestore
@@ -454,16 +490,22 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                 _facultyData?['department'] ?? 'N/A'),
                         _buildInfoRow(
                             'Name', _facultyData?['name'] ?? 'N/A'),
-                        _buildInfoRow('Date of Birth',
-                            _facultyData?['dateOfBirth'] ?? 'N/A'),
+                        _isEditMode
+                            ? _buildDatePickerField(
+                                'Date of Birth', 'dateOfBirth')
+                            : _buildInfoRow('Date of Birth',
+                                _facultyData?['dateOfBirth'] ?? 'N/A'),
                       ],
                       context),
                   const SizedBox(height: 16),
                   _buildSectionCard(
                       'Employment Information',
                       [
-                        _buildInfoRow('Date of Joining',
-                            _facultyData?['dateOfJoining'] ?? 'N/A'),
+                        _isEditMode
+                            ? _buildDatePickerField(
+                                'Date of Joining', 'dateOfJoining')
+                            : _buildInfoRow('Date of Joining',
+                                _facultyData?['dateOfJoining'] ?? 'N/A'),
                         _isEditMode
                             ? _buildEditableField(
                                 'Qualification', 'qualification')
@@ -474,8 +516,10 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                 'Specialization', 'specialization')
                             : _buildInfoRow('Specialization',
                                 _facultyData?['specialization'] ?? 'N/A'),
-                        _buildInfoRow(
-                            'Experience', _facultyData?['experience'] ?? 'N/A'),
+                        _isEditMode
+                            ? _buildEditableField('Experience', 'experience')
+                            : _buildInfoRow(
+                                'Experience', _facultyData?['experience'] ?? 'N/A'),
                       ],
                       context),
                   const SizedBox(height: 16),
@@ -656,6 +700,46 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 10,
                 vertical: 8,
+              ),
+            ),
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDatePickerField(String label, String fieldKey) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1e3a5f),
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _editControllers[fieldKey],
+            readOnly: true,
+            onTap: () => _selectDate(fieldKey),
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 10,
+                vertical: 8,
+              ),
+              suffixIcon: const Icon(
+                Icons.calendar_today,
+                size: 16,
               ),
             ),
             style: const TextStyle(fontSize: 12),
