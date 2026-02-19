@@ -16,9 +16,126 @@ class FacultyAssignmentService {
 
   // ============ FACULTY ASSIGNMENT MANAGEMENT ============
 
+  /// Check if faculty already has an assignment for a specific year
+  /// Returns the existing assignment if found, null otherwise
+  Future<FacultyAssignment?> getFacultyAssignmentForYear({
+    required String facultyId,
+    required int year,
+    required String academicYear,
+    required String semester,
+  }) async {
+    try {
+      final snapshot = await _assignmentsCollection
+          .where('facultyId', isEqualTo: facultyId)
+          .where('year', isEqualTo: year)
+          .where('academicYear', isEqualTo: academicYear)
+          .where('semester', isEqualTo: semester)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+      return FacultyAssignment.fromFirestore(snapshot.docs.first);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Check if a subject is already assigned to a different faculty
+  /// Returns the existing assignment if found, null otherwise
+  Future<FacultyAssignment?> getSubjectAssignment({
+    required String subjectCode,
+    required String academicYear,
+    required String semester,
+    required int year,
+  }) async {
+    try {
+      final snapshot = await _assignmentsCollection
+          .where('subjectCode', isEqualTo: subjectCode)
+          .where('academicYear', isEqualTo: academicYear)
+          .where('semester', isEqualTo: semester)
+          .where('year', isEqualTo: year)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+      return FacultyAssignment.fromFirestore(snapshot.docs.first);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Get subject-faculty mapping for a department/year/semester
+  /// Returns map of subjectCode -> facultyName
+  Future<Map<String, String>> getSubjectFacultyMap({
+    required String academicYear,
+    required String semester,
+    required int year,
+    String? department,
+  }) async {
+    try {
+      Query query = _assignmentsCollection
+          .where('academicYear', isEqualTo: academicYear)
+          .where('semester', isEqualTo: semester)
+          .where('year', isEqualTo: year)
+          .where('isActive', isEqualTo: true);
+
+      if (department != null) {
+        query = query.where('department', isEqualTo: department);
+      }
+
+      final snapshot = await query.get();
+      final Map<String, String> subjectFacultyMap = {};
+      
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final subjectCode = data['subjectCode'] ?? '';
+        final facultyName = data['facultyName'] ?? '';
+        subjectFacultyMap[subjectCode] = facultyName;
+      }
+      return subjectFacultyMap;
+    } catch (e) {
+      return {};
+    }
+  }
+
   /// Create a new faculty assignment
+  /// Enforces: 
+  /// 1. One faculty can teach only ONE subject per student year
+  /// 2. One subject can only be taught by ONE faculty (per year/semester)
   Future<String> createAssignment(FacultyAssignment assignment) async {
     try {
+      // CHECK 1: Faculty can only teach ONE subject per year
+      final existingForYear = await getFacultyAssignmentForYear(
+        facultyId: assignment.facultyId,
+        year: assignment.year,
+        academicYear: assignment.academicYear,
+        semester: assignment.semester,
+      );
+
+      if (existingForYear != null && 
+          existingForYear.subjectCode != assignment.subjectCode) {
+        throw Exception(
+          'Faculty already teaches "${existingForYear.subjectName}" to Year ${assignment.year} students. '
+          'A faculty can only teach one subject per student year.'
+        );
+      }
+
+      // CHECK 2: Subject can only be taught by ONE faculty
+      final existingSubjectAssignment = await getSubjectAssignment(
+        subjectCode: assignment.subjectCode,
+        academicYear: assignment.academicYear,
+        semester: assignment.semester,
+        year: assignment.year,
+      );
+
+      if (existingSubjectAssignment != null && 
+          existingSubjectAssignment.facultyId != assignment.facultyId) {
+        throw Exception(
+          '"${assignment.subjectName}" is already assigned to ${existingSubjectAssignment.facultyName}. '
+          'A subject can only be taught by one faculty.'
+        );
+      }
+
       // Check for duplicate assignment (same faculty, subject, batch combination)
       final existing = await _assignmentsCollection
           .where('facultyId', isEqualTo: assignment.facultyId)
@@ -88,6 +205,34 @@ class FacultyAssignmentService {
       });
     } catch (e) {
       throw Exception('Failed to deactivate faculty assignment: $e');
+    }
+  }
+
+  /// Get faculty's current year-subject mapping
+  /// Returns a map of year -> subject name for the current academic year/semester
+  Future<Map<int, String>> getFacultyYearSubjectMap({
+    required String facultyId,
+    required String academicYear,
+    required String semester,
+  }) async {
+    try {
+      final snapshot = await _assignmentsCollection
+          .where('facultyId', isEqualTo: facultyId)
+          .where('academicYear', isEqualTo: academicYear)
+          .where('semester', isEqualTo: semester)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final Map<int, String> yearSubjectMap = {};
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final year = data['year'] ?? 1;
+        final subjectName = data['subjectName'] ?? '';
+        yearSubjectMap[year] = subjectName;
+      }
+      return yearSubjectMap;
+    } catch (e) {
+      return {};
     }
   }
 

@@ -480,6 +480,8 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
     int selectedYear = 1;
     String selectedSemester = 'I';
     String academicYear = _getCurrentAcademicYear();
+    Map<int, String> facultyYearSubjectMap = {}; // Track which years faculty is already assigned
+    Map<String, String> subjectFacultyMap = {}; // Track which subjects are assigned to which faculty
 
     showDialog(
       context: context,
@@ -509,6 +511,17 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
               return matchesDept && matchesYear;
             }).toList();
 
+            // Check if selected year is already assigned
+            final yearAlreadyAssigned = facultyYearSubjectMap.containsKey(selectedYear);
+            final assignedSubjectForYear = facultyYearSubjectMap[selectedYear];
+            
+            // Check if selected subject is already assigned to another faculty
+            final selectedSubjectAssignedTo = selectedSubjectCode != null 
+                ? subjectFacultyMap[selectedSubjectCode] 
+                : null;
+            final subjectAlreadyAssigned = selectedSubjectAssignedTo != null && 
+                selectedSubjectAssignedTo != selectedFacultyName;
+
             return AlertDialog(
               title: const Text('Create Faculty Assignment'),
               content: SizedBox(
@@ -530,7 +543,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                           return DropdownMenuItem(
                               value: dept, child: Text(dept));
                         }).toList(),
-                        onChanged: (value) {
+                        onChanged: (value) async {
                           setDialogState(() {
                             selectedDepartment = value;
                             selectedFacultyId = null;
@@ -538,7 +551,21 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                             selectedSubjectCode = null;
                             selectedSubjectName = null;
                             selectedBatches.clear();
+                            facultyYearSubjectMap.clear();
+                            subjectFacultyMap.clear();
                           });
+                          // Load subject-faculty map for this dept/year/semester
+                          if (value != null) {
+                            final sfMap = await _service.getSubjectFacultyMap(
+                              academicYear: academicYear,
+                              semester: selectedSemester,
+                              year: selectedYear,
+                              department: value,
+                            );
+                            setDialogState(() {
+                              subjectFacultyMap = sfMap;
+                            });
+                          }
                         },
                       ),
                       const SizedBox(height: 16),
@@ -560,7 +587,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                         }).toList(),
                         onChanged: selectedDepartment == null
                             ? null
-                            : (value) {
+                            : (value) async {
                                 setDialogState(() {
                                   selectedFacultyId = value;
                                   final faculty = filteredFaculty.firstWhere(
@@ -569,8 +596,52 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                                   selectedFacultyName =
                                       faculty['name'] as String;
                                 });
+                                // Load faculty's existing year assignments
+                                if (value != null) {
+                                  final yearMap = await _service.getFacultyYearSubjectMap(
+                                    facultyId: value,
+                                    academicYear: academicYear,
+                                    semester: selectedSemester,
+                                  );
+                                  setDialogState(() {
+                                    facultyYearSubjectMap = yearMap;
+                                  });
+                                }
                               },
                       ),
+                      
+                      // Show faculty's existing assignments
+                      if (selectedFacultyId != null && facultyYearSubjectMap.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'ℹ️ Already teaching:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              ...facultyYearSubjectMap.entries.map((entry) => Text(
+                                '• Year ${entry.key}: ${entry.value}',
+                                style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
+                              )),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
 
                       // Year and Semester Row
@@ -578,24 +649,44 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<int>(
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Year *',
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
+                                // Show warning if year is already assigned
+                                errorText: yearAlreadyAssigned 
+                                    ? 'Already teaching "$assignedSubjectForYear"' 
+                                    : null,
+                                errorStyle: const TextStyle(fontSize: 10),
                               ),
                               value: selectedYear,
                               items: [1, 2, 3, 4].map((year) {
+                                final isAssigned = facultyYearSubjectMap.containsKey(year);
                                 return DropdownMenuItem(
                                   value: year,
-                                  child: Text('Year $year'),
+                                  child: Text(
+                                    isAssigned ? 'Year $year ⚠️' : 'Year $year',
+                                  ),
                                 );
                               }).toList(),
-                              onChanged: (value) {
+                              onChanged: (value) async {
                                 setDialogState(() {
                                   selectedYear = value ?? 1;
                                   selectedBatches.clear();
                                   selectedSubjectCode = null;
                                   selectedSubjectName = null;
                                 });
+                                // Reload subject-faculty map for new year
+                                if (selectedDepartment != null) {
+                                  final sfMap = await _service.getSubjectFacultyMap(
+                                    academicYear: academicYear,
+                                    semester: selectedSemester,
+                                    year: selectedYear,
+                                    department: selectedDepartment,
+                                  );
+                                  setDialogState(() {
+                                    subjectFacultyMap = sfMap;
+                                  });
+                                }
                               },
                             ),
                           ),
@@ -613,12 +704,35 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                                   child: Text('Semester $sem'),
                                 );
                               }).toList(),
-                              onChanged: (value) {
+                              onChanged: (value) async {
                                 setDialogState(() {
                                   selectedSemester = value ?? 'I';
                                   selectedSubjectCode = null;
                                   selectedSubjectName = null;
                                 });
+                                // Reload faculty year map for new semester
+                                if (selectedFacultyId != null) {
+                                  final yearMap = await _service.getFacultyYearSubjectMap(
+                                    facultyId: selectedFacultyId!,
+                                    academicYear: academicYear,
+                                    semester: selectedSemester,
+                                  );
+                                  setDialogState(() {
+                                    facultyYearSubjectMap = yearMap;
+                                  });
+                                }
+                                // Reload subject-faculty map for new semester
+                                if (selectedDepartment != null) {
+                                  final sfMap = await _service.getSubjectFacultyMap(
+                                    academicYear: academicYear,
+                                    semester: selectedSemester,
+                                    year: selectedYear,
+                                    department: selectedDepartment,
+                                  );
+                                  setDialogState(() {
+                                    subjectFacultyMap = sfMap;
+                                  });
+                                }
                               },
                             ),
                           ),
@@ -635,12 +749,24 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                           helperText: filteredSubjects.isEmpty
                               ? 'No subjects found. Add subjects in Subject Management.'
                               : null,
+                          // Show error if subject is assigned to different faculty
+                          errorText: subjectAlreadyAssigned
+                              ? 'Already assigned to $selectedSubjectAssignedTo'
+                              : null,
+                          errorStyle: const TextStyle(fontSize: 10),
                         ),
                         value: selectedSubjectCode,
                         items: filteredSubjects.map((subject) {
+                          final assignedTo = subjectFacultyMap[subject.code];
+                          final isAssignedToOther = assignedTo != null && assignedTo != selectedFacultyName;
                           return DropdownMenuItem(
                             value: subject.code,
-                            child: Text('${subject.code} - ${subject.name}'),
+                            child: Text(
+                              isAssignedToOther
+                                  ? '${subject.code} - ${subject.name} ⚠️'
+                                  : '${subject.code} - ${subject.name}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           );
                         }).toList(),
                         onChanged: filteredSubjects.isEmpty
@@ -655,6 +781,44 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                                 });
                               },
                       ),
+                      
+                      // Show assigned subjects info
+                      if (subjectFacultyMap.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '⚠️ Already assigned subjects:',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange.shade700,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              ...subjectFacultyMap.entries.take(5).map((entry) => Text(
+                                '• ${entry.key}: ${entry.value}',
+                                style: TextStyle(fontSize: 11, color: Colors.orange.shade700),
+                              )),
+                              if (subjectFacultyMap.length > 5)
+                                Text(
+                                  '... and ${subjectFacultyMap.length - 5} more',
+                                  style: TextStyle(fontSize: 11, color: Colors.orange.shade700, fontStyle: FontStyle.italic),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
 
                       // Batch Selection

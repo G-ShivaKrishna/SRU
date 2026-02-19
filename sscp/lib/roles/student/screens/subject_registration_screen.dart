@@ -29,6 +29,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   String _studentSemester = 'I';
   String _studentDepartment = '';
   String _studentName = '';
+  String _studentBatch = ''; // e.g., 'CSE-A'
 
   // Subject data
   List<Subject> _coreSubjects = [];
@@ -38,6 +39,9 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   // Selection state
   Set<String> _selectedOEIds = {};
   Set<String> _selectedPEIds = {};
+
+  // Faculty assignments map: subjectCode -> facultyName
+  Map<String, String> _facultyMap = {};
 
   // Requirements
   int _requiredOECount = 1;
@@ -93,6 +97,11 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       _studentYear = int.tryParse(studentData['year']?.toString() ?? '1') ?? 1;
       _studentDepartment = studentData['department']?.toString() ?? 'CSE';
       
+      // Construct batch identifier (e.g., 'CSE-A') from department and batchNumber/section
+      final batchNumber = studentData['batchNumber']?.toString() ?? '';
+      final section = studentData['section']?.toString() ?? batchNumber;
+      _studentBatch = section.isNotEmpty ? '$_studentDepartment-$section' : _studentDepartment;
+      
       // Determine current semester (can be made dynamic later)
       // For now, assuming odd year = Sem I, even year = Sem II
       _studentSemester = 'I'; // Can be fetched from settings
@@ -100,8 +109,14 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       // Load subjects
       await _loadSubjects();
 
+      // Load faculty assignments for all subjects
+      await _loadFacultyAssignments();
+
       // Load existing selections
       await _loadExistingSelections();
+
+      // Auto-register Core subjects
+      await _autoRegisterCoreSubjects();
 
       // Check if submitted
       _isSubmitted = await _courseService.isRegistrationSubmitted(
@@ -148,6 +163,47 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
     });
   }
 
+  Future<void> _loadFacultyAssignments() async {
+    // Collect all subject codes
+    final allSubjectCodes = <String>[];
+    for (final subject in _coreSubjects) {
+      allSubjectCodes.add(subject.code);
+    }
+    for (final subject in _oeSubjects) {
+      allSubjectCodes.add(subject.code);
+    }
+    for (final subject in _peSubjects) {
+      allSubjectCodes.add(subject.code);
+    }
+
+    if (allSubjectCodes.isEmpty) return;
+
+    final facultyMap = await _courseService.getFacultyMapForSubjects(
+      subjectCodes: allSubjectCodes,
+      year: _studentYear,
+      studentBatch: _studentBatch,
+    );
+
+    setState(() {
+      _facultyMap = facultyMap;
+    });
+  }
+
+  Future<void> _autoRegisterCoreSubjects() async {
+    if (_coreSubjects.isEmpty) return;
+
+    // Auto-register core subjects for this student
+    await _courseService.autoRegisterCoreSubjects(
+      studentId: _studentId,
+      studentName: _studentName,
+      year: _studentYear,
+      semester: _studentSemester,
+      department: _studentDepartment,
+      coreSubjectIds: _coreSubjects.map((s) => s.id).toList(),
+      coreSubjectCodes: _coreSubjects.map((s) => s.code).toList(),
+    );
+  }
+
   Future<void> _saveSelections() async {
     if (_isSubmitted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -162,11 +218,14 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
     setState(() => _isSaving = true);
 
     try {
-      await _courseService.saveElectiveSelections(
+      await _courseService.saveCompleteRegistration(
         studentId: _studentId,
+        studentName: _studentName,
         year: _studentYear,
         semester: _studentSemester,
         department: _studentDepartment,
+        coreSubjectIds: _coreSubjects.map((s) => s.id).toList(),
+        coreSubjectCodes: _coreSubjects.map((s) => s.code).toList(),
         selectedOEIds: _selectedOEIds.toList(),
         selectedPEIds: _selectedPEIds.toList(),
       );
@@ -246,11 +305,14 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
 
     try {
       // Save first
-      await _courseService.saveElectiveSelections(
+      await _courseService.saveCompleteRegistration(
         studentId: _studentId,
+        studentName: _studentName,
         year: _studentYear,
         semester: _studentSemester,
         department: _studentDepartment,
+        coreSubjectIds: _coreSubjects.map((s) => s.id).toList(),
+        coreSubjectCodes: _coreSubjects.map((s) => s.code).toList(),
         selectedOEIds: _selectedOEIds.toList(),
         selectedPEIds: _selectedPEIds.toList(),
       );
@@ -728,6 +790,27 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                         color: Colors.grey.shade600,
                       ),
                     ),
+                    // Show faculty name if assigned
+                    if (_facultyMap.containsKey(subject.code)) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.person, size: 14, color: Colors.green.shade700),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'Faculty: ${_facultyMap[subject.code]}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
