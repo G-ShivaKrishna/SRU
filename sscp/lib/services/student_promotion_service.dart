@@ -265,6 +265,91 @@ class StudentPromotionService {
     }
   }
 
+  /// Bulk demote all students in a specific year and semester
+  /// Returns count of successfully demoted students
+  static Future<Map<String, dynamic>> bulkDemoteStudents({
+    required int fromYear,
+    required int fromSemester,
+    String? department,
+  }) async {
+    try {
+      // Cannot demote from Year 1, Semester 1
+      if (fromYear == 1 && fromSemester == 1) {
+        return {
+          'success': false,
+          'message': 'Cannot demote: Already at Year 1, Semester 1',
+          'demoted': 0,
+          'failed': 0,
+        };
+      }
+
+      // Query by department only - all other filtering is client-side
+      Query<Map<String, dynamic>> query = _firestore.collection('students');
+
+      if (department != null && department.isNotEmpty) {
+        query = query.where('department', isEqualTo: department);
+      }
+
+      final snapshot = await query.get();
+
+      // Filter client-side for year, semester
+      final matchingDocs = snapshot.docs.where((doc) {
+        final data = doc.data();
+        final studentYear = int.tryParse(data['year']?.toString() ?? '0') ?? 0;
+        final studentSemester = int.tryParse(data['semester']?.toString() ?? '1') ?? 1;
+        return studentYear == fromYear && studentSemester == fromSemester;
+      }).toList();
+
+      if (matchingDocs.isEmpty) {
+        return {
+          'success': true,
+          'message': 'No students found matching criteria',
+          'demoted': 0,
+          'failed': 0,
+        };
+      }
+
+      int demoted = 0;
+      final batch = _firestore.batch();
+
+      int newYear = fromYear;
+      int newSemester = fromSemester;
+
+      if (fromSemester == 2) {
+        // Semester 2 → Semester 1
+        newSemester = 1;
+      } else {
+        // Semester 1 → Previous Year, Semester 2
+        newSemester = 2;
+        newYear = fromYear - 1;
+      }
+
+      for (final doc in matchingDocs) {
+        final updateData = <String, dynamic>{
+          'year': newYear,
+          'semester': newSemester,
+          'status': 'active', // Reactivate if was graduated
+          'lastDemotedAt': FieldValue.serverTimestamp(),
+        };
+        batch.update(doc.reference, updateData);
+        demoted++;
+      }
+
+      await batch.commit();
+
+      return {
+        'success': true,
+        'message': '$demoted students demoted to Year $newYear, Semester $newSemester',
+        'demoted': demoted,
+        'failed': 0,
+        'toYear': newYear,
+        'toSemester': newSemester,
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Error in bulk demotion: $e'};
+    }
+  }
+
   /// Manually set a student's year and semester
   static Future<Map<String, dynamic>> setStudentYearSemester({
     required String hallTicketNumber,

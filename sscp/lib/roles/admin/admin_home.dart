@@ -58,7 +58,7 @@ class _AdminHomeState extends State<AdminHome> {
       page = const StudentNameEditPage();
     } else if (pageName == 'Edit Admission' || pageName == 'Admission') {
       page = const StudentAdmissionEditPage();
-    } else if (pageName == 'Student Promotion') {
+    } else if (pageName == 'Year Management' || pageName == 'Student Promotion') {
       page = const StudentPromotionPage();
     } else if (pageName == 'View Only') {
       page = const ViewOnlyPage();
@@ -176,7 +176,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Manage Access',
       'Edit Names',
       'Edit Admission',
-      'Student Promotion',
+      'Year Management',
       'Academic Calendar',
       'Subject Management',
       'Faculty Assignment',

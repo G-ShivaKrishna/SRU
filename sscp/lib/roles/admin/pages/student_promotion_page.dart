@@ -20,6 +20,12 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
   List<String> _departments = [];
   int _studentCount = 0;
 
+  // Bulk demotion state
+  int? _demoteYear;
+  int? _demoteSemester;
+  String? _demoteDepartment;
+  int _demoteStudentCount = 0;
+
   // Individual promotion state
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _searchResults = [];
@@ -28,7 +34,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadDepartments();
   }
 
@@ -267,13 +273,14 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Student Promotion'),
+        title: const Text('Student Year Management'),
         backgroundColor: const Color(0xFF1e3a5f),
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
             Tab(text: 'Bulk Promotion'),
+            Tab(text: 'Bulk Demotion'),
             Tab(text: 'Individual'),
           ],
         ),
@@ -284,6 +291,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
             controller: _tabController,
             children: [
               _buildBulkPromotionTab(),
+              _buildBulkDemotionTab(),
               _buildIndividualTab(),
             ],
           ),
@@ -461,6 +469,242 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
               label: Text('Promote $_studentCount Students'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1e3a5f),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateDemoteStudentCount() async {
+    if (_demoteYear == null || _demoteSemester == null) {
+      setState(() => _demoteStudentCount = 0);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final students = await StudentPromotionService.getStudents(
+        year: _demoteYear,
+        semester: _demoteSemester,
+        department: _demoteDepartment,
+      );
+      setState(() => _demoteStudentCount = students.length);
+    } catch (e) {
+      _showSnackBar('Error fetching students: $e', isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _performBulkDemotion() async {
+    if (_demoteYear == null || _demoteSemester == null) {
+      _showSnackBar('Please select year and semester', isError: true);
+      return;
+    }
+
+    if (_demoteStudentCount == 0) {
+      _showSnackBar('No students to demote', isError: true);
+      return;
+    }
+
+    // Confirm action
+    final confirmed = await _showConfirmDialog(
+      title: 'Confirm Bulk Demotion',
+      message:
+          'This will demote $_demoteStudentCount students from Year $_demoteYear, Semester $_demoteSemester.\n\nAre you sure?',
+    );
+
+    if (!confirmed) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final result = await StudentPromotionService.bulkDemoteStudents(
+        fromYear: _demoteYear!,
+        fromSemester: _demoteSemester!,
+        department: _demoteDepartment,
+      );
+
+      if (result['success'] == true) {
+        _showSnackBar(result['message'] as String);
+        await _updateDemoteStudentCount();
+      } else {
+        _showSnackBar(result['message'] as String, isError: true);
+      }
+    } catch (e) {
+      _showSnackBar('Error: $e', isError: true);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Widget _buildBulkDemotionTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Info Card
+          Card(
+            color: Colors.orange[50],
+            child: const Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.orange),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Bulk demotion moves all students from the selected year/semester to the previous. '
+                      'Semester 2 → Semester 1, Semester 1 → Year-1, Semester 2.',
+                      style: TextStyle(color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Selection Card
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Select Students to Demote',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Year Selection
+                  DropdownButtonFormField<int>(
+                    value: _demoteYear,
+                    decoration: const InputDecoration(
+                      labelText: 'From Year',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [1, 2, 3, 4]
+                        .map((y) => DropdownMenuItem(
+                              value: y,
+                              child: Text('Year $y'),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() => _demoteYear = value);
+                      _updateDemoteStudentCount();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Semester Selection
+                  DropdownButtonFormField<int>(
+                    value: _demoteSemester,
+                    decoration: const InputDecoration(
+                      labelText: 'From Semester',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [1, 2]
+                        .map((s) => DropdownMenuItem(
+                              value: s,
+                              child: Text('Semester $s'),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() => _demoteSemester = value);
+                      _updateDemoteStudentCount();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Department Selection (optional)
+                  DropdownButtonFormField<String?>(
+                    value: _demoteDepartment,
+                    decoration: const InputDecoration(
+                      labelText: 'Department (Optional)',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                        value: null,
+                        child: Text('All Departments'),
+                      ),
+                      ..._departments.map((d) => DropdownMenuItem(
+                            value: d,
+                            child: Text(d),
+                          )),
+                    ],
+                    onChanged: (value) {
+                      setState(() => _demoteDepartment = value);
+                      _updateDemoteStudentCount();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Preview Card
+          if (_demoteYear != null && _demoteSemester != null)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          _demoteStudentCount > 0
+                              ? Icons.people
+                              : Icons.people_outline,
+                          color: _demoteStudentCount > 0 ? Colors.orange : Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$_demoteStudentCount students will be demoted',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color:
+                                _demoteStudentCount > 0 ? Colors.orange : Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (_demoteStudentCount > 0)
+                      Text(
+                        _demoteSemester == 2
+                            ? 'Year $_demoteYear, Semester 2 → Year $_demoteYear, Semester 1'
+                            : _demoteYear == 1
+                                ? 'Cannot demote: Already at Year 1, Semester 1'
+                                : 'Year $_demoteYear, Semester 1 → Year ${_demoteYear! - 1}, Semester 2',
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 24),
+
+          // Demote Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _demoteStudentCount > 0 && !_isLoading && !(_demoteYear == 1 && _demoteSemester == 1)
+                  ? _performBulkDemotion
+                  : null,
+              icon: const Icon(Icons.arrow_downward),
+              label: Text('Demote $_demoteStudentCount Students'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
