@@ -84,6 +84,10 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
 
   Future<void> _loadData() async {
     try {
+      // DEBUG: Print query parameters
+      debugPrint('=== Course Registration Debug ===');
+      debugPrint('Querying with Year: "$studentYear", Branch: "$studentBranch"');
+      
       final settings = await _courseService.getRegistrationSettings();
       final courses = await _courseService.getAvailableCoursesGroupedByType(
         studentYear,
@@ -98,6 +102,14 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
         studentBranch,
       );
 
+      // DEBUG: Print query results
+      debugPrint('Requirement found: ${requirement != null}');
+      if (requirement != null) {
+        debugPrint('Requirement: OE=${requirement.oeCount}, PE=${requirement.peCount}, SE=${requirement.seCount}');
+      }
+      debugPrint('Courses found: OE=${courses[CourseType.OE]?.length ?? 0}, PE=${courses[CourseType.PE]?.length ?? 0}, SE=${courses[CourseType.SE]?.length ?? 0}');
+      debugPrint('=================================');
+
       setState(() {
         _settings = settings;
         _availableCourses = courses;
@@ -107,6 +119,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('Error loading course data: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading data: $e')),

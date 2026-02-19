@@ -213,13 +213,6 @@ class ExcelUploadService {
             isValidRow = false;
           }
         } else {
-          // Validate Faculty ID format
-          if (!_isValidFacultyId(rowData['facultyId'] ?? '')) {
-            rowErrorMessages.add(
-                'Row ${rowIndex + 1}: Invalid Faculty ID "${rowData['facultyId']}" (use format: FAC001, FAC002, etc.)');
-            isValidRow = false;
-          }
-          
           // Validate Faculty Email
           if (!_isValidEmail(rowData['email'] ?? '')) {
             rowErrorMessages.add(
@@ -310,12 +303,6 @@ class ExcelUploadService {
         'message': 'Error creating account: $e',
       };
     }
-  }
-
-  static bool _isValidFacultyId(String value) {
-    // Faculty ID format: FAC followed by 3 digits (e.g., FAC001, FAC002)
-    final pattern = RegExp(r'^FAC\d{3}$', caseSensitive: false);
-    return pattern.hasMatch(value);
   }
 
   static bool _isValidHallTicket(String value) {
