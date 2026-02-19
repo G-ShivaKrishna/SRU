@@ -6,6 +6,7 @@ import 'pages/account_creation_page.dart';
 import 'pages/student_name_edit_page.dart';
 import 'pages/student_admission_edit_page.dart';
 import 'pages/academic_calendar_management_page.dart';
+import 'screens/admin_course_management_screen.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -58,6 +59,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const ViewOnlyPage();
     } else if (pageName == 'Academic Calendar') {
       page = const AcademicCalendarManagementPage();
+    } else if (pageName == 'Course Management') {
+      page = const AdminCourseManagementScreen();
     } else {
       return;
     }
@@ -165,6 +168,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Edit Names',
       'Edit Admission',
       'Academic Calendar',
+      'Course Management',
       'View Only',
     ];
 
@@ -613,6 +617,13 @@ class _AdminHomeState extends State<AdminHome> {
           Colors.teal,
           context,
           () => _navigateToPage(context, 'Admission'),
+        ),
+        _buildActionCard(
+          'Course\nManagement',
+          Icons.library_books,
+          Colors.orange,
+          context,
+          () => _navigateToPage(context, 'Course Management'),
         ),
       ],
     );
