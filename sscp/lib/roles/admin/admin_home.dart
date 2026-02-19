@@ -6,6 +6,8 @@ import 'pages/account_creation_page.dart';
 import 'pages/student_name_edit_page.dart';
 import 'pages/student_admission_edit_page.dart';
 import 'pages/academic_calendar_management_page.dart';
+import 'pages/faculty_assignment_page.dart';
+import 'pages/subject_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
 
 class AdminHome extends StatefulWidget {
@@ -61,6 +63,10 @@ class _AdminHomeState extends State<AdminHome> {
       page = const AcademicCalendarManagementPage();
     } else if (pageName == 'Course Management') {
       page = const AdminCourseManagementScreen();
+    } else if (pageName == 'Subject Management') {
+      page = const SubjectManagementPage();
+    } else if (pageName == 'Faculty Assignment') {
+      page = const FacultyAssignmentPage();
     } else {
       return;
     }
@@ -168,6 +174,8 @@ class _AdminHomeState extends State<AdminHome> {
       'Edit Names',
       'Edit Admission',
       'Academic Calendar',
+      'Subject Management',
+      'Faculty Assignment',
       'Course Management',
       'View Only',
     ];
