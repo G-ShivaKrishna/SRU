@@ -103,9 +103,9 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       final section = studentData['section']?.toString() ?? batchNumber;
       _studentBatch = section.isNotEmpty ? '$_studentDepartment-$section' : _studentDepartment;
       
-      // Determine current semester (can be made dynamic later)
-      // For now, assuming odd year = Sem I, even year = Sem II
-      _studentSemester = 'I'; // Can be fetched from settings
+      // Read semester from student data (1 or 2), convert to Roman numeral for display
+      final semesterInt = int.tryParse(studentData['semester']?.toString() ?? '1') ?? 1;
+      _studentSemester = semesterInt == 1 ? 'I' : 'II';
 
       // Load subjects
       await _loadSubjects();
