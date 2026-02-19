@@ -126,6 +126,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final doc = await _firestore.collection('students').doc(rollNumber).get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
+        // Ensure rollNumber is included in the data
+        data['rollNumber'] = rollNumber;
         setState(() {
           _studentData = data;
           _canEditProfile = data['canEditProfile'] ?? false;
@@ -573,8 +575,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         else
                           _buildInfoRow('Father\'s Name or Guardian',
                               _studentData?['fatherName'] ?? 'N/A'),
-                        _buildInfoRow('Roll Number',
-                            _studentData?['hallTicketNumber'] ?? 'N/A'),
                         _buildInfoRow('Roll Number',
                             _studentData?['rollNumber'] ?? 'N/A'),
                         if (_isEditMode)

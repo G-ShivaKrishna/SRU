@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ViewOnlyPage extends StatefulWidget {
   const ViewOnlyPage({super.key});
@@ -10,17 +11,93 @@ class ViewOnlyPage extends StatefulWidget {
 class _ViewOnlyPageState extends State<ViewOnlyPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _searchController = TextEditingController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  List<Map<String, dynamic>> _filteredStudents = [];
+  List<Map<String, dynamic>> _filteredFaculty = [];
+  List<Map<String, dynamic>> _allStudents = [];
+  List<Map<String, dynamic>> _allFaculty = [];
+  
+  bool _isLoadingStudents = false;
+  bool _isLoadingFaculty = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _searchController.addListener(_onSearchChanged);
+    _loadAllData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadAllData() async {
+    await Future.wait([_loadStudents(), _loadFaculty()]);
+  }
+
+  Future<void> _loadStudents() async {
+    setState(() => _isLoadingStudents = true);
+    try {
+      final snapshot = await _firestore.collection('students').get();
+      setState(() {
+        _allStudents = snapshot.docs
+            .map((doc) => {'id': doc.id, 'rollNumber': doc.id, ...doc.data()})
+            .toList();
+        _filteredStudents = _allStudents;
+      });
+    } catch (e) {
+      print('Error loading students: $e');
+    } finally {
+      setState(() => _isLoadingStudents = false);
+    }
+  }
+
+  Future<void> _loadFaculty() async {
+    setState(() => _isLoadingFaculty = true);
+    try {
+      final snapshot = await _firestore.collection('faculty').get();
+      setState(() {
+        _allFaculty = snapshot.docs
+            .map((doc) => {'id': doc.id, ...doc.data()})
+            .toList();
+        _filteredFaculty = _allFaculty;
+      });
+    } catch (e) {
+      print('Error loading faculty: $e');
+    } finally {
+      setState(() => _isLoadingFaculty = false);
+    }
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase().trim();
+    
+    setState(() {
+      if (query.isEmpty) {
+        _filteredStudents = _allStudents;
+        _filteredFaculty = _allFaculty;
+      } else {
+        _filteredStudents = _allStudents.where((student) {
+          final rollNumber = (student['rollNumber'] ?? '').toString().toLowerCase();
+          final name = (student['name'] ?? '').toString().toLowerCase();
+          final email = (student['email'] ?? '').toString().toLowerCase();
+          return rollNumber.contains(query) || name.contains(query) || email.contains(query);
+        }).toList();
+        
+        _filteredFaculty = _allFaculty.where((faculty) {
+          final facultyId = (faculty['facultyId'] ?? '').toString().toLowerCase();
+          final name = (faculty['name'] ?? '').toString().toLowerCase();
+          final email = (faculty['email'] ?? '').toString().toLowerCase();
+          return facultyId.contains(query) || name.contains(query) || email.contains(query);
+        }).toList();
+      }
+    });
   }
 
   @override
@@ -40,57 +117,127 @@ class _ViewOnlyPageState extends State<ViewOnlyPage>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildStudentView(isMobile),
-          _buildFacultyView(isMobile),
+          Padding(
+            padding: EdgeInsets.all(isMobile ? 12 : 16),
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _searchController,
+              builder: (context, value, child) {
+                return TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by ID, name, or email...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: value.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                  ),
+                );
+              },
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildStudentView(isMobile),
+                _buildFacultyView(isMobile),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildStudentView(bool isMobile) {
+    if (_isLoadingStudents) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_filteredStudents.isEmpty) {
+      return Center(
+        child: Text(
+          _searchController.text.isEmpty
+              ? 'No students found'
+              : 'No students match your search',
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
-      itemCount: 10,
-      itemBuilder: (context, index) => _buildDataCard(
-        'Student ${index + 1}',
-        {
-          'Hall Ticket': 'HT202201${1001 + index}',
-          'Name': 'Student Name ${index + 1}',
-          'Department': 'CSE',
-          'Batch': '2022-2026',
-          'Year': '2',
-          'Email': 'student${index + 1}@email.com',
-          'Status': 'Active',
-        },
-        index,
-        isMobile,
-        Colors.blue,
-      ),
+      itemCount: _filteredStudents.length,
+      itemBuilder: (context, index) {
+        final student = _filteredStudents[index];
+        return _buildDataCard(
+          student['name'] ?? 'Student',
+          {
+            'Roll Number': student['rollNumber'] ?? 'N/A',
+            'Name': student['name'] ?? 'N/A',
+            'Department': student['department'] ?? 'N/A',
+            'Year': student['year']?.toString() ?? 'N/A',
+            'Email': student['email'] ?? 'N/A',
+            'Phone': student['phoneNumber'] ?? 'N/A',
+            'Status': student['status'] ?? 'Active',
+          },
+          index,
+          isMobile,
+          Colors.blue,
+        );
+      },
     );
   }
 
   Widget _buildFacultyView(bool isMobile) {
+    if (_isLoadingFaculty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_filteredFaculty.isEmpty) {
+      return Center(
+        child: Text(
+          _searchController.text.isEmpty
+              ? 'No faculty found'
+              : 'No faculty match your search',
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
     return ListView.builder(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
-      itemCount: 10,
-      itemBuilder: (context, index) => _buildDataCard(
-        'Faculty ${index + 1}',
-        {
-          'Faculty ID': 'FAC${2000 + index}',
-          'Name': 'Faculty Name ${index + 1}',
-          'Department': 'CSE',
-          'Designation': 'Assistant Professor',
-          'Email': 'faculty${index + 1}@email.com',
-          'Subjects': 'DBMS, OS, DSA',
-          'Status': 'Active',
-        },
-        index,
-        isMobile,
-        Colors.green,
-      ),
+      itemCount: _filteredFaculty.length,
+      itemBuilder: (context, index) {
+        final faculty = _filteredFaculty[index];
+        return _buildDataCard(
+          faculty['name'] ?? 'Faculty',
+          {
+            'Faculty ID': faculty['facultyId'] ?? 'N/A',
+            'Name': faculty['name'] ?? 'N/A',
+            'Department': faculty['department'] ?? 'N/A',
+            'Designation': faculty['designation'] ?? 'N/A',
+            'Email': faculty['email'] ?? 'N/A',
+            'Phone': faculty['phone'] ?? 'N/A',
+            'Status': faculty['status'] ?? 'Active',
+          },
+          index,
+          isMobile,
+          Colors.green,
+        );
+      },
     );
   }
 
