@@ -888,19 +888,6 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       return;
     }
 
-    // Validate Faculty ID format if Faculty
-    if (type == 'Faculty') {
-      final facultyId = _facultyControllers['facultyId']!.text;
-      if (!_isValidFacultyId(facultyId)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'Invalid Faculty ID format. Use format like FAC001, FAC002, etc.')),
-        );
-        return;
-      }
-    }
-
     setState(() => _isLoading = true);
     try {
       final result = await ExcelUploadService.createAccountManually(
@@ -920,11 +907,5 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  bool _isValidFacultyId(String value) {
-    // Faculty ID format: FAC followed by 3 digits (e.g., FAC001, FAC002)
-    final pattern = RegExp(r'^FAC\d{3}$', caseSensitive: false);
-    return pattern.hasMatch(value);
   }
 }

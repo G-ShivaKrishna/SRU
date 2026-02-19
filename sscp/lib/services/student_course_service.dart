@@ -52,21 +52,29 @@ class StudentCourseService {
       final courses = <CourseType, List<Course>>{};
 
       for (final courseType in CourseType.values) {
+        final typeStr = courseType.toString().split('.').last;
+        print('DEBUG: Querying courses - type="$typeStr", applicableYears contains "$year", isActive=true');
+        
         final snapshot = await _coursesCollection
-            .where('type', isEqualTo: courseType.toString().split('.').last)
+            .where('type', isEqualTo: typeStr)
             .where('applicableYears', arrayContains: year)
             .where('isActive', isEqualTo: true)
             .get();
 
+        print('DEBUG: Found ${snapshot.docs.length} $typeStr courses before branch filter');
+        
         // Filter by branch in-memory since Firestore doesn't support multiple array-contains
         courses[courseType] = snapshot.docs
             .map((doc) => Course.fromFirestore(doc))
             .where((course) => course.applicableBranches.contains(branch))
             .toList();
+            
+        print('DEBUG: Found ${courses[courseType]!.length} $typeStr courses after branch filter for "$branch"');
       }
 
       return courses;
     } catch (e) {
+      print('DEBUG: Error in getAvailableCoursesGroupedByType: $e');
       throw Exception(
           'Failed to get available courses for year $year, branch $branch: $e');
     }
@@ -76,16 +84,33 @@ class StudentCourseService {
   Future<CourseRequirement?> getCourseRequirement(
       String year, String branch) async {
     try {
+      print('DEBUG: Querying courseRequirements - year="$year", branch="$branch"');
+      
       final snapshot = await _courseRequirementsCollection
           .where('year', isEqualTo: year)
           .where('branch', isEqualTo: branch)
           .get();
 
+      print('DEBUG: Found ${snapshot.docs.length} matching requirements');
+      
       if (snapshot.docs.isNotEmpty) {
-        return CourseRequirement.fromFirestore(snapshot.docs.first);
+        final req = CourseRequirement.fromFirestore(snapshot.docs.first);
+        print('DEBUG: Requirement found - OE: ${req.oeCount}, PE: ${req.peCount}, SE: ${req.seCount}');
+        return req;
       }
+      
+      // DEBUG: Try to get all requirements to see what's available
+      print('DEBUG: No requirement found. Fetching all requirements to diagnose...');
+      final allReqs = await _courseRequirementsCollection.get();
+      print('DEBUG: Total requirements in database: ${allReqs.docs.length}');
+      for (final doc in allReqs.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        print('DEBUG: Available requirement - year="${data['year']}" (${data['year'].runtimeType}), branch="${data['branch']}"');
+      }
+      
       return null;
     } catch (e) {
+      print('DEBUG: Error in getCourseRequirement: $e');
       throw Exception('Failed to get course requirement: $e');
     }
   }
