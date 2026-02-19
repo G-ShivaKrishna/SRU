@@ -8,6 +8,7 @@ class StudentCourseSelection {
   final List<String> selectedCourseIds; // List of course IDs selected
   final Map<String, dynamic> selectionsByType; // {OE: [ids], PE: [ids], SE: [ids]}
   final bool isSubmitted;
+  final bool isUnlocked; // Admin can unlock for re-editing after submission
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -19,6 +20,7 @@ class StudentCourseSelection {
     required this.selectedCourseIds,
     required this.selectionsByType,
     this.isSubmitted = false,
+    this.isUnlocked = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -32,6 +34,7 @@ class StudentCourseSelection {
       'selectedCourseIds': selectedCourseIds,
       'selectionsByType': selectionsByType,
       'isSubmitted': isSubmitted,
+      'isUnlocked': isUnlocked,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
@@ -48,6 +51,7 @@ class StudentCourseSelection {
       selectedCourseIds: List<String>.from(data['selectedCourseIds'] ?? []),
       selectionsByType: data['selectionsByType'] ?? {},
       isSubmitted: data['isSubmitted'] ?? false,
+      isUnlocked: data['isUnlocked'] ?? false,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
     );
@@ -62,6 +66,7 @@ class StudentCourseSelection {
     List<String>? selectedCourseIds,
     Map<String, dynamic>? selectionsByType,
     bool? isSubmitted,
+    bool? isUnlocked,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -73,6 +78,7 @@ class StudentCourseSelection {
       selectedCourseIds: selectedCourseIds ?? this.selectedCourseIds,
       selectionsByType: selectionsByType ?? this.selectionsByType,
       isSubmitted: isSubmitted ?? this.isSubmitted,
+      isUnlocked: isUnlocked ?? this.isUnlocked,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

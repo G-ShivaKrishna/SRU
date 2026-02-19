@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/course_model.dart';
+import '../../../models/student_course_selection_model.dart';
 import '../../../services/admin_course_service.dart';
 import '../../../widgets/app_header.dart';
 
@@ -16,7 +17,6 @@ class _AdminCourseManagementScreenState
   final AdminCourseService _courseService = AdminCourseService();
   CourseRegistrationSettings? _settings;
   bool _isLoading = true;
-  late TabController _tabController;
 
   @override
   void initState() {
@@ -26,7 +26,6 @@ class _AdminCourseManagementScreenState
 
   @override
   void dispose() {
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -54,7 +53,7 @@ class _AdminCourseManagementScreenState
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Course Management'),
@@ -79,6 +78,7 @@ class _AdminCourseManagementScreenState
                     Tab(text: 'Registration Settings'),
                     Tab(text: 'Manage Courses'),
                     Tab(text: 'Course Requirements'),
+                    Tab(text: 'Student Submissions'),
                   ],
                 ),
               ),
@@ -88,6 +88,7 @@ class _AdminCourseManagementScreenState
                     _buildRegistrationSettingsTab(context),
                     _buildManageCoursesTab(context),
                     _buildCourseRequirementsTab(context),
+                    _buildStudentSubmissionsTab(context),
                   ],
                 ),
               ),
@@ -834,6 +835,365 @@ class _AdminCourseManagementScreenState
               fontWeight: FontWeight.bold,
               color: Colors.blue,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============ Student Submissions Tab ============
+
+  Widget _buildStudentSubmissionsTab(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    const years = ['1', '2', '3', '4'];
+    const branches = ['CSE', 'ECE', 'EEE', 'ME', 'CE'];
+    String selectedYear = '1';
+    String selectedBranch = 'CSE';
+
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(isMobile ? 12 : 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Filter section
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Filter by Year and Branch',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: selectedYear,
+                            items: years
+                                .map((year) => DropdownMenuItem(
+                                      value: year,
+                                      child: Text('Year $year'),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => selectedYear = value);
+                              }
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Year',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: selectedBranch,
+                            items: branches
+                                .map((branch) => DropdownMenuItem(
+                                      value: branch,
+                                      child: Text(branch),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => selectedBranch = value);
+                              }
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Branch',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Student submissions list
+              FutureBuilder<List<StudentCourseSelection>>(
+                future: _courseService.getSubmittedSelectionsForYearBranch(
+                  selectedYear,
+                  selectedBranch,
+                ),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text('Error: ${snapshot.error}'),
+                    );
+                  }
+
+                  final submissions = snapshot.data ?? [];
+                  if (submissions.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            Icon(Icons.inbox, size: 64, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No student submissions yet',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: submissions.length,
+                    itemBuilder: (context, index) {
+                      return _buildStudentSubmissionCard(
+                        context,
+                        submissions[index],
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStudentSubmissionCard(
+    BuildContext context,
+    StudentCourseSelection submission,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: submission.isUnlocked ? Colors.blue[300]! : Colors.grey[300]!,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        color: submission.isUnlocked ? Colors.blue[50] : Colors.white,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Student ID: ${submission.studentId}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Selected ${submission.selectedCourseIds.length} course(s)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (submission.isUnlocked)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[100],
+                    border: Border.all(color: Colors.blue[400]!),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Unlocked',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[900],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: submission.isUnlocked
+                        ? Colors.orange
+                        : Colors.green,
+                  ),
+                  onPressed: () async {
+                    try {
+                      if (submission.isUnlocked) {
+                        await _courseService.lockStudentSelection(submission.id);
+                      } else {
+                        await _courseService.unlockStudentSelection(submission.id);
+                      }
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              submission.isUnlocked
+                                  ? 'Student submission locked.'
+                                  : 'Student can now edit their selection.',
+                            ),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+
+                      // Refresh the list
+                      (context as Element).markNeedsBuild();
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                    }
+                  },
+                  icon: Icon(
+                    submission.isUnlocked ? Icons.lock : Icons.lock_open,
+                  ),
+                  label: Text(
+                    submission.isUnlocked ? 'Lock' : 'Unlock for Editing',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                ),
+                onPressed: () {
+                  _showStudentDetailsDialog(context, submission);
+                },
+                icon: const Icon(Icons.info),
+                label: const Text('View'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStudentDetailsDialog(
+    BuildContext context,
+    StudentCourseSelection submission,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Student Course Selection'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildInfoRow('Student ID', submission.studentId),
+              _buildInfoRow('Year', submission.year),
+              _buildInfoRow('Branch', submission.branch),
+              _buildInfoRow(
+                'Total Courses',
+                submission.selectedCourseIds.length.toString(),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Courses by Type:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...['OE', 'PE', 'SE'].map((type) {
+                final count =
+                    (submission.selectionsByType[type] as List<dynamic>?)?.length ??
+                        0;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('$type Courses:'),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[100],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          count.toString(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                'Status',
+                submission.isUnlocked ? 'Unlocked' : 'Locked',
+              ),
+              _buildInfoRow(
+                'Submitted At',
+                _formatDate(submission.updatedAt),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
       ),

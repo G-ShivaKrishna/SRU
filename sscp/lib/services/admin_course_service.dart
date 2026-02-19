@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/course_model.dart';
+import '../models/student_course_selection_model.dart';
 
 class AdminCourseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -9,6 +10,8 @@ class AdminCourseService {
       _firestore.collection('courses');
   CollectionReference get _courseRequirementsCollection =>
       _firestore.collection('courseRequirements');
+  CollectionReference get _studentCoursesCollection =>
+      _firestore.collection('studentCourses');
   DocumentReference get _registrationSettingsDoc =>
       _firestore.collection('settings').doc('courseRegistration');
 
@@ -246,6 +249,73 @@ class AdminCourseService {
       return groupedCourses;
     } catch (e) {
       throw Exception('Failed to get grouped courses: $e');
+    }
+  }
+
+  // ============ Student Submission Management ============
+
+  /// Get all submitted student selections for a year and branch
+  /// Useful for viewing all submissions
+  Future<List<StudentCourseSelection>> getSubmittedSelectionsForYearBranch(
+      String year, String branch) async {
+    try {
+      final snapshot = await _studentCoursesCollection
+          .where('year', isEqualTo: year)
+          .where('branch', isEqualTo: branch)
+          .where('isSubmitted', isEqualTo: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => StudentCourseSelection.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      throw Exception(
+          'Failed to get submitted selections for year $year, branch $branch: $e');
+    }
+  }
+
+  /// Unlock a student's submitted selection for re-editing
+  /// Admin can call this to allow student to edit after submission
+  Future<void> unlockStudentSelection(String selectionId) async {
+    try {
+      await _studentCoursesCollection.doc(selectionId).update({
+        'isUnlocked': true,
+        'updatedAt': DateTime.now(),
+      });
+    } catch (e) {
+      throw Exception('Failed to unlock student selection: $e');
+    }
+  }
+
+  /// Lock a student's selection (revert unlock)
+  /// After student makes edits, admin should lock again
+  Future<void> lockStudentSelection(String selectionId) async {
+    try {
+      await _studentCoursesCollection.doc(selectionId).update({
+        'isUnlocked': false,
+        'updatedAt': DateTime.now(),
+      });
+    } catch (e) {
+      throw Exception('Failed to lock student selection: $e');
+    }
+  }
+
+  /// Get a specific student's selection
+  Future<StudentCourseSelection?> getStudentSelection(
+      String studentId, String year, String branch) async {
+    try {
+      final snapshot = await _studentCoursesCollection
+          .where('studentId', isEqualTo: studentId)
+          .where('year', isEqualTo: year)
+          .where('branch', isEqualTo: branch)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        return StudentCourseSelection.fromFirestore(snapshot.docs.first);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get student selection: $e');
     }
   }
 }

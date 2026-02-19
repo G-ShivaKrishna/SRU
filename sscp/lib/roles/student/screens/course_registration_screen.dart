@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/course_model.dart';
 import '../../../models/student_course_selection_model.dart';
 import '../../../services/student_course_service.dart';
@@ -17,10 +19,9 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
   TabController? _tabController;
   final StudentCourseService _courseService = StudentCourseService();
   
-  // TODO: Replace with actual student data from authentication
-  final String studentId = 'student_001';
-  final String studentYear = '2'; // Student's year
-  final String studentBranch = 'CSE'; // Student's branch
+  String studentId = '';
+  String studentYear = '';
+  String studentBranch = '';
   
   CourseRegistrationSettings? _settings;
   Map<CourseType, List<Course>> _availableCourses = {};
@@ -34,7 +35,51 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadData();
+    _loadStudentDataAndCourses();
+  }
+
+  Future<void> _loadStudentDataAndCourses() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('No user logged in');
+      }
+
+      // Extract hall ticket number from Firebase email
+      // Email format: [hallTicketNumber]@sru.edu.in
+      final email = user.email ?? '';
+      final hallTicketNumber = email.split('@')[0].toUpperCase();
+
+      // Fetch student data using hall ticket number as document ID
+      final studentDoc = await FirebaseFirestore.instance
+          .collection('students')
+          .doc(hallTicketNumber)
+          .get();
+
+      if (!studentDoc.exists) {
+        throw Exception('Student profile not found for $hallTicketNumber. Please complete your profile first.');
+      }
+
+      // Initialize variables directly (not in setState)
+      studentId = user.uid;
+      studentYear = studentDoc['year']?.toString() ?? '1';
+      studentBranch = studentDoc['department']?.toString() ?? 'CSE';
+
+      // Now load the course data (variables are already initialized)
+      await _loadData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading student data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadData() async {
@@ -382,12 +427,65 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       );
     }
 
+    // Check if submission is locked
+    if ((_studentSelection?.isSubmitted ?? false) &&
+        !(_studentSelection?.isUnlocked ?? false)) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock, size: 64, color: Colors.orange),
+              const SizedBox(height: 16),
+              const Text(
+                'Registration Locked',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your course registration has been submitted and is now locked. You cannot edit your selections unless the admin unlocks it for you.',
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.all(isMobile ? 12 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if ((_studentSelection?.isSubmitted ?? false) &&
+                (_studentSelection?.isUnlocked ?? false))
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.blue[100],
+                  border: Border.all(color: Colors.blue[400]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Admin has unlocked your registration for editing. Please review and update your selections.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.blue[900],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             _buildValidationStatus(context),
             const SizedBox(height: 16),
             ...CourseType.values.map((type) {
@@ -612,6 +710,16 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       return _EmptyCourseSection(typeLabel: typeLabel);
     }
 
+    // Get selected courses for this type
+    final selectedCourseIds = _studentSelection?.selectionsByType[typeLabel] ?? [];
+    final selectedCourses = courses.where((c) => selectedCourseIds.contains(c.id)).toList();
+    final availableCourses = courses.where((c) => !selectedCourseIds.contains(c.id)).toList();
+
+    // Get requirement for this type
+    final requiredCount = _getRequiredCountForType(typeLabel);
+    final canAddMore = selectedCourses.length < requiredCount;
+    final remainingSlots = requiredCount - selectedCourses.length;
+
     return RepaintBoundary(
       child: Container(
         decoration: BoxDecoration(
@@ -643,19 +751,82 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
-                children: courses.map((course) {
-                  final isSelected = _studentSelection?.selectedCourseIds
-                          .contains(course.id) ??
-                      false;
-
-                  return _CourseCheckboxWidget(
-                    key: ValueKey(course.id),
-                    course: course,
-                    isSelected: isSelected,
-                    courseType: typeLabel,
-                    onChanged: _handleCourseSelectionChanged,
-                  );
-                }).toList(),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Dropdown for selecting courses
+                  if (canAddMore && availableCourses.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (remainingSlots > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              'Select $remainingSlots more course(s)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        _CourseSelectionDropdown(
+                          typeLabel: typeLabel,
+                          availableCourses: availableCourses,
+                          onCourseSelected: (course) async {
+                            await _handleCourseSelectionChanged(course, true, typeLabel);
+                          },
+                        ),
+                      ],
+                    )
+                  else if (!canAddMore)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      child: Text(
+                        'Required courses selected ($requiredCount/$requiredCount)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      child: Text(
+                        'No more courses available',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  
+                  if (selectedCourses.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Selected Courses (${selectedCourses.length}/$requiredCount)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: selectedCourses.length == requiredCount ? Colors.green : Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...selectedCourses.map((course) {
+                      return _SelectedCourseWidget(
+                        key: ValueKey('selected_${course.id}'),
+                        course: course,
+                        courseType: typeLabel,
+                        onRemove: () async {
+                          await _handleCourseSelectionChanged(course, false, typeLabel);
+                        },
+                      );
+                    }).toList(),
+                  ],
+                ],
               ),
             ),
           ],
@@ -664,12 +835,72 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
     );
   }
 
+  /// Helper method to get required count for a course type
+  int _getRequiredCountForType(String courseType) {
+    if (_requirement == null) return 0;
+    
+    switch (courseType) {
+      case 'OE':
+        return _requirement!.oeCount;
+      case 'PE':
+        return _requirement!.peCount;
+      case 'SE':
+        return _requirement!.seCount;
+      default:
+        return 0;
+    }
+  }
+
   Future<void> _handleCourseSelectionChanged(
     Course course,
     bool isSelected,
     String courseType,
   ) async {
     try {
+      // Optimistic UI update - update local state immediately
+      final currentSelection = _studentSelection;
+      if (currentSelection == null) return;
+
+      final updatedSelectedCourseIds = [...currentSelection.selectedCourseIds];
+      final updatedSelectionsByType = {...currentSelection.selectionsByType};
+
+      if (isSelected) {
+        // Add course
+        if (!updatedSelectedCourseIds.contains(course.id)) {
+          updatedSelectedCourseIds.add(course.id);
+        }
+        if (!updatedSelectionsByType.containsKey(courseType)) {
+          updatedSelectionsByType[courseType] = [];
+        }
+        if (!updatedSelectionsByType[courseType].contains(course.id)) {
+          updatedSelectionsByType[courseType].add(course.id);
+        }
+      } else {
+        // Remove course
+        updatedSelectedCourseIds.remove(course.id);
+        if (updatedSelectionsByType.containsKey(courseType)) {
+          updatedSelectionsByType[courseType] =
+              (updatedSelectionsByType[courseType] as List<dynamic>)
+                  .where((id) => id != course.id)
+                  .toList();
+        }
+      }
+
+      // Create the optimistic selection object
+      final optimisticSelection = currentSelection.copyWith(
+        selectedCourseIds: updatedSelectedCourseIds,
+        selectionsByType: updatedSelectionsByType,
+      );
+
+      // Update state immediately with new selection
+      if (mounted) {
+        setState(() {
+          _studentSelection = optimisticSelection;
+          _cachedValidation = null; // Invalidate validation cache
+        });
+      }
+
+      // Sync to Firestore in the background (backend validates against fresh Firestore state)
       if (isSelected) {
         await _courseService.addCourseSelection(
           studentId,
@@ -687,26 +918,41 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
           courseType,
         );
       }
-
-      // Reload data minimally
+    } catch (e) {
       if (mounted) {
-        final updatedSelection =
+        // Extract user-friendly error message
+        String errorMessage = e.toString();
+        if (errorMessage.contains('Cannot add more')) {
+          // Extract the specific error about course limits
+          final match = RegExp(r'Cannot add more (\w+) courses\. Required: (\d+), Current: (\d+)')
+              .firstMatch(errorMessage);
+          if (match != null) {
+            errorMessage = 'You have already selected ${match.group(3)} ${match.group(1)} course(s). '
+                'Only ${match.group(2)} are required. Please remove a course if you want to select a different one.';
+          }
+        }
+        
+        // Show error and reload from Firestore
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        // Reload to revert to last saved state
+        final savedSelection =
             await _courseService.getOrCreateStudentSelection(
           studentId,
           studentYear,
           studentBranch,
         );
-
-        setState(() {
-          _studentSelection = updatedSelection;
-          _cachedValidation = null; // Invalidate validation cache
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        if (mounted) {
+          setState(() {
+            _studentSelection = savedSelection;
+            _cachedValidation = null;
+          });
+        }
       }
     }
   }
@@ -802,158 +1048,216 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
   }
 
   Widget _buildSubmitButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-        onPressed: _isSaving
-            ? null
-            : () async {
-                final validation = _courseService.validateSelections(
-                  _studentSelection!,
-                  _requirement,
-                );
+    // Check if requirements are met
+    final validation = _courseService.validateSelections(
+      _studentSelection!,
+      _requirement,
+    );
+    final isValid = validation['isValid'] as bool;
 
-                if (!validation['isValid']) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(validation['message']),
-                      backgroundColor: Colors.orange,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!isValid)
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.orange[100],
+              border: Border.all(color: Colors.orange[400]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Cannot Submit - Requirements Not Met',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...((validation['errors'] as List<String>?) ?? [])
+                    .map((error) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '• $error',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ))
+                    .toList(),
+              ],
+            ),
+          ),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isValid ? Colors.green : Colors.grey,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            onPressed: (!isValid || _isSaving)
+                ? null
+                : () async {
+                    setState(() => _isSaving = true);
+
+                    try {
+                      await _courseService.submitCourseRegistration(
+                        _studentSelection!,
+                      );
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Registration submitted successfully!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+
+                        // Reload data
+                        final updated = await _courseService.getOrCreateStudentSelection(
+                          studentId,
+                          studentYear,
+                          studentBranch,
+                        );
+
+                        setState(() {
+                          _studentSelection = updated;
+                          _isSaving = false;
+                        });
+
+                        _tabController?.animateTo(2);
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                      setState(() => _isSaving = false);
+                    }
+                  },
+            child: _isSaving
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
-                  );
-                  return;
-                }
-
-                setState(() => _isSaving = true);
-
-                try {
-                  await _courseService.submitCourseRegistration(
-                    _studentSelection!,
-                  );
-
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Registration submitted successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-
-                    // Reload data
-                    final updated = await _courseService.getOrCreateStudentSelection(
-                      studentId,
-                      studentYear,
-                      studentBranch,
-                    );
-
-                    setState(() {
-                      _studentSelection = updated;
-                      _isSaving = false;
-                    });
-
-                    _tabController?.animateTo(2);
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                  setState(() => _isSaving = false);
-                }
-              },
-        child: _isSaving
-            ? const SizedBox(
-                height: 18,
-                width: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Text(
-                'Submit Registration',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-      ),
+                  )
+                : Text(
+                    isValid ? 'Submit Registration' : 'Cannot Submit',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildUpdateButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-        onPressed: _isSaving
-            ? null
-            : () async {
-                final validation = _courseService.validateSelections(
-                  _studentSelection!,
-                  _requirement,
-                );
+    // Check if requirements are met
+    final validation = _courseService.validateSelections(
+      _studentSelection!,
+      _requirement,
+    );
+    final isValid = validation['isValid'] as bool;
 
-                if (!validation['isValid']) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(validation['message']),
-                      backgroundColor: Colors.orange,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!isValid)
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.orange[100],
+              border: Border.all(color: Colors.orange[400]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Requirements Not Met',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...((validation['errors'] as List<String>?) ?? [])
+                    .map((error) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '• $error',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ))
+                    .toList(),
+              ],
+            ),
+          ),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isValid ? Colors.blue : Colors.grey,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            onPressed: (_isSaving || !isValid)
+                ? null
+                : () async {
+                    setState(() => _isSaving = true);
+
+                    try {
+                      await _courseService.saveStudentSelection(
+                        _studentSelection!,
+                      );
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Changes saved successfully!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+
+                      setState(() => _isSaving = false);
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                      setState(() => _isSaving = false);
+                    }
+                  },
+            child: _isSaving
+                ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
-                  );
-                  return;
-                }
-
-                setState(() => _isSaving = true);
-
-                try {
-                  await _courseService.saveStudentSelection(
-                    _studentSelection!,
-                  );
-
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Changes saved successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-
-                  setState(() => _isSaving = false);
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                  setState(() => _isSaving = false);
-                }
-              },
-        child: _isSaving
-            ? const SizedBox(
-                height: 18,
-                width: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Text(
-                'Update Registration',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-      ),
+                  )
+                : Text(
+                    isValid ? 'Update Registration' : 'Cannot Save',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1002,6 +1306,179 @@ class _EmptyCourseSection extends StatelessWidget {
               child: Text(
                 'No courses available',
                 style: TextStyle(color: Colors.grey[600]),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CourseSelectionDropdown extends StatefulWidget {
+  final String typeLabel;
+  final List<Course> availableCourses;
+  final Function(Course) onCourseSelected;
+
+  const _CourseSelectionDropdown({
+    required this.typeLabel,
+    required this.availableCourses,
+    required this.onCourseSelected,
+  });
+
+  @override
+  State<_CourseSelectionDropdown> createState() =>
+      _CourseSelectionDropdownState();
+}
+
+class _CourseSelectionDropdownState extends State<_CourseSelectionDropdown> {
+  Course? _selectedCourse;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(6),
+        color: Colors.grey[50],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButton<Course>(
+              isExpanded: true,
+              hint: Text(
+                'Select a ${widget.typeLabel} course',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              value: _selectedCourse,
+              underline: const SizedBox(), // Remove underline
+              onChanged: (Course? course) {
+                if (course != null) {
+                  widget.onCourseSelected(course);
+                  setState(() {
+                    _selectedCourse = null;
+                  });
+                }
+              },
+              items: widget.availableCourses.map((Course course) {
+                return DropdownMenuItem<Course>(
+                  value: course,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${course.code} - ${course.name}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        'Credits: ${course.credits}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.arrow_drop_down,
+            color: Colors.grey[600],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectedCourseWidget extends StatelessWidget {
+  final Course course;
+  final String courseType;
+  final VoidCallback onRemove;
+
+  const _SelectedCourseWidget({
+    required Key key,
+    required this.course,
+    required this.courseType,
+    required this.onRemove,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.green[300]!),
+        borderRadius: BorderRadius.circular(6),
+        color: Colors.green[50],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.green,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Icon(
+              Icons.check,
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${course.code} - ${course.name}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Credits: ${course.credits}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onRemove,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.red[100],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Icon(
+                Icons.close,
+                color: Colors.red[600],
+                size: 16,
               ),
             ),
           ),

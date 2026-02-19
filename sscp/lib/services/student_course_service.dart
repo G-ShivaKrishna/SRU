@@ -166,16 +166,41 @@ class StudentCourseService {
   }
 
   /// Add course to student's selection
+  /// Validates that student can edit and requirements allow adding more courses
+  /// Add course to student's selection
+  /// Always fetches fresh state from Firestore for validation to avoid stale data
   Future<void> addCourseSelection(
     String studentId,
     String year,
     String branch,
     String courseId,
     String courseType,
+    {StudentCourseSelection? currentSelection}
   ) async {
     try {
-      final selection =
-          await getOrCreateStudentSelection(studentId, year, branch);
+      // Always fetch fresh selection from Firestore for accurate validation
+      final selection = await getOrCreateStudentSelection(studentId, year, branch);
+
+      // Check if student can edit
+      if (!canEditSelection(selection)) {
+        throw Exception(
+            'Cannot modify submission. Your registration has been submitted and is locked.');
+      }
+
+      final requirement = await getCourseRequirement(year, branch);
+      if (requirement == null) {
+        throw Exception('Course requirements not defined for your year/branch');
+      }
+
+      // Check if adding this course would exceed the requirement
+      final currentCount =
+          (selection.selectionsByType[courseType] as List<dynamic>?)?.length ?? 0;
+      final requiredCount = _getRequiredCountForType(requirement, courseType);
+
+      if (currentCount >= requiredCount) {
+        throw Exception(
+            'Cannot add more $courseType courses. Required: $requiredCount, Current: $currentCount');
+      }
 
       final updatedSelectedCourses = [...selection.selectedCourseIds];
       if (!updatedSelectedCourses.contains(courseId)) {
@@ -200,16 +225,25 @@ class StudentCourseService {
   }
 
   /// Remove course from student's selection
+  /// Validates that student can edit
+  /// Always fetches fresh state from Firestore for accurate tracking
   Future<void> removeCourseSelection(
     String studentId,
     String year,
     String branch,
     String courseId,
     String courseType,
+    {StudentCourseSelection? currentSelection}
   ) async {
     try {
-      final selection =
-          await getOrCreateStudentSelection(studentId, year, branch);
+      // Always fetch fresh selection from Firestore for accurate tracking
+      final selection = await getOrCreateStudentSelection(studentId, year, branch);
+
+      // Check if student can edit
+      if (!canEditSelection(selection)) {
+        throw Exception(
+            'Cannot modify submission. Your registration has been submitted and is locked.');
+      }
 
       final updatedSelectedCourses = [...selection.selectedCourseIds];
       updatedSelectedCourses.remove(courseId);
@@ -233,7 +267,13 @@ class StudentCourseService {
 
   // ============ Validation ============
 
+  /// Check if student can edit (not submitted or admin unlocked)
+  bool canEditSelection(StudentCourseSelection selection) {
+    return !selection.isSubmitted || selection.isUnlocked;
+  }
+
   /// Validate student's selections against requirements
+  /// Returns validation result with isValid flag and error messages
   Map<String, dynamic> validateSelections(
     StudentCourseSelection selection,
     CourseRequirement? requirement,
@@ -305,5 +345,42 @@ class StudentCourseService {
         'isValid': (selections['SE'] as List<dynamic>?)?.length == requirement.seCount,
       },
     };
+  }
+
+  /// Helper method to get required count for a course type
+  int _getRequiredCountForType(CourseRequirement requirement, String courseType) {
+    switch (courseType) {
+      case 'OE':
+        return requirement.oeCount;
+      case 'PE':
+        return requirement.peCount;
+      case 'SE':
+        return requirement.seCount;
+      default:
+        return 0;
+    }
+  }
+
+  /// Check if requirements can be fully satisfied with available courses
+  /// Returns true if enough courses are available for the requirement
+  Future<bool> canRequirementsBeMet(
+    String year,
+    String branch,
+    CourseRequirement requirement,
+  ) async {
+    try {
+      final availableCourses =
+          await getAvailableCoursesGroupedByType(year, branch);
+
+      final oeAvailable = availableCourses[CourseType.OE]?.length ?? 0;
+      final peAvailable = availableCourses[CourseType.PE]?.length ?? 0;
+      final seAvailable = availableCourses[CourseType.SE]?.length ?? 0;
+
+      return oeAvailable >= requirement.oeCount &&
+          peAvailable >= requirement.peCount &&
+          seAvailable >= requirement.seCount;
+    } catch (e) {
+      throw Exception('Failed to check if requirements can be met: $e');
+    }
   }
 }
