@@ -1,6 +1,7 @@
 # Course Registration Feature Implementation Guide
 
 ## Overview
+
 This document outlines the course registration feature implementation with admin controls. The feature has three main components:
 
 1. **Admin Enable/Disable Registration** - Admin can toggle course registration on/off with date ranges
@@ -10,7 +11,9 @@ This document outlines the course registration feature implementation with admin
 ## Data Models
 
 ### 1. Course Model (`lib/models/course_model.dart`)
+
 Represents a course with the following properties:
+
 - `code`: Course code (e.g., "22CS301")
 - `name`: Course name
 - `credits`: Credit hours
@@ -21,8 +24,9 @@ Represents a course with the following properties:
 - `createdAt`, `updatedAt`: Timestamps
 
 ### 2. CourseType Enum
+
 ```dart
-enum CourseType { 
+enum CourseType {
   OE,  // Open Elective
   PE,  // Program Elective
   SE   // Subject Elective
@@ -30,7 +34,9 @@ enum CourseType {
 ```
 
 ### 3. CourseRequirement Model
+
 Defines how many courses of each type are required for a year/branch combination:
+
 - `year`: Year of study ('1', '2', '3', '4')
 - `branch`: Branch name ('CSE', 'ECE', etc.)
 - `oeCount`: Number of Open Electives required
@@ -38,7 +44,9 @@ Defines how many courses of each type are required for a year/branch combination
 - `seCount`: Number of Subject Electives required
 
 ### 4. CourseRegistrationSettings Model
+
 Stores the course registration status:
+
 - `isRegistrationEnabled`: Toggle to enable/disable registration
 - `registrationStartDate`: When registration opens
 - `registrationEndDate`: When registration closes
@@ -84,10 +92,12 @@ Stores the course registration status:
 ### AdminCourseService (`lib/services/admin_course_service.dart`)
 
 Methods for managing registration settings:
+
 - `getRegistrationSettings()` - Get current registration status
 - `toggleRegistration(bool enable, DateTime startDate, DateTime endDate)` - Enable/disable registration
 
 Methods for managing courses:
+
 - `addCourse(Course course)` - Add a new course
 - `updateCourse(String courseId, Course course)` - Update a course
 - `deleteCourse(String courseId)` - Delete a course
@@ -99,6 +109,7 @@ Methods for managing courses:
 - `getCoursesByTypeForYearAndBranchGrouped(String year, String branch)` - Get courses grouped by type
 
 Methods for managing course requirements:
+
 - `addCourseRequirement(CourseRequirement requirement)` - Add or update requirement
 - `updateCourseRequirement(String requirementId, CourseRequirement requirement)` - Update requirement
 - `getCourseRequirement(String year, String branch)` - Get requirement for a year/branch
@@ -112,11 +123,13 @@ Methods for managing course requirements:
 Three-tab interface for complete course management:
 
 #### Tab 1: Registration Settings
+
 - Toggle to enable/disable course registration
 - Set registration start and end dates
 - Display current registration status
 
 #### Tab 2: Manage Courses
+
 - **Add New Course Form:**
   - Course Code
   - Course Name
@@ -130,6 +143,7 @@ Three-tab interface for complete course management:
   - Delete option for each course
 
 #### Tab 3: Course Requirements
+
 - **Set Requirements Form:**
   - Year selector
   - Branch selector
@@ -142,6 +156,7 @@ Three-tab interface for complete course management:
 ### 2. AdminHomeScreen (`lib/roles/admin/screens/admin_home_screen.dart`)
 
 Dashboard with menu items for different admin functions:
+
 - Course Management (fully implemented)
 - Faculty Management (placeholder)
 - Student Management (placeholder)
@@ -150,9 +165,11 @@ Dashboard with menu items for different admin functions:
 ## Integration Steps
 
 ### Step 1: Add to Role Selection
+
 Update `lib/screens/role_selection_screen.dart` to include Admin role navigation.
 
 ### Step 2: Update App Navigation
+
 In `lib/app/app.dart` or your main navigation, add routes for admin screens:
 
 ```dart
@@ -168,12 +185,15 @@ if (userRole == 'admin') {
 ```
 
 ### Step 3: Initialize Firestore Rules
+
 Ensure Firestore security rules allow admin users to create/update the following collections:
+
 - `/courses` - Create, read, update, delete
 - `/courseRequirements` - Create, read, update, delete
 - `/settings/courseRegistration` - Read, update
 
 Example Firestore rules:
+
 ```javascript
 match /courses/{document=**} {
   allow read: if request.auth != null;
@@ -194,6 +214,7 @@ match /settings/{document=**} {
 ## Usage Flow
 
 ### For Admin Users:
+
 1. Login → Navigate to Admin Dashboard
 2. Click "Course Management"
 3. Go to "Registration Settings" tab
@@ -207,7 +228,9 @@ match /settings/{document=**} {
 8. Set how many courses of each type are needed for each year/branch
 
 ### For Student Users:
+
 (Will be implemented in next phase)
+
 1. Check if registration is enabled ← Uses `getRegistrationSettings()`
 2. View available courses for their year/branch ← Uses `getCoursesByTypeForYearAndBranchGrouped()`
 3. Select required number of each course type ← Uses `getCourseRequirement()`
@@ -252,6 +275,7 @@ match /settings/{document=**} {
 ## Files Created/Modified
 
 ### New Files:
+
 1. `lib/models/course_model.dart` - Data models
 2. `lib/services/admin_course_service.dart` - Firebase service
 3. `lib/roles/admin/screens/admin_course_management_screen.dart` - Admin management UI
@@ -259,6 +283,7 @@ match /settings/{document=**} {
 5. `COURSE_REGISTRATION_SETUP.md` - This file
 
 ### Files to Modify:
+
 1. `lib/screens/role_selection_screen.dart` - Add admin option
 2. `lib/app/app.dart` - Add admin routes and navigation
 3. Firestore security rules - Update permissions

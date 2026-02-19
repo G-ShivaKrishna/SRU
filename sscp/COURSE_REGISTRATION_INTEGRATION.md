@@ -3,20 +3,25 @@
 ## Quick Integration Steps
 
 ### Step 1: Update AdminHome Navigation
+
 The admin dashboard (`lib/roles/admin/admin_home.dart`) needs to include the course management option.
 
 **Changes needed:**
+
 1. Add 'Course Management' to the menuItems list
-2. Add case for 'Course Management' in the _navigateToPage method
+2. Add case for 'Course Management' in the \_navigateToPage method
 3. Add course management action card to the quick actions grid
 
 ### Step 2: Import Requirements
+
 Add the following import to your admin screens:
+
 ```dart
 import 'screens/admin_course_management_screen.dart';
 ```
 
 ### Step 3: Update Firestore Security Rules
+
 Update your Firestore rules to allow admin access to the new collections:
 
 ```javascript
@@ -28,17 +33,17 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if request.auth.token.role == 'admin';
     }
-    
+
     match /courseRequirements/{document=**} {
       allow read: if request.auth != null;
       allow write: if request.auth.token.role == 'admin';
     }
-    
+
     match /settings/{document=**} {
       allow read: if request.auth != null;
       allow write: if request.auth.token.role == 'admin';
     }
-    
+
     // Existing rules...
     // (keep your current rules and add above)
   }
@@ -48,15 +53,18 @@ service cloud.firestore {
 ## Feature Components
 
 ### Models Created
+
 - **Course** - Represents a course with code, name, credits, type, and applicable years/branches
 - **CourseType** - Enum for OE (Open Elective), PE (Program Elective), SE (Subject Elective)
 - **CourseRequirement** - Stores requirements (how many of each type) for year/branch combinations
 - **CourseRegistrationSettings** - Manages registration enable/disable and date ranges
 
 ### Services Created
+
 - **AdminCourseService** - Handles all Firestore operations for course management
 
 ### Screens Created
+
 1. **AdminCourseManagementScreen** - Main course management interface with 3 tabs:
    - Registration Settings (enable/disable registration)
    - Manage Courses (add, view, delete courses)
@@ -67,6 +75,7 @@ service cloud.firestore {
 ## Admin Workflow
 
 ### Basic Setup (First Time)
+
 1. Admin logs in → Goes to Course Management
 2. Enable Course Registration:
    - Go to "Registration Settings" tab
@@ -91,6 +100,7 @@ service cloud.firestore {
    - Repeat for all year/branch combinations
 
 ### Ongoing Management
+
 - Toggle registration on/off as needed
 - Update course details
 - Adjust requirements based on needs
@@ -98,6 +108,7 @@ service cloud.firestore {
 ## Database Schema
 
 ### /courses Collection
+
 ```
 {
   code: "22CS301",
@@ -113,6 +124,7 @@ service cloud.firestore {
 ```
 
 ### /courseRequirements Collection
+
 ```
 {
   year: "2",
@@ -126,6 +138,7 @@ service cloud.firestore {
 ```
 
 ### /settings/courseRegistration Document
+
 ```
 {
   isRegistrationEnabled: true,
@@ -164,6 +177,7 @@ final oeList = await adminCourseService
 ## Files Summary
 
 ### New Files Created
+
 1. `lib/models/course_model.dart` (280 lines)
    - Course, CourseType, CourseRequirement, CourseRegistrationSettings models
 
@@ -180,6 +194,7 @@ final oeList = await adminCourseService
    - Comprehensive implementation documentation
 
 ### Files to Update
+
 1. `lib/roles/admin/admin_home.dart`
    - Add 'Course Management' to menuItems
    - Add navigation case for course management
@@ -188,6 +203,7 @@ final oeList = await adminCourseService
 ## Testing Checklist
 
 ### Admin Course Management
+
 - [ ] Admin can enable/disable registration
 - [ ] Admin can set registration date range
 - [ ] Admin can add new courses
@@ -203,6 +219,7 @@ final oeList = await adminCourseService
 ## Next Phase: Student Features
 
 Will implement:
+
 1. Student course registration form
 2. Course selection with validation against requirements
 3. Registration status display
@@ -212,6 +229,7 @@ Will implement:
 ## Support
 
 For issues or questions:
+
 1. Check COURSE_REGISTRATION_SETUP.md for detailed documentation
 2. Verify Firestore collections are created
 3. Check console logs for Firebase errors
