@@ -177,6 +177,7 @@ class CourseRequirement {
 class CourseRegistrationSettings {
   final String id;
   final bool isRegistrationEnabled;
+  final List<String> enabledYears; // Years for which registration is enabled ['1', '2', '3', '4']
   final DateTime registrationStartDate;
   final DateTime registrationEndDate;
   final DateTime? lastModifiedBy; // Will store admin's timestamp
@@ -186,6 +187,7 @@ class CourseRegistrationSettings {
   CourseRegistrationSettings({
     required this.id,
     required this.isRegistrationEnabled,
+    this.enabledYears = const ['1', '2', '3', '4'], // Default to all years
     required this.registrationStartDate,
     required this.registrationEndDate,
     this.lastModifiedBy,
@@ -193,10 +195,16 @@ class CourseRegistrationSettings {
     required this.updatedAt,
   });
 
+  // Check if registration is enabled for a specific year
+  bool isEnabledForYear(String year) {
+    return isRegistrationEnabled && enabledYears.contains(year);
+  }
+
   // Convert to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
       'isRegistrationEnabled': isRegistrationEnabled,
+      'enabledYears': enabledYears,
       'registrationStartDate': registrationStartDate,
       'registrationEndDate': registrationEndDate,
       'lastModifiedBy': lastModifiedBy,
@@ -208,17 +216,32 @@ class CourseRegistrationSettings {
   // Create from Firestore document
   factory CourseRegistrationSettings.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    
+    // Safely parse enabledYears - ensure it's a valid list
+    List<String> years = ['1', '2', '3', '4'];
+    if (data['enabledYears'] != null && data['enabledYears'] is List) {
+      years = List<String>.from(data['enabledYears']);
+    }
+    
     return CourseRegistrationSettings(
       id: doc.id,
       isRegistrationEnabled: data['isRegistrationEnabled'] ?? false,
-      registrationStartDate:
-          (data['registrationStartDate'] as Timestamp).toDate(),
-      registrationEndDate: (data['registrationEndDate'] as Timestamp).toDate(),
+      enabledYears: years,
+      registrationStartDate: data['registrationStartDate'] != null
+          ? (data['registrationStartDate'] as Timestamp).toDate()
+          : DateTime.now(),
+      registrationEndDate: data['registrationEndDate'] != null
+          ? (data['registrationEndDate'] as Timestamp).toDate()
+          : DateTime.now().add(const Duration(days: 30)),
       lastModifiedBy: data['lastModifiedBy'] != null
           ? (data['lastModifiedBy'] as Timestamp).toDate()
           : null,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      createdAt: data['createdAt'] != null
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null
+          ? (data['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 
@@ -226,6 +249,7 @@ class CourseRegistrationSettings {
   CourseRegistrationSettings copyWith({
     String? id,
     bool? isRegistrationEnabled,
+    List<String>? enabledYears,
     DateTime? registrationStartDate,
     DateTime? registrationEndDate,
     DateTime? lastModifiedBy,
@@ -235,6 +259,7 @@ class CourseRegistrationSettings {
     return CourseRegistrationSettings(
       id: id ?? this.id,
       isRegistrationEnabled: isRegistrationEnabled ?? this.isRegistrationEnabled,
+      enabledYears: enabledYears ?? this.enabledYears,
       registrationStartDate:
           registrationStartDate ?? this.registrationStartDate,
       registrationEndDate: registrationEndDate ?? this.registrationEndDate,

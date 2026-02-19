@@ -50,6 +50,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isSubmitted = false;
+  bool _isRegistrationOpen = false; // Whether registration is open for student's year
   String? _errorMessage;
 
   @override
@@ -123,6 +124,11 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
         studentId: _studentId,
         year: _studentYear,
         semester: _studentSemester,
+      );
+
+      // Check if registration is open for this student's year
+      _isRegistrationOpen = await _courseService.isRegistrationOpen(
+        year: _studentYear.toString(),
       );
 
       setState(() {
@@ -205,6 +211,16 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   }
 
   Future<void> _saveSelections() async {
+    if (!_isRegistrationOpen) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration is not currently open for your year.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (_isSubmitted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -253,6 +269,17 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   }
 
   Future<void> _submitRegistration() async {
+    // Check if registration is open for this year
+    if (!_isRegistrationOpen) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration is not currently open for your year.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     // Validate selections
     if (_selectedOEIds.length < _requiredOECount) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -402,6 +429,9 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                   children: [
                     // Student info bar
                     _buildStudentInfoBar(isMobile),
+                    
+                    // Registration closed banner
+                    if (!_isRegistrationOpen && !_isSubmitted) _buildRegistrationClosedBanner(),
                     
                     // Status bar
                     if (_isSubmitted) _buildSubmittedBanner(),
@@ -574,6 +604,29 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
     );
   }
 
+  Widget _buildRegistrationClosedBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      color: Colors.red.shade100,
+      child: Row(
+        children: [
+          Icon(Icons.lock_clock, color: Colors.red.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Registration is not currently open for Year $_studentYear students',
+              style: TextStyle(
+                color: Colors.red.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCoreSubjectsTab(bool isMobile) {
     if (_coreSubjects.isEmpty) {
       return Center(
@@ -702,9 +755,9 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
         ...subjects.map((subject) => _buildSubjectCard(
           subject: subject,
           isSelected: selectedIds.contains(subject.id),
-          isReadOnly: _isSubmitted,
+          isReadOnly: _isSubmitted || !_isRegistrationOpen,
           isMobile: isMobile,
-          onTap: _isSubmitted
+          onTap: (_isSubmitted || !_isRegistrationOpen)
               ? null
               : () {
                   setState(() {
@@ -830,6 +883,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   }
 
   Widget _buildBottomBar(bool isMobile) {
+    final isDisabled = _isSaving || _isSubmitted || !_isRegistrationOpen;
+    
     return Container(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(
@@ -847,7 +902,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: _isSaving || _isSubmitted ? null : _saveSelections,
+                onPressed: isDisabled ? null : _saveSelections,
                 icon: _isSaving
                     ? const SizedBox(
                         width: 16,
@@ -861,7 +916,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: _isSaving || _isSubmitted ? null : _submitRegistration,
+                onPressed: isDisabled ? null : _submitRegistration,
                 icon: const Icon(Icons.send),
                 label: const Text('Submit'),
                 style: ElevatedButton.styleFrom(

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/course_model.dart';
-import '../../../models/student_course_selection_model.dart';
+import '../../../models/faculty_assignment_model.dart';
 import '../../../services/admin_course_service.dart';
+import '../../../services/faculty_assignment_service.dart';
 import '../../../widgets/app_header.dart';
 
 class AdminCourseManagementScreen extends StatefulWidget {
@@ -15,8 +17,14 @@ class AdminCourseManagementScreen extends StatefulWidget {
 class _AdminCourseManagementScreenState
     extends State<AdminCourseManagementScreen> {
   final AdminCourseService _courseService = AdminCourseService();
+  final FacultyAssignmentService _subjectService = FacultyAssignmentService();
   CourseRegistrationSettings? _settings;
   bool _isLoading = true;
+
+  // Local state for year selection with safe defaults
+  List<String> _selectedYears = <String>['1', '2', '3', '4'];
+  DateTime _startDate = DateTime.now();
+  DateTime _endDate = DateTime.now().add(const Duration(days: 30));
 
   @override
   void initState() {
@@ -34,6 +42,13 @@ class _AdminCourseManagementScreenState
       final settings = await _courseService.getRegistrationSettings();
       setState(() {
         _settings = settings;
+        if (settings != null) {
+          _selectedYears = settings.enabledYears.isNotEmpty 
+              ? List<String>.from(settings.enabledYears)
+              : ['1', '2', '3', '4'];
+          _startDate = settings.registrationStartDate;
+          _endDate = settings.registrationEndDate;
+        }
         _isLoading = false;
       });
     } catch (e) {
@@ -53,10 +68,10 @@ class _AdminCourseManagementScreenState
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Course Management'),
+          title: const Text('Subject Registration Management'),
           backgroundColor: const Color(0xFF1e3a5f),
           foregroundColor: Colors.white,
         ),
@@ -76,8 +91,7 @@ class _AdminCourseManagementScreenState
                   indicatorColor: Colors.yellow,
                   tabs: const [
                     Tab(text: 'Registration Settings'),
-                    Tab(text: 'Manage Courses'),
-                    Tab(text: 'Course Requirements'),
+                    Tab(text: 'Subject Requirements'),
                     Tab(text: 'Student Submissions'),
                   ],
                 ),
@@ -86,8 +100,7 @@ class _AdminCourseManagementScreenState
                 child: TabBarView(
                   children: [
                     _buildRegistrationSettingsTab(context),
-                    _buildManageCoursesTab(context),
-                    _buildCourseRequirementsTab(context),
+                    _buildSubjectRequirementsTab(context),
                     _buildStudentSubmissionsTab(context),
                   ],
                 ),
@@ -117,6 +130,11 @@ class _AdminCourseManagementScreenState
                 _buildInfoRow('Registration Enabled:',
                     _settings!.isRegistrationEnabled ? 'Yes' : 'No'),
                 _buildInfoRow(
+                    'Enabled Years:', 
+                    _settings!.enabledYears.isEmpty
+                        ? 'None'
+                        : _settings!.enabledYears.map((y) => 'Year $y').join(', ')),
+                _buildInfoRow(
                     'Start Date:', _formatDate(_settings!.registrationStartDate)),
                 _buildInfoRow(
                     'End Date:', _formatDate(_settings!.registrationEndDate)),
@@ -130,65 +148,180 @@ class _AdminCourseManagementScreenState
   }
 
   Widget _buildRegistrationToggle() {
-    return StatefulBuilder(
-      builder: (context, setState) {
-        bool isEnabled = _settings?.isRegistrationEnabled ?? false;
-        DateTime startDate =
-            _settings?.registrationStartDate ?? DateTime.now();
-        DateTime endDate = _settings?.registrationEndDate ??
-            DateTime.now().add(const Duration(days: 30));
+    bool isEnabled = _settings?.isRegistrationEnabled ?? false;
+    const List<String> allYears = ['1', '2', '3', '4'];
+    bool allSelected = _selectedYears.length == 4;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SwitchListTile(
-              title: const Text('Enable Course Registration'),
-              subtitle: const Text(
-                  'Toggle to enable/disable course registration for all students'),
-              value: isEnabled,
-              onChanged: (value) async {
-                try {
-                  await _courseService.toggleRegistration(
-                    value,
-                    startDate,
-                    endDate,
-                  );
-                  await _loadRegistrationSettings();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Registration ${value ? 'enabled' : 'disabled'} successfully',
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          title: const Text('Enable Course Registration'),
+          subtitle: const Text(
+              'Toggle to enable/disable course registration'),
+          value: isEnabled,
+          onChanged: (value) async {
+            try {
+              await _courseService.toggleRegistration(
+                value,
+                _startDate,
+                _endDate,
+                enabledYears: _selectedYears,
+              );
+              await _loadRegistrationSettings();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Registration ${value ? 'enabled' : 'disabled'} successfully',
+                    ),
+                  ),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
+              }
+            }
+          },
+        ),
+        if (isEnabled) ...[
+          const SizedBox(height: 16),
+          // Year selection section
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Enable for Years:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
                       ),
                     ),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
-                }
-              },
+                    // Select All / Deselect All button
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          if (allSelected) {
+                            _selectedYears.clear();
+                          } else {
+                            _selectedYears = List<String>.from(allYears);
+                          }
+                        });
+                      },
+                      icon: Icon(
+                        allSelected ? Icons.deselect : Icons.select_all,
+                        size: 18,
+                      ),
+                      label: Text(allSelected ? 'Deselect All' : 'Select All'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: allYears.map((year) {
+                    final isYearEnabled = _selectedYears.contains(year);
+                    return FilterChip(
+                      label: Text('Year $year'),
+                      selected: isYearEnabled,
+                      selectedColor: Colors.green.shade100,
+                      checkmarkColor: Colors.green.shade700,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedYears.add(year);
+                          } else {
+                            _selectedYears.remove(year);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 12),
+                // Save years button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1e3a5f),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: _selectedYears.isEmpty
+                        ? null
+                        : () async {
+                            try {
+                              await _courseService.toggleRegistration(
+                                isEnabled,
+                                _startDate,
+                                _endDate,
+                                enabledYears: _selectedYears,
+                              );
+                              await _loadRegistrationSettings();
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Registration enabled for Year(s): ${_selectedYears.join(", ")}',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
+                            }
+                          },
+                    icon: const Icon(Icons.save, color: Colors.white),
+                    label: const Text(
+                      'Save Year Settings',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            if (isEnabled) ...[
-              const SizedBox(height: 16),
-              _buildDatePickerField(
-                'Registration Start Date',
-                startDate,
-                (selectedDate) {
-                  startDate = selectedDate;
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDatePickerField(
-                'Registration End Date',
-                endDate,
-                (selectedDate) {
-                  endDate = selectedDate;
-                },
-              ),
-            ],
-          ],
-        );
-      },
+          ),
+          const SizedBox(height: 16),
+          _buildDatePickerField(
+            'Registration Start Date',
+            _startDate,
+            (selectedDate) {
+              setState(() {
+                _startDate = selectedDate;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildDatePickerField(
+            'Registration End Date',
+            _endDate,
+            (selectedDate) {
+              setState(() {
+                _endDate = selectedDate;
+              });
+            },
+          ),
+        ],
+      ],
     );
   }
 
@@ -245,334 +378,44 @@ class _AdminCourseManagementScreenState
     );
   }
 
-  // ============ Manage Courses Tab ============
-  Widget _buildManageCoursesTab(BuildContext context) {
+  // ============ Subject Requirements Tab ============
+  Widget _buildSubjectRequirementsTab(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
+
+    const years = ['1', '2', '3', '4'];
+    const branches = ['CSE', 'ECE', 'EEE', 'ME', 'CE'];
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionCard(
-            'Add New Course',
-            [
-              _buildAddCourseForm(context),
-            ],
-            context,
+          // Info card about Subject Management
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue.shade700),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Subjects (Core/OE/PE) are managed in Subject Management. Here you can set how many OE and PE subjects each student must select.',
+                    style: TextStyle(color: Colors.blue.shade700),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           _buildSectionCard(
-            'All Courses',
+            'Set Subject Selection Requirements',
             [
-              _buildCoursesList(context),
-            ],
-            context,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddCourseForm(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    late String selectedType = 'OE';
-    late TextEditingController codeController;
-    late TextEditingController nameController;
-    late TextEditingController creditsController;
-    List<String> selectedYears = [];
-    List<String> selectedBranches = [];
-
-    const years = ['1', '2', '3', '4'];
-    const branches = ['CSE', 'ECE', 'EEE', 'ME', 'CE'];
-
-    resetForm() {
-      codeController.clear();
-      nameController.clear();
-      creditsController.clear();
-      selectedYears = [];
-      selectedBranches = [];
-      selectedType = 'OE';
-    }
-
-    return StatefulBuilder(
-      builder: (context, setState) {
-        codeController = TextEditingController();
-        nameController = TextEditingController();
-        creditsController = TextEditingController();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTextFieldWithLabel('Course Code', codeController,
-                isMobile: isMobile),
-            const SizedBox(height: 12),
-            _buildTextFieldWithLabel('Course Name', nameController,
-                isMobile: isMobile),
-            const SizedBox(height: 12),
-            _buildTextFieldWithLabel('Credits', creditsController,
-                isMobile: isMobile,
-                keyboardType: TextInputType.number),
-            const SizedBox(height: 12),
-            _buildDropdownField(
-              'Course Type',
-              selectedType,
-              ['OE', 'PE', 'SE'],
-              (value) {
-                setState(() {
-                  selectedType = value ?? 'OE';
-                });
-              },
-              isMobile: isMobile,
-            ),
-            const SizedBox(height: 12),
-            _buildMultiSelectField(
-              'Select Years',
-              years,
-              selectedYears,
-              (year, isSelected) {
-                setState(() {
-                  if (isSelected) {
-                    selectedYears.add(year);
-                  } else {
-                    selectedYears.remove(year);
-                  }
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildMultiSelectField(
-              'Select Branches',
-              branches,
-              selectedBranches,
-              (branch, isSelected) {
-                setState(() {
-                  if (isSelected) {
-                    selectedBranches.add(branch);
-                  } else {
-                    selectedBranches.remove(branch);
-                  }
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-              ),
-              onPressed: () async {
-                if (codeController.text.isEmpty ||
-                    nameController.text.isEmpty ||
-                    creditsController.text.isEmpty ||
-                    selectedYears.isEmpty ||
-                    selectedBranches.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please fill all fields'),
-                    ),
-                  );
-                  return;
-                }
-
-                try {
-                  final course = Course(
-                    id: '',
-                    code: codeController.text,
-                    name: nameController.text,
-                    credits: int.parse(creditsController.text),
-                    type:
-                        selectedType == 'OE'
-                            ? CourseType.OE
-                            : selectedType == 'PE'
-                                ? CourseType.PE
-                                : CourseType.SE,
-                    applicableYears: selectedYears,
-                    applicableBranches: selectedBranches,
-                    createdAt: DateTime.now(),
-                    updatedAt: DateTime.now(),
-                  );
-
-                  await _courseService.addCourse(course);
-                  resetForm();
-                  setState(() {});
-
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Course added successfully'),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                }
-              },
-              child: const Text(
-                'Add Course',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildCoursesList(BuildContext context) {
-    return FutureBuilder<List<Course>>(
-      future: _courseService.getAllCourses(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        }
-
-        final courses = snapshot.data ?? [];
-        if (courses.isEmpty) {
-          return const Center(
-            child: Text('No courses added yet'),
-          );
-        }
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: courses.length,
-          itemBuilder: (context, index) {
-            final course = courses[index];
-            return _buildCourseCard(course, context);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildCourseCard(Course course, BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${course.code} - ${course.name}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Type: ${course.type.toString().split('.').last} | Credits: ${course.credits}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              PopupMenuButton(
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    child: const Text('Edit'),
-                    onTap: () {
-                      _showEditCourseDialog(context, course);
-                    },
-                  ),
-                  PopupMenuItem(
-                    child: const Text('Delete'),
-                    onTap: () async {
-                      final confirm = await _showConfirmDialog(context,
-                          'Are you sure you want to delete this course?');
-                      if (confirm) {
-                        try {
-                          await _courseService.deleteCourse(course.id);
-                          setState(() {});
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Course deleted successfully'),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        }
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 4,
-            children: [
-              ...course.applicableYears.map((year) => Chip(
-                    label: Text('Year $year'),
-                    labelStyle: const TextStyle(fontSize: 10),
-                  )),
-              ...course.applicableBranches.map((branch) => Chip(
-                    label: Text(branch),
-                    labelStyle: const TextStyle(fontSize: 10),
-                  )),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============ Course Requirements Tab ============
-  Widget _buildCourseRequirementsTab(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    const years = ['1', '2', '3', '4'];
-    const branches = ['CSE', 'ECE', 'EEE', 'ME', 'CE'];
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionCard(
-            'Set Course Requirements',
-            [
-              _buildRequirementsForm(years, branches, context),
+              _buildSubjectRequirementsForm(years, branches, context),
             ],
             context,
           ),
@@ -584,18 +427,25 @@ class _AdminCourseManagementScreenState
             ],
             context,
           ),
+          const SizedBox(height: 16),
+          _buildSectionCard(
+            'Available Subjects Overview',
+            [
+              _buildAvailableSubjectsOverview(context),
+            ],
+            context,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildRequirementsForm(
+  Widget _buildSubjectRequirementsForm(
       List<String> years, List<String> branches, BuildContext context) {
     String selectedYear = '1';
     String selectedBranch = 'CSE';
     int oeCount = 1;
     int peCount = 1;
-    int seCount = 1;
 
     return StatefulBuilder(
       builder: (context, setState) {
@@ -625,7 +475,7 @@ class _AdminCourseManagementScreenState
             ),
             const SizedBox(height: 16),
             Text(
-              'Number of Courses Required:',
+              'Number of Subjects Student Must Select:',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 12),
@@ -640,7 +490,7 @@ class _AdminCourseManagementScreenState
             ),
             const SizedBox(height: 12),
             _buildCounterField(
-              'Program Electives (PE)',
+              'Programme Electives (PE)',
               peCount,
               (value) {
                 setState(() {
@@ -648,20 +498,10 @@ class _AdminCourseManagementScreenState
                 });
               },
             ),
-            const SizedBox(height: 12),
-            _buildCounterField(
-              'Subject Electives (SE)',
-              seCount,
-              (value) {
-                setState(() {
-                  seCount = value;
-                });
-              },
-            ),
             const SizedBox(height: 16),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: const Color(0xFF1e3a5f),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 12,
@@ -675,7 +515,7 @@ class _AdminCourseManagementScreenState
                     branch: selectedBranch,
                     oeCount: oeCount,
                     peCount: peCount,
-                    seCount: seCount,
+                    seCount: 0, // Not used anymore
                     createdAt: DateTime.now(),
                     updatedAt: DateTime.now(),
                   );
@@ -687,13 +527,17 @@ class _AdminCourseManagementScreenState
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Requirements saved successfully'),
+                        backgroundColor: Colors.green,
                       ),
                     );
                   }
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red,
+                      ),
                     );
                   }
                 }
@@ -706,6 +550,87 @@ class _AdminCourseManagementScreenState
           ],
         );
       },
+    );
+  }
+
+  Widget _buildAvailableSubjectsOverview(BuildContext context) {
+    return FutureBuilder<List<Subject>>(
+      future: _subjectService.getAllSubjects(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final subjects = snapshot.data ?? [];
+        
+        // Group by year and type
+        final Map<int, Map<SubjectType, int>> yearTypeCount = {};
+        for (int year = 1; year <= 4; year++) {
+          yearTypeCount[year] = {
+            SubjectType.core: 0,
+            SubjectType.oe: 0,
+            SubjectType.pe: 0,
+          };
+        }
+
+        for (final subject in subjects) {
+          if (yearTypeCount.containsKey(subject.year)) {
+            yearTypeCount[subject.year]![subject.subjectType] = 
+                (yearTypeCount[subject.year]![subject.subjectType] ?? 0) + 1;
+          }
+        }
+
+        return Column(
+          children: [
+            for (int year = 1; year <= 4; year++)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      'Year $year',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    _buildSubjectCountChip('Core', yearTypeCount[year]![SubjectType.core]!, Colors.blue),
+                    const SizedBox(width: 8),
+                    _buildSubjectCountChip('OE', yearTypeCount[year]![SubjectType.oe]!, Colors.green),
+                    const SizedBox(width: 8),
+                    _buildSubjectCountChip('PE', yearTypeCount[year]![SubjectType.pe]!, Colors.orange),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSubjectCountChip(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        '$label: $count',
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+      ),
     );
   }
 
@@ -801,9 +726,8 @@ class _AdminCourseManagementScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildRequirementBadge('OE', requirement.oeCount),
-              _buildRequirementBadge('PE', requirement.peCount),
-              _buildRequirementBadge('SE', requirement.seCount),
+              _buildRequirementBadge('OE', requirement.oeCount, Colors.green),
+              _buildRequirementBadge('PE', requirement.peCount, Colors.orange),
             ],
           ),
         ],
@@ -811,29 +735,30 @@ class _AdminCourseManagementScreenState
     );
   }
 
-  Widget _buildRequirementBadge(String type, int count) {
+  Widget _buildRequirementBadge(String type, int count, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.blue[100],
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         children: [
           Text(
             type,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Colors.blue,
+              color: color,
             ),
           ),
           Text(
             count.toString(),
-            style: const TextStyle(
-              fontSize: 16,
+            style: TextStyle(
+              fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.blue,
+              color: color,
             ),
           ),
         ],
@@ -928,12 +853,13 @@ class _AdminCourseManagementScreenState
                 ),
               ),
               const SizedBox(height: 16),
-              // Student submissions list
-              FutureBuilder<List<StudentCourseSelection>>(
-                future: _courseService.getSubmittedSelectionsForYearBranch(
-                  selectedYear,
-                  selectedBranch,
-                ),
+              // Student submissions list from studentSubjectSelections
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('studentSubjectSelections')
+                    .where('year', isEqualTo: int.tryParse(selectedYear) ?? 1)
+                    .where('department', isEqualTo: selectedBranch)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -945,7 +871,7 @@ class _AdminCourseManagementScreenState
                     );
                   }
 
-                  final submissions = snapshot.data ?? [];
+                  final submissions = snapshot.data?.docs ?? [];
                   if (submissions.isEmpty) {
                     return Center(
                       child: Padding(
@@ -972,9 +898,11 @@ class _AdminCourseManagementScreenState
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: submissions.length,
                     itemBuilder: (context, index) {
-                      return _buildStudentSubmissionCard(
+                      final data = submissions[index].data() as Map<String, dynamic>;
+                      return _buildSubjectSubmissionCard(
                         context,
-                        submissions[index],
+                        submissions[index].id,
+                        data,
                       );
                     },
                   );
@@ -987,128 +915,82 @@ class _AdminCourseManagementScreenState
     );
   }
 
-  Widget _buildStudentSubmissionCard(
+  Widget _buildSubjectSubmissionCard(
     BuildContext context,
-    StudentCourseSelection submission,
+    String docId,
+    Map<String, dynamic> data,
   ) {
+    final studentId = data['studentId'] ?? '';
+    final studentName = data['studentName'] ?? studentId;
+    final isSubmitted = data['isSubmitted'] == true;
+    final coreCount = (data['coreSubjectIds'] as List?)?.length ?? 0;
+    final oeCount = (data['selectedOEIds'] as List?)?.length ?? 0;
+    final peCount = (data['selectedPEIds'] as List?)?.length ?? 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: Border.all(
-          color: submission.isUnlocked ? Colors.blue[300]! : Colors.grey[300]!,
+          color: isSubmitted ? Colors.green.shade300 : Colors.orange.shade300,
         ),
         borderRadius: BorderRadius.circular(8),
-        color: submission.isUnlocked ? Colors.blue[50] : Colors.white,
+        color: isSubmitted ? Colors.green.shade50 : Colors.orange.shade50,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              CircleAvatar(
+                backgroundColor: const Color(0xFF1e3a5f),
+                radius: 20,
+                child: Text(
+                  studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Student ID: ${submission.studentId}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                      studentName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 4),
                     Text(
-                      'Selected ${submission.selectedCourseIds.length} course(s)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      studentId,
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
               ),
-              if (submission.isUnlocked)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[100],
-                    border: Border.all(color: Colors.blue[400]!),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Unlocked',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[900],
-                    ),
-                  ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSubmitted ? Colors.green : Colors.orange,
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                child: Text(
+                  isSubmitted ? 'Submitted' : 'Draft',
+                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: submission.isUnlocked
-                        ? Colors.orange
-                        : Colors.green,
-                  ),
-                  onPressed: () async {
-                    try {
-                      if (submission.isUnlocked) {
-                        await _courseService.lockStudentSelection(submission.id);
-                      } else {
-                        await _courseService.unlockStudentSelection(submission.id);
-                      }
-
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              submission.isUnlocked
-                                  ? 'Student submission locked.'
-                                  : 'Student can now edit their selection.',
-                            ),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-
-                      // Refresh the list
-                      (context as Element).markNeedsBuild();
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error: $e')),
-                        );
-                      }
-                    }
-                  },
-                  icon: Icon(
-                    submission.isUnlocked ? Icons.lock : Icons.lock_open,
-                  ),
-                  label: Text(
-                    submission.isUnlocked ? 'Lock' : 'Unlock for Editing',
-                  ),
-                ),
-              ),
+              _buildSelectionChip('Core', coreCount, Colors.blue),
               const SizedBox(width: 8),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                ),
-                onPressed: () {
-                  _showStudentDetailsDialog(context, submission);
-                },
-                icon: const Icon(Icons.info),
+              _buildSelectionChip('OE', oeCount, Colors.green),
+              const SizedBox(width: 8),
+              _buildSelectionChip('PE', peCount, Colors.orange),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => _showSubjectDetailsDialog(context, data),
+                icon: const Icon(Icons.visibility, size: 18),
                 label: const Text('View'),
               ),
             ],
@@ -1118,75 +1000,89 @@ class _AdminCourseManagementScreenState
     );
   }
 
-  void _showStudentDetailsDialog(
-    BuildContext context,
-    StudentCourseSelection submission,
-  ) {
+  Widget _buildSelectionChip(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        '$label: $count',
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  void _showSubjectDetailsDialog(BuildContext context, Map<String, dynamic> data) {
+    final studentId = data['studentId'] ?? '';
+    final studentName = data['studentName'] ?? studentId;
+    final coreSubjectCodes = List<String>.from(data['coreSubjectCodes'] ?? []);
+    final selectedOEIds = List<String>.from(data['selectedOEIds'] ?? []);
+    final selectedPEIds = List<String>.from(data['selectedPEIds'] ?? []);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Student Course Selection'),
+        title: Text('$studentName\'s Subjects'),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildInfoRow('Student ID', submission.studentId),
-              _buildInfoRow('Year', submission.year),
-              _buildInfoRow('Branch', submission.branch),
-              _buildInfoRow(
-                'Total Courses',
-                submission.selectedCourseIds.length.toString(),
-              ),
+              Text('Student ID: $studentId'),
+              Text('Year: ${data['year']} | Semester: ${data['semester']}'),
+              Text('Department: ${data['department']}'),
+              const SizedBox(height: 16),
+              const Text('Core Subjects:', style: TextStyle(fontWeight: FontWeight.bold)),
+              if (coreSubjectCodes.isEmpty)
+                const Text('No core subjects', style: TextStyle(color: Colors.grey))
+              else
+                ...coreSubjectCodes.map((code) => Padding(
+                  padding: const EdgeInsets.only(left: 8, top: 4),
+                  child: Text('• $code'),
+                )),
               const SizedBox(height: 12),
-              const Text(
-                'Courses by Type:',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+              const Text('Selected OE Subjects:', style: TextStyle(fontWeight: FontWeight.bold)),
+              if (selectedOEIds.isEmpty)
+                const Text('No OE subjects selected', style: TextStyle(color: Colors.grey))
+              else
+                FutureBuilder<List<Subject>>(
+                  future: _getSubjectsByIds(selectedOEIds),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const CircularProgressIndicator();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: snapshot.data!.map((s) => Padding(
+                        padding: const EdgeInsets.only(left: 8, top: 4),
+                        child: Text('• ${s.code} - ${s.name}'),
+                      )).toList(),
+                    );
+                  },
                 ),
-              ),
-              const SizedBox(height: 8),
-              ...['OE', 'PE', 'SE'].map((type) {
-                final count =
-                    (submission.selectionsByType[type] as List<dynamic>?)?.length ??
-                        0;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('$type Courses:'),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[100],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          count.toString(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
               const SizedBox(height: 12),
-              _buildInfoRow(
-                'Status',
-                submission.isUnlocked ? 'Unlocked' : 'Locked',
-              ),
-              _buildInfoRow(
-                'Submitted At',
-                _formatDate(submission.updatedAt),
-              ),
+              const Text('Selected PE Subjects:', style: TextStyle(fontWeight: FontWeight.bold)),
+              if (selectedPEIds.isEmpty)
+                const Text('No PE subjects selected', style: TextStyle(color: Colors.grey))
+              else
+                FutureBuilder<List<Subject>>(
+                  future: _getSubjectsByIds(selectedPEIds),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const CircularProgressIndicator();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: snapshot.data!.map((s) => Padding(
+                        padding: const EdgeInsets.only(left: 8, top: 4),
+                        child: Text('• ${s.code} - ${s.name}'),
+                      )).toList(),
+                    );
+                  },
+                ),
             ],
           ),
         ),
@@ -1198,6 +1094,20 @@ class _AdminCourseManagementScreenState
         ],
       ),
     );
+  }
+
+  Future<List<Subject>> _getSubjectsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final subjects = <Subject>[];
+    for (final id in ids) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('subjects').doc(id).get();
+        if (doc.exists) {
+          subjects.add(Subject.fromFirestore(doc));
+        }
+      } catch (_) {}
+    }
+    return subjects;
   }
 
   // ============ Helper Widgets ============
@@ -1446,157 +1356,6 @@ class _AdminCourseManagementScreenState
       ),
     );
     return result ?? false;
-  }
-
-  void _showEditCourseDialog(BuildContext context, Course course) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    late String selectedType = course.type.toString().split('.').last;
-    late TextEditingController codeController = TextEditingController(text: course.code);
-    late TextEditingController nameController = TextEditingController(text: course.name);
-    late TextEditingController creditsController = TextEditingController(text: course.credits.toString());
-    List<String> selectedYears = List.from(course.applicableYears);
-    List<String> selectedBranches = List.from(course.applicableBranches);
-
-    const years = ['1', '2', '3', '4'];
-    const branches = ['CSE', 'ECE', 'EEE', 'ME', 'CE'];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Course'),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildTextFieldWithLabel('Course Code', codeController, isMobile: isMobile),
-                  const SizedBox(height: 12),
-                  _buildTextFieldWithLabel('Course Name', nameController, isMobile: isMobile),
-                  const SizedBox(height: 12),
-                  _buildTextFieldWithLabel('Credits', creditsController, isMobile: isMobile, keyboardType: TextInputType.number),
-                  const SizedBox(height: 12),
-                  _buildDropdownField(
-                    'Course Type',
-                    selectedType,
-                    ['OE', 'PE', 'SE'],
-                    (value) {
-                      setState(() {
-                        selectedType = value ?? 'OE';
-                      });
-                    },
-                    isMobile: isMobile,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildMultiSelectField(
-                    'Select Years',
-                    years,
-                    selectedYears,
-                    (year, isSelected) {
-                      setState(() {
-                        if (isSelected) {
-                          selectedYears.add(year);
-                        } else {
-                          selectedYears.remove(year);
-                        }
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _buildMultiSelectField(
-                    'Select Branches',
-                    branches,
-                    selectedBranches,
-                    (branch, isSelected) {
-                      setState(() {
-                        if (isSelected) {
-                          selectedBranches.add(branch);
-                        } else {
-                          selectedBranches.remove(branch);
-                        }
-                      });
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              codeController.dispose();
-              nameController.dispose();
-              creditsController.dispose();
-              Navigator.pop(context);
-            },
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-            ),
-            onPressed: () async {
-              if (codeController.text.isEmpty ||
-                  nameController.text.isEmpty ||
-                  creditsController.text.isEmpty ||
-                  selectedYears.isEmpty ||
-                  selectedBranches.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please fill all fields'),
-                  ),
-                );
-                return;
-              }
-
-              try {
-                final updatedCourse = course.copyWith(
-                  code: codeController.text,
-                  name: nameController.text,
-                  credits: int.parse(creditsController.text),
-                  type: selectedType == 'OE'
-                      ? CourseType.OE
-                      : selectedType == 'PE'
-                          ? CourseType.PE
-                          : CourseType.SE,
-                  applicableYears: selectedYears,
-                  applicableBranches: selectedBranches,
-                  updatedAt: DateTime.now(),
-                );
-
-                await _courseService.updateCourse(course.id, updatedCourse);
-                
-                codeController.dispose();
-                nameController.dispose();
-                creditsController.dispose();
-
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Course updated successfully'),
-                    ),
-                  );
-                  setState(() {});
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text(
-              'Save',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

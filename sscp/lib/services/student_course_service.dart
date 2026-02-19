@@ -30,16 +30,23 @@ class StudentCourseService {
     }
   }
 
-  /// Check if registration is currently open based on dates
-  Future<bool> isRegistrationOpen() async {
+  /// Check if registration is currently open based on dates and year
+  /// If year is provided, also checks if registration is enabled for that year
+  Future<bool> isRegistrationOpen({String? year}) async {
     try {
       final settings = await getRegistrationSettings();
       if (settings == null) return false;
 
       final now = DateTime.now();
-      return settings.isRegistrationEnabled &&
-          now.isAfter(settings.registrationStartDate) &&
+      final isWithinDates = now.isAfter(settings.registrationStartDate) &&
           now.isBefore(settings.registrationEndDate);
+      
+      // If year is provided, check if enabled for that year
+      if (year != null) {
+        return settings.isEnabledForYear(year) && isWithinDates;
+      }
+      
+      return settings.isRegistrationEnabled && isWithinDates;
     } catch (e) {
       throw Exception('Failed to check registration status: $e');
     }

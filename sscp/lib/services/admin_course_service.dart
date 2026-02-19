@@ -31,11 +31,17 @@ class AdminCourseService {
   }
 
   /// Enable or disable course registration
-  Future<void> toggleRegistration(bool enable, DateTime startDate,
-      DateTime endDate) async {
+  /// enabledYears: List of years for which registration is enabled (e.g., ['1', '2', '3', '4'])
+  Future<void> toggleRegistration(
+    bool enable,
+    DateTime startDate,
+    DateTime endDate, {
+    List<String> enabledYears = const ['1', '2', '3', '4'],
+  }) async {
     try {
       await _registrationSettingsDoc.set({
         'isRegistrationEnabled': enable,
+        'enabledYears': enabledYears,
         'registrationStartDate': startDate,
         'registrationEndDate': endDate,
         'lastModifiedBy': DateTime.now(),
