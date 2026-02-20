@@ -51,6 +51,11 @@ class _StudentHomeState extends State<StudentHome> {
             'batchNumber': '18',
             'email': 'demo@sru.edu.in',
             'program': 'BTECH',
+            'year': '3',
+            'semester': '6',
+            'attendance': '85',
+            'cgpa': '8.5',
+            'backlogs': '0',
             'mentorName': 'Dr. Demo Mentor',
             'mentorPhone': '9999999999',
             'mentorEmail': 'mentor@sru.edu.in',
@@ -492,6 +497,13 @@ class _StudentHomeState extends State<StudentHome> {
         isMobile ? 2 : (MediaQuery.of(context).size.width < 1024 ? 2 : 4);
     final childAspectRatio = isMobile ? 1.1 : 1.3;
 
+    // Build Year-Semester string from separate fields
+    final year = _studentData?['year']?.toString();
+    final semester = _studentData?['semester']?.toString();
+    final yearSemester = (year != null && semester != null)
+        ? '$year-$semester'
+        : _studentData?['yearSemester']?.toString() ?? 'N/A';
+
     return GridView.count(
       crossAxisCount: crossAxisCount,
       shrinkWrap: true,
@@ -502,7 +514,7 @@ class _StudentHomeState extends State<StudentHome> {
       children: [
         _buildAcademicsCard(
           'Year-Semester',
-          _studentData?['yearSemester'] ?? 'N/A',
+          yearSemester,
           Colors.teal,
           context,
         ),
