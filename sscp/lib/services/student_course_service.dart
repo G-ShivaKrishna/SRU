@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/course_model.dart';
 import '../models/student_course_selection_model.dart';
+import '../models/faculty_assignment_model.dart';
 
 class StudentCourseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -8,6 +9,7 @@ class StudentCourseService {
   CollectionReference get _studentCoursesCollection =>
       _firestore.collection('studentCourses');
   CollectionReference get _coursesCollection => _firestore.collection('courses');
+  CollectionReference get _subjectsCollection => _firestore.collection('subjects');
   DocumentReference get _registrationSettingsDoc =>
       _firestore.collection('settings').doc('courseRegistration');
   CollectionReference get _courseRequirementsCollection =>
@@ -28,16 +30,23 @@ class StudentCourseService {
     }
   }
 
-  /// Check if registration is currently open based on dates
-  Future<bool> isRegistrationOpen() async {
+  /// Check if registration is currently open based on dates and year
+  /// If year is provided, also checks if registration is enabled for that year
+  Future<bool> isRegistrationOpen({String? year}) async {
     try {
       final settings = await getRegistrationSettings();
       if (settings == null) return false;
 
       final now = DateTime.now();
-      return settings.isRegistrationEnabled &&
-          now.isAfter(settings.registrationStartDate) &&
+      final isWithinDates = now.isAfter(settings.registrationStartDate) &&
           now.isBefore(settings.registrationEndDate);
+      
+      // If year is provided, check if enabled for that year
+      if (year != null) {
+        return settings.isEnabledForYear(year) && isWithinDates;
+      }
+      
+      return settings.isRegistrationEnabled && isWithinDates;
     } catch (e) {
       throw Exception('Failed to check registration status: $e');
     }
@@ -406,6 +415,400 @@ class StudentCourseService {
           seAvailable >= requirement.seCount;
     } catch (e) {
       throw Exception('Failed to check if requirements can be met: $e');
+    }
+  }
+
+  // ============ Subject-Based Registration (Unified System) ============
+
+  /// Get all subjects for a student's year, semester, and department
+  /// Returns subjects grouped by type: Core (auto-assigned), OE (selectable), PE (selectable)
+  Future<Map<SubjectType, List<Subject>>> getSubjectsGroupedByType({
+    required int year,
+    required String semester,
+    required String department,
+  }) async {
+    try {
+      final subjects = <SubjectType, List<Subject>>{
+        SubjectType.core: [],
+        SubjectType.oe: [],
+        SubjectType.pe: [],
+      };
+
+      // Query subjects for the given year, semester
+      final snapshot = await _subjectsCollection
+          .where('year', isEqualTo: year)
+          .where('semester', isEqualTo: semester)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      for (final doc in snapshot.docs) {
+        final subject = Subject.fromFirestore(doc);
+        
+        // For Core subjects, match department exactly
+        // For OE, any department is allowed
+        // For PE, match department
+        if (subject.subjectType == SubjectType.core) {
+          if (subject.department == department) {
+            subjects[SubjectType.core]!.add(subject);
+          }
+        } else if (subject.subjectType == SubjectType.oe) {
+          // OE subjects are available to all departments
+          subjects[SubjectType.oe]!.add(subject);
+        } else if (subject.subjectType == SubjectType.pe) {
+          // PE subjects are department-specific
+          if (subject.department == department) {
+            subjects[SubjectType.pe]!.add(subject);
+          }
+        }
+      }
+
+      return subjects;
+    } catch (e) {
+      throw Exception('Failed to get subjects: $e');
+    }
+  }
+
+  /// Get Core subjects that are auto-assigned to students
+  Future<List<Subject>> getCoreSubjects({
+    required int year,
+    required String semester,
+    required String department,
+  }) async {
+    try {
+      final snapshot = await _subjectsCollection
+          .where('year', isEqualTo: year)
+          .where('semester', isEqualTo: semester)
+          .where('department', isEqualTo: department)
+          .where('subjectType', isEqualTo: 'Core')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      return snapshot.docs.map((doc) => Subject.fromFirestore(doc)).toList();
+    } catch (e) {
+      throw Exception('Failed to get core subjects: $e');
+    }
+  }
+
+  /// Get elective subjects (OE and PE) that students can select
+  Future<Map<SubjectType, List<Subject>>> getElectiveSubjects({
+    required int year,
+    required String semester,
+    required String department,
+  }) async {
+    try {
+      final electives = <SubjectType, List<Subject>>{
+        SubjectType.oe: [],
+        SubjectType.pe: [],
+      };
+
+      // Get all OE subjects for the year/semester (available to all departments)
+      final oeSnapshot = await _subjectsCollection
+          .where('year', isEqualTo: year)
+          .where('semester', isEqualTo: semester)
+          .where('subjectType', isEqualTo: 'OE')
+          .where('isActive', isEqualTo: true)
+          .get();
+      
+      electives[SubjectType.oe] = oeSnapshot.docs
+          .map((doc) => Subject.fromFirestore(doc))
+          .toList();
+
+      // Get PE subjects for the specific department
+      final peSnapshot = await _subjectsCollection
+          .where('year', isEqualTo: year)
+          .where('semester', isEqualTo: semester)
+          .where('department', isEqualTo: department)
+          .where('subjectType', isEqualTo: 'PE')
+          .where('isActive', isEqualTo: true)
+          .get();
+      
+      electives[SubjectType.pe] = peSnapshot.docs
+          .map((doc) => Subject.fromFirestore(doc))
+          .toList();
+
+      return electives;
+    } catch (e) {
+      throw Exception('Failed to get elective subjects: $e');
+    }
+  }
+
+  /// Save student's elective subject selections
+  Future<void> saveElectiveSelections({
+    required String studentId,
+    required int year,
+    required String semester,
+    required String department,
+    required List<String> selectedOEIds,
+    required List<String> selectedPEIds,
+  }) async {
+    try {
+      final docId = '${studentId}_${year}_$semester';
+      
+      await _firestore.collection('studentSubjectSelections').doc(docId).set({
+        'studentId': studentId,
+        'year': year,
+        'semester': semester,
+        'department': department,
+        'selectedOEIds': selectedOEIds,
+        'selectedPEIds': selectedPEIds,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      throw Exception('Failed to save elective selections: $e');
+    }
+  }
+
+  /// Get student's elective subject selections
+  Future<Map<String, List<String>>> getStudentElectiveSelections({
+    required String studentId,
+    required int year,
+    required String semester,
+  }) async {
+    try {
+      final docId = '${studentId}_${year}_$semester';
+      final doc = await _firestore.collection('studentSubjectSelections').doc(docId).get();
+      
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          'OE': List<String>.from(data['selectedOEIds'] ?? []),
+          'PE': List<String>.from(data['selectedPEIds'] ?? []),
+        };
+      }
+      
+      return {'OE': [], 'PE': []};
+    } catch (e) {
+      throw Exception('Failed to get student elective selections: $e');
+    }
+  }
+
+  /// Submit student's subject registration (locks the selection)
+  Future<void> submitSubjectRegistration({
+    required String studentId,
+    required int year,
+    required String semester,
+  }) async {
+    try {
+      final docId = '${studentId}_${year}_$semester';
+      
+      await _firestore.collection('studentSubjectSelections').doc(docId).update({
+        'isSubmitted': true,
+        'submittedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Failed to submit subject registration: $e');
+    }
+  }
+
+  /// Check if student's registration is submitted/locked
+  Future<bool> isRegistrationSubmitted({
+    required String studentId,
+    required int year,
+    required String semester,
+  }) async {
+    try {
+      final docId = '${studentId}_${year}_$semester';
+      final doc = await _firestore.collection('studentSubjectSelections').doc(docId).get();
+      
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['isSubmitted'] == true;
+      }
+      
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ============ Core Subject Auto-Registration ============
+
+  /// Auto-register Core subjects for a student
+  /// This is called when the student first opens the registration screen
+  /// Core subjects are mandatory and automatically assigned based on year/semester/department
+  Future<void> autoRegisterCoreSubjects({
+    required String studentId,
+    required String studentName,
+    required int year,
+    required String semester,
+    required String department,
+    required List<String> coreSubjectIds,
+    required List<String> coreSubjectCodes,
+  }) async {
+    try {
+      final docId = '${studentId}_${year}_$semester';
+      final docRef = _firestore.collection('studentSubjectSelections').doc(docId);
+      
+      final doc = await docRef.get();
+      
+      // Only set core subjects if they haven't been set yet
+      final Map<String, dynamic> updateData = {
+        'studentId': studentId,
+        'studentName': studentName,
+        'year': year,
+        'semester': semester,
+        'department': department,
+        'coreSubjectIds': coreSubjectIds,
+        'coreSubjectCodes': coreSubjectCodes,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      
+      if (!doc.exists) {
+        updateData['selectedOEIds'] = [];
+        updateData['selectedPEIds'] = [];
+        updateData['createdAt'] = FieldValue.serverTimestamp();
+        updateData['isSubmitted'] = false;
+      }
+      
+      await docRef.set(updateData, SetOptions(merge: true));
+    } catch (e) {
+      throw Exception('Failed to auto-register core subjects: $e');
+    }
+  }
+
+  /// Get complete student subject registration including Core subjects
+  Future<Map<String, dynamic>> getCompleteStudentRegistration({
+    required String studentId,
+    required int year,
+    required String semester,
+  }) async {
+    try {
+      final docId = '${studentId}_${year}_$semester';
+      final doc = await _firestore.collection('studentSubjectSelections').doc(docId).get();
+      
+      if (doc.exists) {
+        return doc.data() as Map<String, dynamic>;
+      }
+      
+      return {
+        'coreSubjectIds': <String>[],
+        'coreSubjectCodes': <String>[],
+        'selectedOEIds': <String>[],
+        'selectedPEIds': <String>[],
+        'isSubmitted': false,
+      };
+    } catch (e) {
+      throw Exception('Failed to get student registration: $e');
+    }
+  }
+
+  // ============ Faculty Assignment Lookup ============
+
+  /// Get faculty assignment for a specific subject
+  /// Returns the faculty name and ID if assigned, null otherwise
+  Future<Map<String, String>?> getFacultyForSubject({
+    required String subjectCode,
+    required int year,
+    String? academicYear,
+  }) async {
+    try {
+      var query = _firestore.collection('facultyAssignments')
+          .where('subjectCode', isEqualTo: subjectCode)
+          .where('year', isEqualTo: year)
+          .where('isActive', isEqualTo: true);
+      
+      if (academicYear != null) {
+        query = query.where('academicYear', isEqualTo: academicYear);
+      }
+      
+      final snapshot = await query.limit(1).get();
+      
+      if (snapshot.docs.isNotEmpty) {
+        final data = snapshot.docs.first.data();
+        return {
+          'facultyId': data['facultyId'] ?? '',
+          'facultyName': data['facultyName'] ?? '',
+        };
+      }
+      
+      return null;
+    } catch (e) {
+      // Return null on error - faculty lookup is optional
+      return null;
+    }
+  }
+
+  /// Get faculty assignments for multiple subjects
+  /// Returns a map of subjectCode -> facultyName
+  /// Filters by student's batch to show only relevant faculty
+  Future<Map<String, String>> getFacultyMapForSubjects({
+    required List<String> subjectCodes,
+    required int year,
+    String? studentBatch,
+  }) async {
+    try {
+      final facultyMap = <String, String>{};
+      
+      if (subjectCodes.isEmpty) return facultyMap;
+      
+      // Firestore 'whereIn' supports max 10 items, so batch if needed
+      final batches = <List<String>>[];
+      for (var i = 0; i < subjectCodes.length; i += 10) {
+        batches.add(subjectCodes.sublist(
+          i, 
+          i + 10 > subjectCodes.length ? subjectCodes.length : i + 10
+        ));
+      }
+      
+      for (final batch in batches) {
+        final snapshot = await _firestore.collection('facultyAssignments')
+            .where('subjectCode', whereIn: batch)
+            .where('year', isEqualTo: year)
+            .where('isActive', isEqualTo: true)
+            .get();
+        
+        for (final doc in snapshot.docs) {
+          final data = doc.data();
+          final assignedBatches = List<String>.from(data['assignedBatches'] ?? []);
+          
+          // Only include if student's batch is in the assigned batches
+          // If no studentBatch provided or assignedBatches is empty, include the assignment
+          if (studentBatch == null || 
+              assignedBatches.isEmpty || 
+              assignedBatches.contains(studentBatch)) {
+            final code = data['subjectCode'] as String;
+            final name = data['facultyName'] as String? ?? 'Unknown';
+            facultyMap[code] = name;
+          }
+        }
+      }
+      
+      return facultyMap;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /// Save complete subject registration including Core + OE + PE
+  Future<void> saveCompleteRegistration({
+    required String studentId,
+    required String studentName,
+    required int year,
+    required String semester,
+    required String department,
+    required List<String> coreSubjectIds,
+    required List<String> coreSubjectCodes,
+    required List<String> selectedOEIds,
+    required List<String> selectedPEIds,
+  }) async {
+    try {
+      final docId = '${studentId}_${year}_$semester';
+      
+      await _firestore.collection('studentSubjectSelections').doc(docId).set({
+        'studentId': studentId,
+        'studentName': studentName,
+        'year': year,
+        'semester': semester,
+        'department': department,
+        'coreSubjectIds': coreSubjectIds,
+        'coreSubjectCodes': coreSubjectCodes,
+        'selectedOEIds': selectedOEIds,
+        'selectedPEIds': selectedPEIds,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      throw Exception('Failed to save registration: $e');
     }
   }
 }

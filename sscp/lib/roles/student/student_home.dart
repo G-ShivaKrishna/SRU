@@ -7,6 +7,7 @@ import '../../config/dev_config.dart';
 import 'screens/academics_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/course_registration_screen.dart';
+import 'screens/subject_registration_screen.dart';
 import 'screens/attendance_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/feedback_screen.dart';
@@ -97,7 +98,7 @@ class _StudentHomeState extends State<StudentHome> {
         page = const ProfileScreen();
         break;
       case 'Course Reg.':
-        page = const CourseRegistrationScreen();
+        page = const SubjectRegistrationScreen();
         break;
       case 'Attendance':
         page = const AttendanceScreen();

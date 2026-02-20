@@ -42,5 +42,19 @@ service cloud.firestore {
     match /studentCourses/{document=**} {
       allow read, write: if true;
     }
+    
+    // Student Subject Selections (for subject registration)
+    match /studentSubjectSelections/{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Faculty Assignment Collections
+    match /facultyAssignments/{document=**} {
+      allow read, write: if true;
+    }
+    
+    match /subjects/{document=**} {
+      allow read, write: if true;
+    }
   }
 }
