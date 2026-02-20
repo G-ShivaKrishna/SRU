@@ -188,6 +188,7 @@ class _ViewOnlyPageState extends State<ViewOnlyPage>
             'Roll Number': student['rollNumber'] ?? 'N/A',
             'Name': student['name'] ?? 'N/A',
             'Department': student['department'] ?? 'N/A',
+            'Semester': student['semester']?.toString() ?? 'N/A',
             'Year': student['year']?.toString() ?? 'N/A',
             'Email': student['email'] ?? 'N/A',
             'Phone': student['phoneNumber'] ?? 'N/A',
@@ -297,6 +298,7 @@ class _ViewOnlyPageState extends State<ViewOnlyPage>
                       const SizedBox(height: 16),
                       _buildDetailSection('Admission Details', [
                         _buildDetailRow('Department', student['department']),
+                        _buildDetailRow('Semester', student['semester']?.toString()),
                         _buildDetailRow('Year', student['year']?.toString()),
                         _buildDetailRow('Admission Year',
                             student['admissionYear']),

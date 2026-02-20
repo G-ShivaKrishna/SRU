@@ -350,6 +350,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'admissionType': 'Convener (EAMCET)',
       'program': 'BTECH',
       'department': 'CSE',
+      'year': '3',
+      'semester': '6',
       'batchNumber': '18',
       'dateOfAdmission': '15-07-2022',
       'nationality': 'Indian',
@@ -604,6 +606,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _studentData?['admissionType'] ?? 'N/A'),
                         _buildInfoRow(
                             'Branch', _studentData?['department'] ?? 'N/A'),
+                        _buildInfoRow(
+                            'Year', _studentData?['year'] ?? 'N/A'),
+                        _buildInfoRow(
+                            'Semester', _studentData?['semester'] ?? 'N/A'),
                         _buildInfoRow('Batch Number',
                             _studentData?['batchNumber'] ?? 'N/A'),
                         _buildInfoRow('Date of Admission',
