@@ -65,9 +65,8 @@ class CoursePreferenceService {
   /// Dept filtering is done in Dart to avoid requiring a composite Firestore index.
   /// Throws on Firestore errors so callers can surface them.
   Future<List<SubjectItem>> getSubjects({String? dept}) async {
-    final snap = await _subjectsCollection
-        .where('isActive', isEqualTo: true)
-        .get();
+    final snap =
+        await _subjectsCollection.where('isActive', isEqualTo: true).get();
     final all = snap.docs.map((d) => SubjectItem.fromFirestore(d)).toList();
     if (dept != null && dept.isNotEmpty) {
       return all
@@ -92,9 +91,7 @@ class CoursePreferenceService {
     final facultyId = user?.uid ?? 'unknown';
     final facultyEmail = user?.email ?? '';
 
-    await _preferencesCollection
-        .doc('${facultyId}_$roundId')
-        .set({
+    await _preferencesCollection.doc('${facultyId}_$roundId').set({
       'facultyId': facultyId,
       'facultyEmail': facultyEmail,
       'roundId': roundId,
@@ -134,9 +131,7 @@ class CoursePreferenceService {
   Future<PreferenceData?> getPreferenceForRound(String roundId) async {
     final user = _auth.currentUser;
     if (user == null) return null;
-    final doc = await _preferencesCollection
-        .doc('${user.uid}_$roundId')
-        .get();
+    final doc = await _preferencesCollection.doc('${user.uid}_$roundId').get();
     if (!doc.exists) return null;
     return PreferenceData.fromFirestore(doc);
   }
@@ -152,7 +147,10 @@ class CoursePreferenceService {
       title: title,
       acYear: '',
       dept: '',
-      courses: courses.map((c) => SubjectItem(code: '', name: c, dept: '', year: 0, semester: '')).toList(),
+      courses: courses
+          .map((c) =>
+              SubjectItem(code: '', name: c, dept: '', year: 0, semester: ''))
+          .toList(),
       submittedAt: DateTime.now(),
     );
   }
@@ -163,8 +161,8 @@ class CoursePreferenceService {
 
   PreferenceData? getLatestPreferences() {
     if (_submissions.isEmpty) return null;
-    return _submissions.values.reduce(
-        (a, b) => a.submittedAt.isAfter(b.submittedAt) ? a : b);
+    return _submissions.values
+        .reduce((a, b) => a.submittedAt.isAfter(b.submittedAt) ? a : b);
   }
 }
 

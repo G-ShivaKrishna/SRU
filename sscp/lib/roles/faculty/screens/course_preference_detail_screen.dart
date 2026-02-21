@@ -259,8 +259,7 @@ class _CoursePreferenceDetailScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title,
-            style:
-                const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         Container(
           height: 300,
@@ -323,8 +322,7 @@ class _CoursePreferenceDetailScreenState
     );
   }
 
-  Widget _buildActionButton(
-      String label, Color color, VoidCallback onPressed) {
+  Widget _buildActionButton(String label, Color color, VoidCallback onPressed) {
     return SizedBox(
       width: 110,
       height: 38,
@@ -333,8 +331,7 @@ class _CoursePreferenceDetailScreenState
         style: ElevatedButton.styleFrom(
             backgroundColor: color,
             foregroundColor: Colors.white,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)),
         child: Text(label),
       ),
     );
@@ -407,9 +404,7 @@ class _CoursePreferenceDetailScreenState
     try {
       await _service.saveCoursePreference(
         roundId: widget.roundId,
-        className: widget.title
-            .split(' Select Course Preference Order')
-            .first,
+        className: widget.title.split(' Select Course Preference Order').first,
         title: widget.title,
         acYear: widget.acYear,
         dept: widget.dept,

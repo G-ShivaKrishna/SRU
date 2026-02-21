@@ -65,7 +65,8 @@ class _PreferenceReportScreenState extends State<PreferenceReportScreen> {
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 24),
-                              child: Text('Failed to load preferences:\n$_loadError',
+                              child: Text(
+                                  'Failed to load preferences:\n$_loadError',
                                   textAlign: TextAlign.center),
                             ),
                             const SizedBox(height: 20),
@@ -76,27 +77,29 @@ class _PreferenceReportScreenState extends State<PreferenceReportScreen> {
                         ),
                       )
                     : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1200),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Text(
-                              'Course Preference Report',
-                              style: TextStyle(
-                                  fontSize: 26, fontWeight: FontWeight.bold),
-                              textAlign: TextAlign.center,
+                        padding: const EdgeInsets.all(16),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1200),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  'Course Preference Report',
+                                  style: TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 24),
+                                if (_preferences.isEmpty) _buildEmpty(),
+                                ..._preferences
+                                    .map((pref) => _buildPrefCard(pref)),
+                              ],
                             ),
-                            const SizedBox(height: 24),
-                            if (_preferences.isEmpty) _buildEmpty(),
-                            ..._preferences.map((pref) => _buildPrefCard(pref)),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
           ),
         ],
       ),
@@ -136,12 +139,10 @@ class _PreferenceReportScreenState extends State<PreferenceReportScreen> {
           // Header
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(
               color: Color(0xFF1e3a5f),
-              borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(7)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -157,8 +158,7 @@ class _PreferenceReportScreenState extends State<PreferenceReportScreen> {
                 ),
                 Text(
                   'Submitted: ${_formatDate(pref.submittedAt)}',
-                  style:
-                      const TextStyle(color: Colors.white70, fontSize: 12),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
@@ -183,11 +183,9 @@ class _PreferenceReportScreenState extends State<PreferenceReportScreen> {
                   DataCell(Text(s.code.isNotEmpty ? s.code : '-')),
                   DataCell(Text(s.name)),
                   DataCell(Text(s.dept.isNotEmpty ? s.dept : '-')),
-                  DataCell(Text(
-                      s.year > 0 ? '${s.year}/${s.semester}' : '-')),
-                  DataCell(Text(s.subjectType.isNotEmpty
-                      ? s.subjectType
-                      : 'Core')),
+                  DataCell(Text(s.year > 0 ? '${s.year}/${s.semester}' : '-')),
+                  DataCell(
+                      Text(s.subjectType.isNotEmpty ? s.subjectType : 'Core')),
                 ]);
               }).toList(),
             ),
@@ -211,19 +209,21 @@ class _PreferenceReportScreenState extends State<PreferenceReportScreen> {
   }
 
   void _openEdit(PreferenceData pref) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CoursePreferenceDetailScreen(
-          roundId: pref.roundId,
-          title: pref.title,
-          dept: pref.dept.isNotEmpty
-              ? pref.dept
-              : (pref.courses.isNotEmpty ? pref.courses.first.dept : ''),
-          acYear: pref.acYear,
-          initialSelectedCourses: pref.courses,
-        ),
-      ),
-    ).then((_) => _loadPreferences());
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => CoursePreferenceDetailScreen(
+              roundId: pref.roundId,
+              title: pref.title,
+              dept: pref.dept.isNotEmpty
+                  ? pref.dept
+                  : (pref.courses.isNotEmpty ? pref.courses.first.dept : ''),
+              acYear: pref.acYear,
+              initialSelectedCourses: pref.courses,
+            ),
+          ),
+        )
+        .then((_) => _loadPreferences());
   }
 
   String _formatDate(DateTime dt) {

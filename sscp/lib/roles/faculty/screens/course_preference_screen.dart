@@ -46,12 +46,14 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
   List<CoursePreferenceRound> get _filteredItems {
     if (_searchQuery.isEmpty) return _rounds;
     final q = _searchQuery.toLowerCase();
-    return _rounds.where((r) =>
-        r.acYear.toLowerCase().contains(q) ||
-        r.className.toLowerCase().contains(q) ||
-        r.dept.toLowerCase().contains(q) ||
-        r.fromDate.toLowerCase().contains(q) ||
-        r.toDate.toLowerCase().contains(q)).toList();
+    return _rounds
+        .where((r) =>
+            r.acYear.toLowerCase().contains(q) ||
+            r.className.toLowerCase().contains(q) ||
+            r.dept.toLowerCase().contains(q) ||
+            r.fromDate.toLowerCase().contains(q) ||
+            r.toDate.toLowerCase().contains(q))
+        .toList();
   }
 
   List<CoursePreferenceRound> get _pagedItems {
@@ -232,9 +234,8 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         OutlinedButton(
-          onPressed: _currentPage > 1
-              ? () => setState(() => _currentPage--)
-              : null,
+          onPressed:
+              _currentPage > 1 ? () => setState(() => _currentPage--) : null,
           child: const Text('Previous'),
         ),
         const SizedBox(width: 8),
@@ -260,4 +261,3 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
     );
   }
 }
-
