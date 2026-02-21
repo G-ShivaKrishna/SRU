@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
-import '../../../config/dev_config.dart';
 
 class FacultyProfileScreen extends StatefulWidget {
   const FacultyProfileScreen({super.key});
@@ -12,276 +11,271 @@ class FacultyProfileScreen extends StatefulWidget {
 }
 
 class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  Map<String, dynamic>? _facultyData;
+  final _auth = FirebaseAuth.instance;
+  final _firestore = FirebaseFirestore.instance;
+
+  Map<String, dynamic>? _data;
   bool _isLoading = true;
+  String? _loadError;
 
   @override
   void initState() {
     super.initState();
-    _loadFacultyData();
+    _load();
   }
 
-  Future<void> _loadFacultyData() async {
+  Future<void> _load() async {
+    setState(() { _isLoading = true; _loadError = null; });
     try {
       final user = _auth.currentUser;
-
-      if (DevConfig.bypassLogin && DevConfig.useDemoData) {
-        setState(() {
-          _facultyData = _getDemoData();
-          _isLoading = false;
-        });
-        return;
-      }
-
-      if (user == null) {
-        setState(() {
-          _facultyData = _getDemoData();
-          _isLoading = false;
-        });
-        return;
-      }
-
+      if (user == null) throw Exception('Not logged in');
       final email = user.email ?? '';
-      final facultyId = email.split('@')[0].toUpperCase();
-
-      final doc = await _firestore.collection('faculty').doc(facultyId).get();
-      if (doc.exists) {
-        setState(() {
-          _facultyData = doc.data();
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _facultyData = _getDemoData();
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
+      final docId = email.split('@')[0].toUpperCase();
+      final doc = await _firestore.collection('faculty').doc(docId).get();
+      if (!mounted) return;
       setState(() {
-        _facultyData = _getDemoData();
+        _data = doc.exists ? (doc.data() ?? {}) : {};
         _isLoading = false;
       });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _loadError = e.toString(); _isLoading = false; });
     }
   }
 
-  Map<String, dynamic> _getDemoData() {
-    return {
-      'employeeId': 'FAC001',
-      'name': 'DEMO FACULTY',
-      'designation': 'Assistant Professor',
-      'department': 'Computer Science & Engineering',
-      'dateOfBirth': '15/05/1985',
-      'gender': 'MALE',
-      'bloodGroup': 'B+',
-      'dateOfJoining': '10-08-2015',
-      'qualification': 'PhD (Computer Science)',
-      'specialization': 'Machine Learning, Data Science',
-      'experience': '10 Years',
-      'nationality': 'Indian',
-      'religion': 'Hindu',
-      'maritalStatus': 'Married',
-      'addressLine1': 'Demo Faculty Address Line 1',
-      'addressLine2': 'Demo Faculty Address Line 2',
-      'city': 'HYDERABAD',
-      'state': 'TELANGANA',
-      'country': 'India',
-      'postalCode': '500001',
-      'phoneNumber': '9876543210',
-      'email': 'faculty.demo@sru.edu.in',
-      'emergencyContact': '9876543211',
-      'aadharNumber': '****1234',
-      'panNumber': 'ABCDE1234F',
-    };
-  }
+  String _v(String key) => (_data?[key] ?? '').toString().trim().isEmpty
+      ? '-'
+      : _data![key].toString().trim();
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    if (_loadError != null) {
+      return Scaffold(
+        body: Column(children: [
+          const AppHeader(),
+          Expanded(child: Center(child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text('Failed to load profile:\n$_loadError', textAlign: TextAlign.center),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(onPressed: _load, child: const Text('Retry')),
+            ],
+          ))),
+        ]),
       );
     }
 
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Faculty Profile'),
-        backgroundColor: const Color(0xFF1e3a5f),
-        foregroundColor: Colors.white,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const AppHeader(),
-            Padding(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: Column(
+        children: [
+          const AppHeader(),
+          Expanded(
+            child: SingleChildScrollView(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
-              child: Column(
-                children: [
-                  _buildSectionCard(
-                      'Faculty Basic Information',
-                      [
-                        _buildInfoRow('Employee ID',
-                            _facultyData?['employeeId'] ?? 'N/A'),
-                        _buildInfoRow('Name', _facultyData?['name'] ?? 'N/A'),
-                        _buildInfoRow('Designation',
-                            _facultyData?['designation'] ?? 'N/A'),
-                        _buildInfoRow(
-                            'Department', _facultyData?['department'] ?? 'N/A'),
-                        _buildInfoRow('Date of Birth',
-                            _facultyData?['dateOfBirth'] ?? 'N/A'),
-                        _buildInfoRow(
-                            'Gender', _facultyData?['gender'] ?? 'N/A'),
-                        _buildInfoRow('Blood Group',
-                            _facultyData?['bloodGroup'] ?? 'N/A'),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1100),
+                  child: Column(
+                    children: [
+                      // Avatar + name banner
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1e3a5f),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: isMobile ? 32 : 44,
+                              backgroundColor: Colors.white24,
+                              child: Text(
+                                (_v('name').isNotEmpty && _v('name') != '-')
+                                    ? _v('name')[0].toUpperCase()
+                                    : 'F',
+                                style: TextStyle(
+                                  fontSize: isMobile ? 28 : 38,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    [_v('title'), _v('name')].where((s) => s != '-').join(' '),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: isMobile ? 18 : 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(_v('designation'),
+                                      style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                                  Text(_v('department'),
+                                      style: const TextStyle(color: Colors.white60, fontSize: 13)),
+                                  const SizedBox(height: 4),
+                                  Text('ID: ${_v('employeeId')}',
+                                      style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      _card('Employee Basic Information', const Color(0xFF2EAD4B), [
+                        _row2('Employee ID', _v('employeeId'), 'Appointment Type', _v('appointmentType')),
+                        _row2('Date of Joining', _v('dateOfJoining'), 'Cabin Number', _v('cabinNumber')),
+                        _row2('Intercom', _v('intercom'), 'Favourite Courses', _v('favoriteCourses')),
+                      ]),
+                      const SizedBox(height: 12),
+
+                      _card('Online Profiles & Links', const Color(0xFF1976D2), [
+                        _row2('Google Scholar', _v('googleScholarLink'), 'LinkedIn', _v('linkedInLink')),
+                        _row2('Scopus ID', _v('scopusId'), 'Personal Website', _v('personalWebsite')),
+                        _row2('Instagram', _v('instagramLink'), 'Facebook', _v('facebookLink')),
+                        _row2('YouTube', _v('youtubeLink'), 'Twitter / X', _v('twitterLink')),
+                      ]),
+                      const SizedBox(height: 12),
+
+                      _card('Personal Details', const Color(0xFFF2B233), [
+                        _row2("Father's Name", _v('fatherName'), "Mother's Name", _v('motherName')),
+                        _row2('Date of Birth', _v('dateOfBirth'), 'Gender', _v('gender')),
+                        _row2('Blood Group', _v('bloodGroup'), 'Marital Status', _v('maritalStatus')),
+                        _row2('Religion', _v('religion'), 'Caste', _v('caste')),
+                        _row2('Caste Name', _v('casteName'), 'Differently Abled', _v('differentlyAbled')),
+                        _row2('Identification Mark 1', _v('identificationMark1'), 'Identification Mark 2', _v('identificationMark2')),
+                      ]),
+                      const SizedBox(height: 12),
+
+                      _card('ID Proof Details', const Color(0xFF1E88E5), [
+                        _row2('PAN Number', _v('panNumber'), 'Aadhar Number', _v('aadharNumber')),
+                        _row2('Voter ID', _v('voterId'), 'Passport No', _v('passportNo')),
+                        _row2('Driving License', _v('drivingLicense'), '', ''),
+                      ]),
+                      const SizedBox(height: 12),
+
+                      _card('Contact Address', const Color(0xFFE53935), [
+                        _row2('State', _v('contactState'), 'District', _v('contactDistrict')),
+                        _row2('Mandal', _v('contactMandal'), 'Village', _v('contactVillage')),
+                        _row2('Street', _v('contactStreet'), 'House No.', _v('contactHouseNo')),
+                        _row2('Pin Code', _v('contactPinCode'), 'Personal Email', _v('personalEmail')),
+                        _row2('Mobile No. 1', _v('mobileNo1'), 'Mobile No. 2', _v('mobileNo2')),
+                        _row2('College Email', _v('email'), '', ''),
+                      ]),
+                      const SizedBox(height: 12),
+
+                      _card('Permanent Address', const Color(0xFF1AA6B8), [
+                        if (_data?['sameAsContact'] == true)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 6),
+                            child: Text('Same as Contact Address',
+                                style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+                          )
+                        else ...[
+                          _row2('State', _v('permanentState'), 'District', _v('permanentDistrict')),
+                          _row2('Mandal', _v('permanentMandal'), 'Village', _v('permanentVillage')),
+                          _row2('Street', _v('permanentStreet'), 'House No.', _v('permanentHouseNo')),
+                          _row2('Pin Code', _v('permanentPinCode'), '', ''),
+                        ],
+                        _row2('Emergency Contact 1', _v('emergencyContact1'), 'Emergency Contact 2', _v('emergencyContact2')),
+                      ]),
+
+                      if (_data?['updatedAt'] != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'Last updated: ${_formatTs(_data!['updatedAt'])}',
+                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
                       ],
-                      context),
-                  const SizedBox(height: 16),
-                  _buildSectionCard(
-                      'Employment Information',
-                      [
-                        _buildInfoRow('Date of Joining',
-                            _facultyData?['dateOfJoining'] ?? 'N/A'),
-                        _buildInfoRow('Qualification',
-                            _facultyData?['qualification'] ?? 'N/A'),
-                        _buildInfoRow('Specialization',
-                            _facultyData?['specialization'] ?? 'N/A'),
-                        _buildInfoRow(
-                            'Experience', _facultyData?['experience'] ?? 'N/A'),
-                      ],
-                      context),
-                  const SizedBox(height: 16),
-                  _buildSectionCard(
-                      'Personal Details',
-                      [
-                        _buildInfoRow('Nationality',
-                            _facultyData?['nationality'] ?? 'N/A'),
-                        _buildInfoRow(
-                            'Religion', _facultyData?['religion'] ?? 'N/A'),
-                        _buildInfoRow('Marital Status',
-                            _facultyData?['maritalStatus'] ?? 'N/A'),
-                      ],
-                      context),
-                  const SizedBox(height: 16),
-                  _buildSectionCard(
-                      'Contact Information',
-                      [
-                        _buildInfoRow('Address Line 1',
-                            _facultyData?['addressLine1'] ?? 'N/A'),
-                        _buildInfoRow('Address Line 2',
-                            _facultyData?['addressLine2'] ?? 'N/A'),
-                        _buildInfoRow('City', _facultyData?['city'] ?? 'N/A'),
-                        _buildInfoRow('State', _facultyData?['state'] ?? 'N/A'),
-                        _buildInfoRow(
-                            'Country', _facultyData?['country'] ?? 'N/A'),
-                        _buildInfoRow('Postal Code',
-                            _facultyData?['postalCode'] ?? 'N/A'),
-                        _buildInfoRow('Phone Number',
-                            _facultyData?['phoneNumber'] ?? 'N/A'),
-                        _buildInfoRow('Email', _facultyData?['email'] ?? 'N/A'),
-                        _buildInfoRow('Emergency Contact',
-                            _facultyData?['emergencyContact'] ?? 'N/A'),
-                      ],
-                      context),
-                  const SizedBox(height: 16),
-                  _buildSectionCard(
-                      'Official Documents',
-                      [
-                        _buildInfoRow('Aadhar Number',
-                            _facultyData?['aadharNumber'] ?? 'N/A'),
-                        _buildInfoRow(
-                            'PAN Number', _facultyData?['panNumber'] ?? 'N/A'),
-                      ],
-                      context),
-                ],
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSectionCard(
-    String title,
-    List<Widget> children,
-    BuildContext context,
-  ) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
+  Widget _card(String title, Color color, List<Widget> rows) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!, width: 1),
+        border: Border.all(color: Colors.grey[300]!),
         borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: double.infinity,
-            padding: EdgeInsets.all(isMobile ? 12 : 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFF1e3a5f),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(7),
-                topRight: Radius.circular(7),
-              ),
+              color: color,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
             ),
-            child: Text(
-              title,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: isMobile ? 13 : 15,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
           ),
           Padding(
-            padding: EdgeInsets.all(isMobile ? 12 : 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: rows),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _row2(String l1, String v1, String l2, String v2) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 1,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1e3a5f),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 1,
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.black87,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          Expanded(child: _cell(l1, v1)),
+          if (l2.isNotEmpty) ...[
+            const SizedBox(width: 16),
+            Expanded(child: _cell(l2, v2)),
+          ],
         ],
       ),
     );
+  }
+
+  Widget _cell(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1e3a5f))),
+        const SizedBox(height: 2),
+        Text(value, style: const TextStyle(fontSize: 12, color: Colors.black87)),
+        const Divider(height: 12),
+      ],
+    );
+  }
+
+  String _formatTs(dynamic ts) {
+    try {
+      final dt = (ts as dynamic).toDate() as DateTime;
+      return '${dt.day.toString().padLeft(2,'0')}/${dt.month.toString().padLeft(2,'0')}/${dt.year}  ${dt.hour.toString().padLeft(2,'0')}:${dt.minute.toString().padLeft(2,'0')}';
+    } catch (_) { return ''; }
   }
 }
