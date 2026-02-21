@@ -4,10 +4,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
 import 'screens/profile_screen.dart';
-import 'screens/attendance_screen.dart';
+import 'screens/attendance_entry_screen.dart';
+import 'screens/multi_batch_attendance_screen.dart';
+import 'screens/lab_tutorial_attendance_screen.dart';
+import 'screens/view_update_delete_attendance_screen.dart';
+import 'screens/attendance_register_screen.dart';
 import 'screens/academics_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/feedback_screen.dart';
+import 'screens/academic_regulations_screen.dart';
+import 'screens/calendar_screen.dart';
+import 'screens/syllabus_screen.dart';
+import 'screens/exam_timetable_screen.dart';
+import 'screens/invigilator_duties_screen.dart';
+import 'screens/notice_board_screen.dart';
+import 'screens/student_handbook_screen.dart';
+import 'screens/faculty_handbook_screen.dart';
+import 'screens/update_basic_data_screen.dart';
+import 'screens/course_preference_screen.dart';
+import 'screens/preference_report_screen.dart';
 
 class FacultyHome extends StatefulWidget {
   const FacultyHome({super.key});
@@ -194,15 +209,6 @@ class _FacultyHomeState extends State<FacultyHome> {
         child: Row(
           children: [
             _buildMenuButton(context, 'Home', null),
-            _buildDropdownMenu(context, 'Attendance', [
-              'Attendance Entry',
-              'Attendance Entry-Multi Batch Selection',
-              'Lab/Tutorial Attendance Entry',
-              'View | Update | Delete Day Attendance',
-              'Register View',
-              'SSM',
-            ]),
-            _buildMarksEntryMenu(context),
             _buildDropdownMenu(context, 'Academics', [
               'Regulations',
               'Calendar',
@@ -225,6 +231,15 @@ class _FacultyHomeState extends State<FacultyHome> {
               'Employee Directory',
               'Download',
             ]),
+            _buildDropdownMenu(context, 'Attendance', [
+              'Attendance Entry',
+              'Attendance Entry-Multi Batch Selection',
+              'Lab/Tutorial Attendance Entry',
+              'View | Update | Delete Day Attendance',
+              'Register View',
+              'SSM',
+            ]),
+            _buildMarksEntryMenu(context),
           ],
         ),
       ),
@@ -240,15 +255,6 @@ class _FacultyHomeState extends State<FacultyHome> {
         child: Row(
           children: [
             _buildMenuButton(context, 'Home', null),
-            _buildDropdownMenu(context, 'Attendance', [
-              'Attendance Entry',
-              'Attendance Entry-Multi Batch Selection',
-              'Lab/Tutorial Attendance Entry',
-              'View | Update | Delete Day Attendance',
-              'Register View',
-              'SSM',
-            ]),
-            _buildMarksEntryMenu(context),
             _buildDropdownMenu(context, 'Academics', [
               'Regulations',
               'Calendar',
@@ -271,6 +277,15 @@ class _FacultyHomeState extends State<FacultyHome> {
               'Employee Directory',
               'Download',
             ]),
+            _buildDropdownMenu(context, 'Attendance', [
+              'Attendance Entry',
+              'Attendance Entry-Multi Batch Selection',
+              'Lab/Tutorial Attendance Entry',
+              'View | Update | Delete Day Attendance',
+              'Register View',
+              'SSM',
+            ]),
+            _buildMarksEntryMenu(context),
           ],
         ),
       ),
@@ -845,16 +860,32 @@ class _FacultyHomeState extends State<FacultyHome> {
       case 'profile':
         page = const FacultyProfileScreen();
       case 'attendance':
+        page = const AttendanceEntryScreen();
       case 'attendance_multi':
+        page = const MultiBatchAttendanceScreen();
       case 'attendance_lab':
+        page = const LabTutorialAttendanceScreen();
       case 'attendance_update':
+        page = const ViewUpdateDeleteAttendanceScreen();
       case 'attendance_register':
-        page = const FacultyAttendanceScreen();
-      case 'calendar':
-      case 'syllabus':
-      case 'exam_timetable':
-      case 'timetable':
+        page = const AttendanceRegisterScreen();
       case 'regulations':
+        page = const AcademicRegulationsScreen();
+      case 'calendar':
+        page = const CalendarScreen();
+      case 'syllabus':
+        page = const SyllabusScreen();
+      case 'exam_timetable':
+        page = const ExamTimetableScreen();
+      case 'invigilation':
+        page = const InvigilatorDutiesScreen();
+      case 'exams_notice':
+        page = const NoticeBoardScreen();
+      case 'student_handbook':
+        page = const StudentHandbookScreen();
+      case 'staff_handbook':
+        page = const FacultyHandbookScreen();
+      case 'timetable':
         page = const FacultyAcademicsScreen();
       case 'marks_regular':
       case 'marks_supply':
@@ -865,6 +896,12 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const FacultyResultsScreen();
       case 'feedback':
         page = const FacultyFeedbackScreen();
+      case 'update_profile':
+        page = const UpdateBasicDataScreen();
+      case 'course_preference':
+        page = const CoursePreferenceScreen();
+      case 'preference_report':
+        page = const PreferenceReportScreen();
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$route - Coming Soon')),
