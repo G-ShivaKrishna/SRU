@@ -273,47 +273,60 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
           },
         ),
       ),
-      body: FutureBuilder<Uint8List>(
-        future: _loadPdfBytes(_selectedSyllabus.pdfUrl),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError || snapshot.data == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Error: ${snapshot.error ?? 'Failed to load PDF'}'),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _showingPdf = false;
-                      });
-                    },
-                    child: const Text('Go Back'),
+      body: kIsWeb
+          ? SfPdfViewer.network(
+              _selectedSyllabus.pdfUrl,
+              onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error: ${details.error}'),
+                    backgroundColor: Colors.red,
                   ),
-                ],
-              ),
-            );
-          }
+                );
+              },
+            )
+          : FutureBuilder<Uint8List>(
+              future: _loadPdfBytes(_selectedSyllabus.pdfUrl),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError || snapshot.data == null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text('Error: ${snapshot.error ?? 'Failed to load PDF'}'),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _showingPdf = false;
+                            });
+                          },
+                          child: const Text('Go Back'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-          return SfPdfViewer.memory(
-            snapshot.data!,
-            onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Error: ${details.error}'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            },
-          );
-        },
-      ),
+                return SfPdfViewer.memory(
+                  snapshot.data!,
+                  onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: ${details.error}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
     );
   }
 }
