@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../widgets/app_header.dart';
+import '../services/course_preference_service.dart';
 import 'course_preference_detail_screen.dart';
 
 class CoursePreferenceScreen extends StatefulWidget {
@@ -11,29 +12,30 @@ class CoursePreferenceScreen extends StatefulWidget {
 
 class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final _service = CoursePreferenceService();
 
   int _entriesPerPage = 10;
   int _currentPage = 1;
   String _searchQuery = '';
 
-  final List<CoursePreferenceItem> _items = [
-    CoursePreferenceItem(
-      sNo: 1,
-      acYear: '2025-26',
-      className: 'UG List 1',
-      dept: 'CSE',
-      fromDate: '2025-11-18',
-      toDate: '2025-11-18',
-    ),
-    CoursePreferenceItem(
-      sNo: 2,
-      acYear: '2025-26',
-      className: 'UG List 2',
-      dept: 'CSE',
-      fromDate: '2025-11-18',
-      toDate: '2025-11-18',
-    ),
-  ];
+  List<CoursePreferenceRound> _rounds = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRounds();
+  }
+
+  Future<void> _loadRounds() async {
+    setState(() => _isLoading = true);
+    final rounds = await _service.getRounds();
+    if (!mounted) return;
+    setState(() {
+      _rounds = rounds;
+      _isLoading = false;
+    });
+  }
 
   @override
   void dispose() {
@@ -41,39 +43,28 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
     super.dispose();
   }
 
-  List<CoursePreferenceItem> get _filteredItems {
-    if (_searchQuery.isEmpty) {
-      return _items;
-    }
-
-    final query = _searchQuery.toLowerCase();
-    return _items.where((item) {
-      return item.acYear.toLowerCase().contains(query) ||
-          item.className.toLowerCase().contains(query) ||
-          item.dept.toLowerCase().contains(query) ||
-          item.fromDate.toLowerCase().contains(query) ||
-          item.toDate.toLowerCase().contains(query);
-    }).toList();
+  List<CoursePreferenceRound> get _filteredItems {
+    if (_searchQuery.isEmpty) return _rounds;
+    final q = _searchQuery.toLowerCase();
+    return _rounds.where((r) =>
+        r.acYear.toLowerCase().contains(q) ||
+        r.className.toLowerCase().contains(q) ||
+        r.dept.toLowerCase().contains(q) ||
+        r.fromDate.toLowerCase().contains(q) ||
+        r.toDate.toLowerCase().contains(q)).toList();
   }
 
-  List<CoursePreferenceItem> get _pagedItems {
+  List<CoursePreferenceRound> get _pagedItems {
     final start = (_currentPage - 1) * _entriesPerPage;
+    final all = _filteredItems;
+    if (start >= all.length) return [];
     final end = start + _entriesPerPage;
-    final items = _filteredItems;
-
-    if (start >= items.length) {
-      return [];
-    }
-
-    return items.sublist(start, end > items.length ? items.length : end);
+    return all.sublist(start, end > all.length ? all.length : end);
   }
 
   int get _totalPages {
     final total = _filteredItems.length;
-    if (total == 0) {
-      return 1;
-    }
-    return (total / _entriesPerPage).ceil();
+    return total == 0 ? 1 : (total / _entriesPerPage).ceil();
   }
 
   @override
@@ -84,64 +75,66 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
         children: [
           const AppHeader(),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              const Text('Show'),
-                              const SizedBox(width: 8),
-                              _buildEntriesDropdown(),
-                              const SizedBox(width: 8),
-                              const Text('entries'),
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              const Text('Search:'),
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                width: 200,
-                                child: TextField(
-                                  controller: _searchController,
-                                  decoration: const InputDecoration(
-                                    isDense: true,
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _searchQuery = value.trim();
-                                      _currentPage = 1;
-                                    });
-                                  },
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1200),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text('Show'),
+                                    const SizedBox(width: 8),
+                                    _buildEntriesDropdown(),
+                                    const SizedBox(width: 8),
+                                    const Text('entries'),
+                                  ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                Row(
+                                  children: [
+                                    const Text('Search:'),
+                                    const SizedBox(width: 8),
+                                    SizedBox(
+                                      width: 200,
+                                      child: TextField(
+                                        controller: _searchController,
+                                        decoration: const InputDecoration(
+                                          isDense: true,
+                                          border: OutlineInputBorder(),
+                                        ),
+                                        onChanged: (v) {
+                                          setState(() {
+                                            _searchQuery = v.trim();
+                                            _currentPage = 1;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTable(),
+                            const SizedBox(height: 8),
+                            Text(
+                              _buildEntriesLabel(),
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildPagination(),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      _buildTable(),
-                      const SizedBox(height: 8),
-                      Text(
-                        _buildEntriesLabel(),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      const SizedBox(height: 8),
-                      _buildPagination(),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ),
           ),
         ],
       ),
@@ -156,12 +149,10 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
         DropdownMenuItem(value: 25, child: Text('25')),
         DropdownMenuItem(value: 50, child: Text('50')),
       ],
-      onChanged: (value) {
-        if (value == null) {
-          return;
-        }
+      onChanged: (v) {
+        if (v == null) return;
         setState(() {
-          _entriesPerPage = value;
+          _entriesPerPage = v;
           _currentPage = 1;
         });
       },
@@ -186,42 +177,42 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
             DataColumn(label: Text('Dept')),
             DataColumn(label: Text('From Date')),
             DataColumn(label: Text('To Date')),
-            DataColumn(label: Text('Reg')),
+            DataColumn(label: Text('Action')),
           ],
-          rows: _pagedItems.map((item) {
-            return DataRow(
-              cells: [
-                DataCell(Text(item.sNo.toString())),
-                DataCell(Text(item.acYear)),
-                DataCell(Text(item.className)),
-                DataCell(Text(item.dept)),
-                DataCell(Text(item.fromDate)),
-                DataCell(Text(item.toDate)),
-                DataCell(
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => CoursePreferenceDetailScreen(
-                            title:
-                                '${item.className} Select Course Preference Order (${item.acYear})',
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1976D2),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
+          rows: _pagedItems.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final round = entry.value;
+            final globalIdx = (_currentPage - 1) * _entriesPerPage + idx + 1;
+            return DataRow(cells: [
+              DataCell(Text('$globalIdx')),
+              DataCell(Text(round.acYear)),
+              DataCell(Text(round.className)),
+              DataCell(Text(round.dept)),
+              DataCell(Text(round.fromDate)),
+              DataCell(Text(round.toDate)),
+              DataCell(
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => CoursePreferenceDetailScreen(
+                        roundId: round.id,
+                        title:
+                            '${round.className} Select Course Preference Order (${round.acYear})',
+                        dept: round.dept,
+                        acYear: round.acYear,
                       ),
-                    ),
-                    child: const Text('Goto Course Preference'),
+                    ));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1976D2),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                   ),
+                  child: const Text('Goto Course Preference'),
                 ),
-              ],
-            );
+              ),
+            ]);
           }).toList(),
         ),
       ),
@@ -230,9 +221,7 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
 
   String _buildEntriesLabel() {
     final total = _filteredItems.length;
-    if (total == 0) {
-      return 'Showing 0 to 0 of 0 entries';
-    }
+    if (total == 0) return 'Showing 0 to 0 of 0 entries';
     final start = (_currentPage - 1) * _entriesPerPage + 1;
     final end = start + _pagedItems.length - 1;
     return 'Showing $start to $end of $total entries';
@@ -244,11 +233,7 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
       children: [
         OutlinedButton(
           onPressed: _currentPage > 1
-              ? () {
-                  setState(() {
-                    _currentPage--;
-                  });
-                }
+              ? () => setState(() => _currentPage--)
               : null,
           child: const Text('Previous'),
         ),
@@ -260,18 +245,14 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            _currentPage.toString(),
+            '$_currentPage',
             style: const TextStyle(color: Colors.white),
           ),
         ),
         const SizedBox(width: 8),
         OutlinedButton(
           onPressed: _currentPage < _totalPages
-              ? () {
-                  setState(() {
-                    _currentPage++;
-                  });
-                }
+              ? () => setState(() => _currentPage++)
               : null,
           child: const Text('Next'),
         ),
@@ -280,20 +261,3 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
   }
 }
 
-class CoursePreferenceItem {
-  final int sNo;
-  final String acYear;
-  final String className;
-  final String dept;
-  final String fromDate;
-  final String toDate;
-
-  CoursePreferenceItem({
-    required this.sNo,
-    required this.acYear,
-    required this.className,
-    required this.dept,
-    required this.fromDate,
-    required this.toDate,
-  });
-}

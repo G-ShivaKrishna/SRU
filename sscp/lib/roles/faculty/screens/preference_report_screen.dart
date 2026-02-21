@@ -4,82 +4,44 @@ import '../services/course_preference_service.dart';
 import 'course_preference_detail_screen.dart';
 
 class PreferenceReportScreen extends StatefulWidget {
-  const PreferenceReportScreen({
-    super.key,
-    this.title = 'Course Preference Report',
-    this.courses = const [],
-  });
-
-  final String title;
-  final List<String> courses;
+  const PreferenceReportScreen({super.key});
 
   @override
   State<PreferenceReportScreen> createState() => _PreferenceReportScreenState();
 }
 
 class _PreferenceReportScreenState extends State<PreferenceReportScreen> {
-  late final CoursePreferenceService _service = CoursePreferenceService();
+  final _service = CoursePreferenceService();
 
-  List<String> _getCoursesToDisplay() {
-    // If courses were passed directly, use those
-    if (widget.courses.isNotEmpty) {
-      return widget.courses;
-    }
+  List<PreferenceData> _preferences = [];
+  bool _isLoading = true;
+  String? _loadError;
 
-    // If title indicates a specific preference (not the default), try to load it
-    if (widget.title != 'Course Preference Report') {
-      final titleParts = widget.title.split(' Select Course Preference Order');
-      if (titleParts.isNotEmpty) {
-        final className = titleParts[0];
-        final prefs = _service.getPreferences(className);
-        if (prefs != null) {
-          return prefs.courses;
-        }
-      }
-    }
-
-    // If no specific preference found, return all saved preferences courses
-    final allPrefs = _service.getAllPreferences();
-    if (allPrefs.isEmpty) {
-      return [];
-    }
-
-    // Combine all courses from all preferences with headers
-    List<String> allCourses = [];
-    for (final entry in allPrefs.entries) {
-      allCourses.addAll(entry.value.courses);
-    }
-    return allCourses;
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
   }
 
-  PreferenceData? _getEditablePreference() {
-    if (widget.courses.isNotEmpty) {
-      final titleParts = widget.title.split(' Select Course Preference Order');
-      final className =
-          titleParts.isNotEmpty ? titleParts[0] : 'Course Preference';
-      return PreferenceData(
-        className: className,
-        title: widget.title,
-        courses: widget.courses,
-        submittedAt: DateTime.now(),
-      );
+  Future<void> _loadPreferences() async {
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final prefs = await _service.getMyPreferences();
+      if (!mounted) return;
+      setState(() {
+        _preferences = prefs;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.toString();
+        _isLoading = false;
+      });
     }
-
-    if (widget.title != 'Course Preference Report') {
-      final titleParts = widget.title.split(' Select Course Preference Order');
-      if (titleParts.isNotEmpty) {
-        final className = titleParts[0];
-        return _service.getPreferences(className);
-      }
-    }
-
-    return _service.getLatestPreferences();
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
   }
 
   @override
@@ -90,154 +52,183 @@ class _PreferenceReportScreenState extends State<PreferenceReportScreen> {
         children: [
           const AppHeader(),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Course Preference Report',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _loadError != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline,
+                                size: 64, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 24),
+                              child: Text('Failed to load preferences:\n$_loadError',
+                                  textAlign: TextAlign.center),
+                            ),
+                            const SizedBox(height: 20),
+                            ElevatedButton(
+                                onPressed: _loadPreferences,
+                                child: const Text('Retry')),
+                          ],
                         ),
-                        textAlign: TextAlign.center,
+                      )
+                    : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1200),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text(
+                              'Course Preference Report',
+                              style: TextStyle(
+                                  fontSize: 26, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            if (_preferences.isEmpty) _buildEmpty(),
+                            ..._preferences.map((pref) => _buildPrefCard(pref)),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 24),
-                      Builder(builder: (context) {
-                        final coursesToShow = _getCoursesToDisplay();
-                        if (coursesToShow.isEmpty) {
-                          return Container(
-                            padding: const EdgeInsets.all(32),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Column(
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  color: Colors.orange,
-                                  size: 48,
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'No courses submitted yet',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                        return SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            columns: const [
-                              DataColumn(label: Text('S.No')),
-                              DataColumn(label: Text('Course Code')),
-                              DataColumn(label: Text('Course Name')),
-                              DataColumn(label: Text('Department')),
-                            ],
-                            rows: List<DataRow>.generate(
-                              coursesToShow.length,
-                              (index) {
-                                final course = coursesToShow[index];
-                                final parts = course.split('(');
-                                final courseName =
-                                    parts.isNotEmpty ? parts[0].trim() : 'N/A';
-                                final courseCode = courseName.contains('-')
-                                    ? courseName.split('-')[0].trim()
-                                    : 'N/A';
-                                final courseTitle = courseName.contains('-')
-                                    ? courseName.split('-')[1].trim()
-                                    : courseName;
-                                final dept = parts.length > 1
-                                    ? parts[1].replaceAll(')', '').trim()
-                                    : 'N/A';
+  Widget _buildEmpty() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.info_outline, color: Colors.orange, size: 48),
+          SizedBox(height: 16),
+          Text(
+            'No course preferences submitted yet',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
 
-                                return DataRow(
-                                  cells: [
-                                    DataCell(Text('${index + 1}')),
-                                    DataCell(Text(courseCode)),
-                                    DataCell(Text(courseTitle)),
-                                    DataCell(Text(dept)),
-                                  ],
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.arrow_back),
-                            label: const Text('Back'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey.shade400,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              final preference = _getEditablePreference();
-                              if (preference == null ||
-                                  preference.courses.isEmpty) {
-                                _showMessage('No submitted courses to edit');
-                                return;
-                              }
-
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => CoursePreferenceDetailScreen(
-                                    title: preference.title,
-                                    initialSelectedCourses: preference.courses,
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.edit),
-                            label: const Text('Edit'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1976D2),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+  Widget _buildPrefCard(PreferenceData pref) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            width: double.infinity,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1e3a5f),
+              borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(7)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    pref.title,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14),
                   ),
                 ),
+                Text(
+                  'Submitted: ${_formatDate(pref.submittedAt)}',
+                  style:
+                      const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          // Table
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text('S.No')),
+                DataColumn(label: Text('Course Code')),
+                DataColumn(label: Text('Course Name')),
+                DataColumn(label: Text('Dept')),
+                DataColumn(label: Text('Yr/Sem')),
+                DataColumn(label: Text('Type')),
+              ],
+              rows: pref.courses.asMap().entries.map((entry) {
+                final i = entry.key;
+                final s = entry.value;
+                return DataRow(cells: [
+                  DataCell(Text('${i + 1}')),
+                  DataCell(Text(s.code.isNotEmpty ? s.code : '-')),
+                  DataCell(Text(s.name)),
+                  DataCell(Text(s.dept.isNotEmpty ? s.dept : '-')),
+                  DataCell(Text(
+                      s.year > 0 ? '${s.year}/${s.semester}' : '-')),
+                  DataCell(Text(s.subjectType.isNotEmpty
+                      ? s.subjectType
+                      : 'Core')),
+                ]);
+              }).toList(),
+            ),
+          ),
+          // Edit button
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: ElevatedButton.icon(
+              onPressed: () => _openEdit(pref),
+              icon: const Icon(Icons.edit, size: 16),
+              label: const Text('Edit Preference'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1976D2),
+                foregroundColor: Colors.white,
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  void _openEdit(PreferenceData pref) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CoursePreferenceDetailScreen(
+          roundId: pref.roundId,
+          title: pref.title,
+          dept: pref.dept.isNotEmpty
+              ? pref.dept
+              : (pref.courses.isNotEmpty ? pref.courses.first.dept : ''),
+          acYear: pref.acYear,
+          initialSelectedCourses: pref.courses,
+        ),
+      ),
+    ).then((_) => _loadPreferences());
+  }
+
+  String _formatDate(DateTime dt) {
+    return '${dt.day.toString().padLeft(2, '0')}/'
+        '${dt.month.toString().padLeft(2, '0')}/'
+        '${dt.year}';
   }
 }
