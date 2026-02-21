@@ -299,7 +299,8 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                         const Icon(Icons.error_outline,
                             size: 64, color: Colors.red),
                         const SizedBox(height: 16),
-                        Text('Error: ${snapshot.error ?? 'Failed to load PDF'}'),
+                        Text(
+                            'Error: ${snapshot.error ?? 'Failed to load PDF'}'),
                         const SizedBox(height: 20),
                         ElevatedButton(
                           onPressed: () {
