@@ -482,6 +482,9 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
     String academicYear = _getCurrentAcademicYear();
     Map<int, String> facultyYearSubjectMap = {}; // Track which years faculty is already assigned
     Map<String, String> subjectFacultyMap = {}; // Track which subjects are assigned to which faculty
+    List<FacultyPreferredCourse> facultyPreferences = []; // Faculty's course preferences
+    bool hasPreferences = false; // Whether faculty has submitted preferences
+    bool isLoadingPreferences = false; // Loading state for preferences
 
     showDialog(
       context: context,
@@ -495,12 +498,12 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                     .toList()
                 : _faculty;
 
-            // Filter subjects by department, year, and semester
-            final filteredSubjects = _subjects.where((s) {
-              bool matchesDept = selectedDepartment == null || s.department == selectedDepartment;
-              bool matchesYear = s.year == selectedYear;
-              bool matchesSem = s.semester == selectedSemester;
-              return matchesDept && matchesYear && matchesSem;
+            // Filter subjects - ONLY show faculty's preferred courses
+            // Filter by year and semester from preferences
+            final filteredSubjects = facultyPreferences.where((p) {
+              bool matchesYear = p.year == selectedYear;
+              bool matchesSem = p.semester == selectedSemester;
+              return matchesYear && matchesSem;
             }).toList();
 
             // Filter batches by department and year
@@ -572,10 +575,17 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
 
                       // Faculty Selection
                       DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Faculty *',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.person),
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.person),
+                          suffixIcon: isLoadingPreferences 
+                              ? const SizedBox(
+                                  width: 20, 
+                                  height: 20, 
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : null,
                         ),
                         value: selectedFacultyId,
                         items: filteredFaculty.map((faculty) {
@@ -588,27 +598,102 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                         onChanged: selectedDepartment == null
                             ? null
                             : (value) async {
+                                final faculty = filteredFaculty.firstWhere(
+                                  (f) => f['facultyId'] == value,
+                                );
+                                final facultyEmail = faculty['email'] as String? ?? '';
+                                
                                 setDialogState(() {
                                   selectedFacultyId = value;
-                                  final faculty = filteredFaculty.firstWhere(
-                                    (f) => f['facultyId'] == value,
-                                  );
                                   selectedFacultyName =
                                       faculty['name'] as String;
+                                  selectedSubjectCode = null;
+                                  selectedSubjectName = null;
+                                  isLoadingPreferences = true;
                                 });
-                                // Load faculty's existing year assignments
+                                
+                                // Load faculty's existing year assignments and preferences
                                 if (value != null) {
                                   final yearMap = await _service.getFacultyYearSubjectMap(
                                     facultyId: value,
                                     academicYear: academicYear,
                                     semester: selectedSemester,
                                   );
+                                  
+                                  // Load faculty's course preferences using email
+                                  final preferences = await _service.getFacultyPreferences(
+                                    value, 
+                                    facultyEmail: facultyEmail,
+                                  );
+                                  final hasPref = preferences.isNotEmpty;
+                                  
                                   setDialogState(() {
                                     facultyYearSubjectMap = yearMap;
+                                    facultyPreferences = preferences;
+                                    hasPreferences = hasPref;
+                                    isLoadingPreferences = false;
                                   });
                                 }
                               },
                       ),
+                      
+                      // Show warning if faculty has no preferences submitted
+                      if (selectedFacultyId != null && !isLoadingPreferences && !hasPreferences) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red.shade300),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'This faculty has not submitted any course preferences. '
+                                  'Faculty must submit preferences before assignment.',
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      
+                      // Show faculty's course preferences summary
+                      if (selectedFacultyId != null && !isLoadingPreferences && hasPreferences) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.green.shade200),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '✓ ${facultyPreferences.length} preferred courses submitted',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green.shade700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       
                       // Show faculty's existing assignments
                       if (selectedFacultyId != null && facultyYearSubjectMap.isNotEmpty) ...[
@@ -740,15 +825,17 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                       ),
                       const SizedBox(height: 16),
 
-                      // Subject Selection (from predefined subjects)
+                      // Subject Selection (from faculty's preferred courses ONLY)
                       DropdownButtonFormField<String>(
                         decoration: InputDecoration(
-                          labelText: 'Subject *',
+                          labelText: 'Subject (from preferences) *',
                           border: const OutlineInputBorder(),
                           prefixIcon: const Icon(Icons.book),
-                          helperText: filteredSubjects.isEmpty
-                              ? 'No subjects found. Add subjects in Subject Management.'
-                              : null,
+                          helperText: !hasPreferences
+                              ? 'Faculty must submit course preferences first'
+                              : filteredSubjects.isEmpty
+                                  ? 'No preferred subjects for Year $selectedYear, Sem $selectedSemester'
+                                  : 'Showing ${filteredSubjects.length} preferred courses',
                           // Show error if subject is assigned to different faculty
                           errorText: subjectAlreadyAssigned
                               ? 'Already assigned to $selectedSubjectAssignedTo'
@@ -756,28 +843,28 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                           errorStyle: const TextStyle(fontSize: 10),
                         ),
                         value: selectedSubjectCode,
-                        items: filteredSubjects.map((subject) {
-                          final assignedTo = subjectFacultyMap[subject.code];
+                        items: filteredSubjects.map((pref) {
+                          final assignedTo = subjectFacultyMap[pref.code];
                           final isAssignedToOther = assignedTo != null && assignedTo != selectedFacultyName;
                           return DropdownMenuItem(
-                            value: subject.code,
+                            value: pref.code,
                             child: Text(
                               isAssignedToOther
-                                  ? '${subject.code} - ${subject.name} ⚠️'
-                                  : '${subject.code} - ${subject.name}',
+                                  ? '#${pref.preferenceOrder} ${pref.code} - ${pref.name} ⚠️'
+                                  : '#${pref.preferenceOrder} ${pref.code} - ${pref.name}',
                               overflow: TextOverflow.ellipsis,
                             ),
                           );
                         }).toList(),
-                        onChanged: filteredSubjects.isEmpty
+                        onChanged: (!hasPreferences || filteredSubjects.isEmpty)
                             ? null
                             : (value) {
                                 setDialogState(() {
                                   selectedSubjectCode = value;
-                                  final subject = filteredSubjects.firstWhere(
-                                    (s) => s.code == value,
+                                  final pref = filteredSubjects.firstWhere(
+                                    (p) => p.code == value,
                                   );
-                                  selectedSubjectName = subject.name;
+                                  selectedSubjectName = pref.name;
                                 });
                               },
                       ),
@@ -913,13 +1000,24 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                       return;
                     }
 
+                    // Check if faculty has submitted preferences
+                    if (!hasPreferences) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Faculty must submit course preferences before assignment'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
                     if (selectedSubjectCode == null ||
                         selectedSubjectCode!.isEmpty ||
                         selectedSubjectName == null ||
                         selectedSubjectName!.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Please select a subject'),
+                          content: Text('Please select a subject from faculty\'s preferences'),
                           backgroundColor: Colors.red,
                         ),
                       );

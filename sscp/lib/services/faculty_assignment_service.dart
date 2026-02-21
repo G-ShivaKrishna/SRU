@@ -13,6 +13,197 @@ class FacultyAssignmentService {
       _firestore.collection('faculty');
   CollectionReference get _studentsCollection =>
       _firestore.collection('students');
+  CollectionReference get _coursePreferencesCollection =>
+      _firestore.collection('coursePreferences');
+
+  // ============ FACULTY COURSE PREFERENCES ============
+
+  /// Get faculty's submitted course preferences
+  /// Tries multiple matching strategies since preferences use Firebase Auth UID/email
+  /// which may differ from faculty collection data
+  /// Returns a list of preferred subjects for a faculty member
+  Future<List<FacultyPreferredCourse>> getFacultyPreferences(String facultyId, {String? facultyEmail}) async {
+    try {
+      QuerySnapshot? snapshot;
+      
+      // Strategy 1: Try querying by exact email
+      if (facultyEmail != null && facultyEmail.isNotEmpty) {
+        snapshot = await _coursePreferencesCollection
+            .where('facultyEmail', isEqualTo: facultyEmail)
+            .get();
+        
+        // Try with email lowercased
+        if (snapshot.docs.isEmpty) {
+          snapshot = await _coursePreferencesCollection
+              .where('facultyEmail', isEqualTo: facultyEmail.toLowerCase())
+              .get();
+        }
+      }
+      
+      // Strategy 2: If email didn't work, try facultyId as-is
+      if (snapshot == null || snapshot.docs.isEmpty) {
+        snapshot = await _coursePreferencesCollection
+            .where('facultyId', isEqualTo: facultyId)
+            .get();
+      }
+      
+      // Strategy 3: Search all preferences for email containing facultyId pattern
+      // e.g., facultyId = "FAC0001" might match email "fac0001@university.edu"
+      if (snapshot.docs.isEmpty) {
+        final allPrefs = await _coursePreferencesCollection.get();
+        final facultyIdLower = facultyId.toLowerCase();
+        
+        for (final doc in allPrefs.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final storedEmail = (data['facultyEmail'] ?? '').toString().toLowerCase();
+          
+          // Check if stored email contains the facultyId (e.g., fac0001@... matches FAC0001)
+          if (storedEmail.isNotEmpty && storedEmail.contains(facultyIdLower)) {
+            // Found a match - use this document
+            final List<FacultyPreferredCourse> preferences = [];
+            final courses = data['courses'] as List<dynamic>? ?? [];
+            final acYear = data['acYear'] ?? '';
+            final roundId = data['roundId'] ?? '';
+            
+            for (int i = 0; i < courses.length; i++) {
+              final course = courses[i] as Map<String, dynamic>;
+              preferences.add(FacultyPreferredCourse(
+                code: course['code'] ?? '',
+                name: course['name'] ?? '',
+                department: course['dept'] ?? '',
+                year: course['year'] ?? 0,
+                semester: course['semester'] ?? '',
+                subjectType: course['subjectType'] ?? 'Core',
+                preferenceOrder: i + 1,
+                acYear: acYear,
+                roundId: roundId,
+              ));
+            }
+            // Check other docs too for same faculty
+            for (final otherDoc in allPrefs.docs) {
+              if (otherDoc.id == doc.id) continue;
+              final otherData = otherDoc.data() as Map<String, dynamic>;
+              final otherEmail = (otherData['facultyEmail'] ?? '').toString().toLowerCase();
+              if (otherEmail == storedEmail) {
+                final otherCourses = otherData['courses'] as List<dynamic>? ?? [];
+                final otherAcYear = otherData['acYear'] ?? '';
+                final otherRoundId = otherData['roundId'] ?? '';
+                for (int i = 0; i < otherCourses.length; i++) {
+                  final course = otherCourses[i] as Map<String, dynamic>;
+                  preferences.add(FacultyPreferredCourse(
+                    code: course['code'] ?? '',
+                    name: course['name'] ?? '',
+                    department: course['dept'] ?? '',
+                    year: course['year'] ?? 0,
+                    semester: course['semester'] ?? '',
+                    subjectType: course['subjectType'] ?? 'Core',
+                    preferenceOrder: i + 1,
+                    acYear: otherAcYear,
+                    roundId: otherRoundId,
+                  ));
+                }
+              }
+            }
+            return preferences;
+          }
+          
+          // Also try matching email prefix with facultyEmail prefix
+          if (facultyEmail != null && facultyEmail.contains('@')) {
+            final emailPrefix = facultyEmail.split('@')[0].toLowerCase();
+            if (storedEmail.isNotEmpty && storedEmail.split('@')[0] == emailPrefix) {
+              snapshot = await _coursePreferencesCollection
+                  .where('facultyEmail', isEqualTo: data['facultyEmail'])
+                  .get();
+              break;
+            }
+          }
+        }
+      }
+
+      if (snapshot == null || snapshot.docs.isEmpty) return [];
+
+      final List<FacultyPreferredCourse> preferences = [];
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final courses = data['courses'] as List<dynamic>? ?? [];
+        final acYear = data['acYear'] ?? '';
+        final roundId = data['roundId'] ?? '';
+        
+        for (int i = 0; i < courses.length; i++) {
+          final course = courses[i] as Map<String, dynamic>;
+          preferences.add(FacultyPreferredCourse(
+            code: course['code'] ?? '',
+            name: course['name'] ?? '',
+            department: course['dept'] ?? '',
+            year: course['year'] ?? 0,
+            semester: course['semester'] ?? '',
+            subjectType: course['subjectType'] ?? 'Core',
+            preferenceOrder: i + 1,
+            acYear: acYear,
+            roundId: roundId,
+          ));
+        }
+      }
+      return preferences;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Get faculty's preferred subjects as Subject objects for assignment dropdown
+  /// Filters by academic year if provided
+  Future<List<Subject>> getFacultyPreferredSubjects({
+    required String facultyId,
+    String? facultyEmail,
+    String? academicYear,
+  }) async {
+    try {
+      final preferences = await getFacultyPreferences(facultyId, facultyEmail: facultyEmail);
+      if (preferences.isEmpty) return [];
+
+      // Filter by academic year if provided
+      final filtered = academicYear != null
+          ? preferences.where((p) => p.acYear == academicYear).toList()
+          : preferences;
+
+      // Convert to Subject objects
+      return filtered.map((pref) => Subject(
+        id: pref.code,
+        code: pref.code,
+        name: pref.name,
+        department: pref.department,
+        credits: 0, // Will be updated when matched with actual subject
+        year: pref.year,
+        semester: pref.semester,
+        subjectType: SubjectTypeExtension.fromString(pref.subjectType),
+        isActive: true,
+      )).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Check if a faculty has submitted any course preferences
+  Future<bool> hasFacultySubmittedPreferences(String facultyId, {String? facultyEmail}) async {
+    try {
+      QuerySnapshot snapshot;
+      
+      if (facultyEmail != null && facultyEmail.isNotEmpty) {
+        snapshot = await _coursePreferencesCollection
+            .where('facultyEmail', isEqualTo: facultyEmail)
+            .limit(1)
+            .get();
+      } else {
+        snapshot = await _coursePreferencesCollection
+            .where('facultyId', isEqualTo: facultyId)
+            .limit(1)
+            .get();
+      }
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
 
   // ============ FACULTY ASSIGNMENT MANAGEMENT ============
 
@@ -732,4 +923,32 @@ class FacultyAssignmentService {
       return null;
     }
   }
+}
+
+/// Model class for faculty's preferred course from course preferences
+class FacultyPreferredCourse {
+  final String code;
+  final String name;
+  final String department;
+  final int year;
+  final String semester;
+  final String subjectType;
+  final int preferenceOrder; // 1 = highest preference
+  final String acYear;
+  final String roundId;
+
+  FacultyPreferredCourse({
+    required this.code,
+    required this.name,
+    required this.department,
+    required this.year,
+    required this.semester,
+    this.subjectType = 'Core',
+    required this.preferenceOrder,
+    this.acYear = '',
+    this.roundId = '',
+  });
+
+  @override
+  String toString() => '$code - $name (Preference #$preferenceOrder)';
 }
