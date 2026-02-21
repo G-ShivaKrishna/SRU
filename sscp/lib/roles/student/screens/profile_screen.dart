@@ -607,9 +607,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildInfoRow(
                             'Branch', _studentData?['department'] ?? 'N/A'),
                         _buildInfoRow(
-                            'Year', _studentData?['year'] ?? 'N/A'),
-                        _buildInfoRow(
-                            'Semester', _studentData?['semester'] ?? 'N/A'),
+                            'Year', _studentData?['year']?.toString() ?? 'N/A'),
+                        _buildInfoRow('Semester',
+                            _studentData?['semester']?.toString() ?? 'N/A'),
                         _buildInfoRow('Batch Number',
                             _studentData?['batchNumber'] ?? 'N/A'),
                         _buildInfoRow('Date of Admission',
