@@ -649,26 +649,53 @@ class _AdminCourseManagementScreenState
 
         final subjects = snapshot.data ?? [];
 
-        // Group by year and type
-        final Map<int, Map<SubjectType, int>> yearTypeCount = {};
+        // Group by year, semester and type
+        // Key format: "year_semester" e.g., "1_I", "1_II", "2_I", etc.
+        final Map<String, Map<SubjectType, int>> yearSemTypeCount = {};
+        
+        // Initialize structure for all year+semester combinations
         for (int year = 1; year <= 4; year++) {
-          yearTypeCount[year] = {
-            SubjectType.core: 0,
-            SubjectType.oe: 0,
-            SubjectType.pe: 0,
-          };
-        }
-
-        for (final subject in subjects) {
-          if (yearTypeCount.containsKey(subject.year)) {
-            yearTypeCount[subject.year]![subject.subjectType] =
-                (yearTypeCount[subject.year]![subject.subjectType] ?? 0) + 1;
+          for (String sem in ['I', 'II', '1', '2']) {
+            final key = '${year}_$sem';
+            yearSemTypeCount[key] = {
+              SubjectType.core: 0,
+              SubjectType.oe: 0,
+              SubjectType.pe: 0,
+            };
           }
         }
 
-        return Column(
-          children: [
-            for (int year = 1; year <= 4; year++)
+        for (final subject in subjects) {
+          final key = '${subject.year}_${subject.semester}';
+          if (yearSemTypeCount.containsKey(key)) {
+            yearSemTypeCount[key]![subject.subjectType] =
+                (yearSemTypeCount[key]![subject.subjectType] ?? 0) + 1;
+          }
+        }
+
+        // Build display list: Year 1 Sem 1, Year 1 Sem 2, Year 2 Sem 1, etc.
+        final displayList = <Widget>[];
+        for (int year = 1; year <= 4; year++) {
+          for (String sem in ['I', 'II']) {
+            final key = '${year}_$sem';
+            // Also check numeric semester format
+            final altKey = '${year}_${sem == 'I' ? '1' : '2'}';
+            final counts = yearSemTypeCount[key] ?? yearSemTypeCount[altKey];
+            
+            if (counts == null) continue;
+            
+            // Merge counts from both key formats
+            final coreCount = (yearSemTypeCount[key]?[SubjectType.core] ?? 0) + 
+                              (yearSemTypeCount[altKey]?[SubjectType.core] ?? 0);
+            final oeCount = (yearSemTypeCount[key]?[SubjectType.oe] ?? 0) + 
+                            (yearSemTypeCount[altKey]?[SubjectType.oe] ?? 0);
+            final peCount = (yearSemTypeCount[key]?[SubjectType.pe] ?? 0) + 
+                            (yearSemTypeCount[altKey]?[SubjectType.pe] ?? 0);
+            
+            // Only show if there are subjects
+            if (coreCount == 0 && oeCount == 0 && peCount == 0) continue;
+            
+            displayList.add(
               Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
@@ -679,23 +706,27 @@ class _AdminCourseManagementScreenState
                 child: Row(
                   children: [
                     Text(
-                      'Year $year',
+                      'Year $year, Sem $sem',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const Spacer(),
-                    _buildSubjectCountChip('Core',
-                        yearTypeCount[year]![SubjectType.core]!, Colors.blue),
+                    _buildSubjectCountChip('Core', coreCount, Colors.blue),
                     const SizedBox(width: 8),
-                    _buildSubjectCountChip('OE',
-                        yearTypeCount[year]![SubjectType.oe]!, Colors.green),
+                    _buildSubjectCountChip('OE', oeCount, Colors.green),
                     const SizedBox(width: 8),
-                    _buildSubjectCountChip('PE',
-                        yearTypeCount[year]![SubjectType.pe]!, Colors.orange),
+                    _buildSubjectCountChip('PE', peCount, Colors.orange),
                   ],
                 ),
               ),
-          ],
-        );
+            );
+          }
+        }
+
+        if (displayList.isEmpty) {
+          return const Center(child: Text('No subjects available'));
+        }
+
+        return Column(children: displayList);
       },
     );
   }

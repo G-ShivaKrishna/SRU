@@ -43,9 +43,9 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   // Faculty assignments map: subjectCode -> facultyName
   Map<String, String> _facultyMap = {};
 
-  // Requirements
-  int _requiredOECount = 1;
-  int _requiredPECount = 1;
+  // Requirements (loaded from database)
+  int _requiredOECount = 0;
+  int _requiredPECount = 0;
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -110,6 +110,9 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       // Load subjects
       await _loadSubjects();
 
+      // Load requirements from database
+      await _loadRequirements();
+
       // Load faculty assignments for all subjects
       await _loadFacultyAssignments();
 
@@ -154,6 +157,31 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       _oeSubjects = allSubjects[SubjectType.oe] ?? [];
       _peSubjects = allSubjects[SubjectType.pe] ?? [];
     });
+  }
+
+  Future<void> _loadRequirements() async {
+    // Convert semester from Roman numeral to number for query
+    final semesterNum = _studentSemester == 'I' ? '1' : '2';
+    
+    final requirement = await _courseService.getCourseRequirement(
+      _studentYear.toString(),
+      _studentDepartment,
+      semester: semesterNum,
+    );
+
+    if (requirement != null) {
+      setState(() {
+        _requiredOECount = requirement.oeCount;
+        _requiredPECount = requirement.peCount;
+      });
+      print('DEBUG: Loaded requirements - OE: $_requiredOECount, PE: $_requiredPECount');
+    } else {
+      print('DEBUG: No requirements found, using defaults (0)');
+      setState(() {
+        _requiredOECount = 0;
+        _requiredPECount = 0;
+      });
+    }
   }
 
   Future<void> _loadExistingSelections() async {

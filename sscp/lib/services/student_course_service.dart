@@ -89,21 +89,32 @@ class StudentCourseService {
     }
   }
 
-  /// Get course requirements for student's year and branch
+  /// Get course requirements for student's year, semester and branch
   Future<CourseRequirement?> getCourseRequirement(
-      String year, String branch) async {
+      String year, String branch, {String? semester}) async {
     try {
-      print('DEBUG: Querying courseRequirements - year="$year", branch="$branch"');
+      print('DEBUG: Querying courseRequirements - year="$year", branch="$branch", semester="$semester"');
       
+      // Query by year only, then filter by branch and semester in Dart to avoid composite index
       final snapshot = await _courseRequirementsCollection
           .where('year', isEqualTo: year)
-          .where('branch', isEqualTo: branch)
           .get();
 
-      print('DEBUG: Found ${snapshot.docs.length} matching requirements');
+      // Filter by branch and semester in Dart
+      final matchingDocs = snapshot.docs.where((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final branchMatch = (data['branch'] ?? '') == branch;
+        if (semester == null || semester.isEmpty) {
+          return branchMatch;
+        }
+        final semesterMatch = (data['semester']?.toString() ?? '') == semester;
+        return branchMatch && semesterMatch;
+      }).toList();
+
+      print('DEBUG: Found ${matchingDocs.length} matching requirements');
       
-      if (snapshot.docs.isNotEmpty) {
-        final req = CourseRequirement.fromFirestore(snapshot.docs.first);
+      if (matchingDocs.isNotEmpty) {
+        final req = CourseRequirement.fromFirestore(matchingDocs.first);
         print('DEBUG: Requirement found - OE: ${req.oeCount}, PE: ${req.peCount}, SE: ${req.seCount}');
         return req;
       }
@@ -114,7 +125,7 @@ class StudentCourseService {
       print('DEBUG: Total requirements in database: ${allReqs.docs.length}');
       for (final doc in allReqs.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        print('DEBUG: Available requirement - year="${data['year']}" (${data['year'].runtimeType}), branch="${data['branch']}"');
+        print('DEBUG: Available requirement - year="${data['year']}" (${data['year'].runtimeType}), branch="${data['branch']}", semester="${data['semester']}"');
       }
       
       return null;
