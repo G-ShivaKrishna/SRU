@@ -25,6 +25,7 @@ import 'screens/course_preference_screen.dart';
 import 'screens/preference_report_screen.dart';
 import 'screens/course_view_screen.dart';
 import 'screens/cie_format_screen.dart';
+import 'screens/cie_marks_screen.dart';
 
 class FacultyHome extends StatefulWidget {
   const FacultyHome({super.key});
@@ -894,11 +895,12 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const FacultyAcademicsScreen();
       case 'marks_regular':
       case 'marks_supply':
-      case 'cie_marks':
       case 'makeup_marks':
       case 'consolidated_marks':
       case 'endterm_marks':
         page = const FacultyResultsScreen();
+      case 'cie_marks':
+        page = const CieMarksScreen();
       case 'cie_format_ug':
       case 'cie_format_phd':
         page = const CieFormatScreen();
