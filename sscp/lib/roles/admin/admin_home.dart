@@ -837,8 +837,7 @@ class _OverflowNavButton extends StatelessWidget {
   final List<String> items;
   final void Function(String) onSelected;
 
-  const _OverflowNavButton(
-      {required this.items, required this.onSelected});
+  const _OverflowNavButton({required this.items, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -860,8 +859,7 @@ class _OverflowNavButton extends StatelessWidget {
               ))
           .toList(),
       child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: const [
