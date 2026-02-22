@@ -26,6 +26,7 @@ import 'screens/preference_report_screen.dart';
 import 'screens/course_view_screen.dart';
 import 'screens/cie_format_screen.dart';
 import 'screens/cie_marks_screen.dart';
+import 'screens/consolidated_marks_screen.dart';
 
 class FacultyHome extends StatefulWidget {
   const FacultyHome({super.key});
@@ -889,9 +890,9 @@ class _FacultyHomeState extends State<FacultyHome> {
       case 'marks_regular':
       case 'marks_supply':
       case 'makeup_marks':
-      case 'consolidated_marks':
-      case 'endterm_marks':
         page = const FacultyResultsScreen();
+      case 'consolidated_marks':
+        page = const ConsolidatedMarksScreen();
       case 'cie_marks':
         page = const CieMarksScreen();
       case 'cie_format_ug':
