@@ -23,6 +23,9 @@ import 'screens/faculty_handbook_screen.dart';
 import 'screens/update_basic_data_screen.dart';
 import 'screens/course_preference_screen.dart';
 import 'screens/preference_report_screen.dart';
+import 'screens/course_view_screen.dart';
+import 'screens/cie_format_screen.dart';
+import 'screens/cie_marks_screen.dart';
 
 class FacultyHome extends StatefulWidget {
   const FacultyHome({super.key});
@@ -224,6 +227,7 @@ class _FacultyHomeState extends State<FacultyHome> {
             _buildDropdownMenu(context, 'Professional Outline', [
               'View Profile',
               'Update Basic Data',
+              'Course View',
               'Course Preference',
               'Preference Report',
               'Feedback',
@@ -270,6 +274,7 @@ class _FacultyHomeState extends State<FacultyHome> {
             _buildDropdownMenu(context, 'Professional Outline', [
               'View Profile',
               'Update Basic Data',
+              'Course View',
               'Course Preference',
               'Preference Report',
               'Feedback',
@@ -835,6 +840,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       // Professional Outline submenu
       'View Profile': 'profile',
       'Update Basic Data': 'update_profile',
+      'Course View': 'course_view',
       'Course Preference': 'course_preference',
       'Preference Report': 'preference_report',
       'Feedback': 'feedback',
@@ -889,11 +895,15 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const FacultyAcademicsScreen();
       case 'marks_regular':
       case 'marks_supply':
-      case 'cie_marks':
       case 'makeup_marks':
       case 'consolidated_marks':
       case 'endterm_marks':
         page = const FacultyResultsScreen();
+      case 'cie_marks':
+        page = const CieMarksScreen();
+      case 'cie_format_ug':
+      case 'cie_format_phd':
+        page = const CieFormatScreen();
       case 'feedback':
         page = const FacultyFeedbackScreen();
       case 'update_profile':
@@ -902,6 +912,8 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const CoursePreferenceScreen();
       case 'preference_report':
         page = const PreferenceReportScreen();
+      case 'course_view':
+        page = const CourseViewScreen();
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$route - Coming Soon')),

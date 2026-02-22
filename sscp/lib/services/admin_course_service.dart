@@ -32,16 +32,19 @@ class AdminCourseService {
 
   /// Enable or disable course registration
   /// enabledYears: List of years for which registration is enabled (e.g., ['1', '2', '3', '4'])
+  /// enabledSemesters: List of semesters for which registration is enabled (e.g., ['1', '2'])
   Future<void> toggleRegistration(
     bool enable,
     DateTime startDate,
     DateTime endDate, {
     List<String> enabledYears = const ['1', '2', '3', '4'],
+    List<String> enabledSemesters = const ['1', '2'],
   }) async {
     try {
       await _registrationSettingsDoc.set({
         'isRegistrationEnabled': enable,
         'enabledYears': enabledYears,
+        'enabledSemesters': enabledSemesters,
         'registrationStartDate': startDate,
         'registrationEndDate': endDate,
         'lastModifiedBy': DateTime.now(),
@@ -100,9 +103,7 @@ class AdminCourseService {
   Future<List<Course>> getAllCourses() async {
     try {
       final snapshot = await _coursesCollection.get();
-      return snapshot.docs
-          .map((doc) => Course.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception('Failed to get courses: $e');
     }
@@ -114,9 +115,7 @@ class AdminCourseService {
       final snapshot = await _coursesCollection
           .where('type', isEqualTo: type.toString().split('.').last)
           .get();
-      return snapshot.docs
-          .map((doc) => Course.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception('Failed to get courses by type: $e');
     }
@@ -131,9 +130,7 @@ class AdminCourseService {
           .where('applicableBranches', arrayContains: branch)
           .where('isActive', isEqualTo: true)
           .get();
-      return snapshot.docs
-          .map((doc) => Course.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception(
           'Failed to get courses for year $year and branch $branch: $e');
@@ -150,9 +147,7 @@ class AdminCourseService {
           .where('applicableBranches', arrayContains: branch)
           .where('isActive', isEqualTo: true)
           .get();
-      return snapshot.docs
-          .map((doc) => Course.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception(
           'Failed to get $type courses for year $year and branch $branch: $e');
@@ -161,21 +156,26 @@ class AdminCourseService {
 
   // ============ Course Requirements ============
 
-  /// Add course requirements for a year and branch
+  /// Add course requirements for a year, semester and branch
   Future<String> addCourseRequirement(CourseRequirement requirement) async {
     try {
-      // Check if requirement already exists for this year and branch
+      // Query by year only, filter semester+branch in Dart to avoid composite index
       final existing = await _courseRequirementsCollection
           .where('year', isEqualTo: requirement.year)
-          .where('branch', isEqualTo: requirement.branch)
           .get();
 
-      if (existing.docs.isNotEmpty) {
+      final matchingDocs = existing.docs.where((doc) {
+        final d = doc.data() as Map<String, dynamic>;
+        return (d['branch'] ?? '') == requirement.branch &&
+            (d['semester']?.toString() ?? '') == requirement.semester;
+      }).toList();
+
+      if (matchingDocs.isNotEmpty) {
         // Update existing
         await _courseRequirementsCollection
-            .doc(existing.docs.first.id)
+            .doc(matchingDocs.first.id)
             .update(requirement.toFirestore());
-        return existing.docs.first.id;
+        return matchingDocs.first.id;
       } else {
         // Create new
         final docRef =

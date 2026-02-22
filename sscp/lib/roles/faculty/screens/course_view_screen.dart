@@ -31,9 +31,7 @@ class _AssignedCourse {
       assignedBatches: List<String>.from(d['assignedBatches'] ?? []),
       academicYear: d['academicYear'] ?? '',
       semester: d['semester'] ?? '',
-      year: (d['year'] ?? 0) is int
-          ? d['year']
-          : int.tryParse(d['year'].toString()) ?? 0,
+      year: (d['year'] ?? 0) is int ? d['year'] : int.tryParse(d['year'].toString()) ?? 0,
       subjectType: d['subjectType'] ?? 'Theory',
     );
   }
@@ -66,10 +64,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
   }
 
   Future<void> _load() async {
-    setState(() {
-      _isLoading = true;
-      _loadError = null;
-    });
+    setState(() { _isLoading = true; _loadError = null; });
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
@@ -98,10 +93,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
       // Group by academicYear
       final grouped = <String, List<_AssignedCourse>>{};
       for (final c in activeCourses) {
-        grouped
-            .putIfAbsent(c.academicYear.isNotEmpty ? c.academicYear : 'Unknown',
-                () => [])
-            .add(c);
+        grouped.putIfAbsent(c.academicYear.isNotEmpty ? c.academicYear : 'Unknown', () => []).add(c);
       }
 
       // Sort within each year: sort by year (student year), then semester, then code
@@ -116,7 +108,8 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
       }
 
       // Sort academic years: most recent first
-      final sortedYears = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
+      final sortedYears = grouped.keys.toList()
+        ..sort((a, b) => b.compareTo(a));
 
       if (!mounted) return;
       setState(() {
@@ -126,10 +119,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _loadError = e.toString();
-        _isLoading = false;
-      });
+      setState(() { _loadError = e.toString(); _isLoading = false; });
     }
   }
 
@@ -151,8 +141,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
                             padding: const EdgeInsets.all(16),
                             child: Center(
                               child: ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxWidth: 1200),
+                                constraints: const BoxConstraints(maxWidth: 1200),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -170,8 +159,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
                                     const Center(
                                       child: Text(
                                         'Courses assigned to you by the admin from your submitted preferences',
-                                        style: TextStyle(
-                                            color: Colors.grey, fontSize: 13),
+                                        style: TextStyle(color: Colors.grey, fontSize: 13),
                                         textAlign: TextAlign.center,
                                       ),
                                     ),
@@ -179,8 +167,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
                                     ..._sortedYears.asMap().entries.map((e) {
                                       final isFirst = e.key == 0;
                                       return Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 16),
+                                        padding: const EdgeInsets.only(bottom: 16),
                                         child: _buildYearCard(
                                           e.value,
                                           _grouped[e.value]!,
@@ -244,23 +231,17 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
             onPressed: _load,
             icon: const Icon(Icons.refresh),
             label: const Text('Refresh'),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1e3a5f),
-                foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1e3a5f), foregroundColor: Colors.white),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildYearCard(String acYear, List<_AssignedCourse> courses,
-      {required bool isCurrent}) {
+  Widget _buildYearCard(String acYear, List<_AssignedCourse> courses, {required bool isCurrent}) {
     final isMobile = MediaQuery.of(context).size.width < 700;
-    final label = isCurrent
-        ? 'Current Academic Year ($acYear)'
-        : 'Academic Year ($acYear)';
-    final headerColor =
-        isCurrent ? const Color(0xFF1e3a5f) : const Color(0xFF546e7a);
+    final label = isCurrent ? 'Current Academic Year ($acYear)' : 'Academic Year ($acYear)';
+    final headerColor = isCurrent ? const Color(0xFF1e3a5f) : const Color(0xFF546e7a);
 
     return Container(
       decoration: BoxDecoration(
@@ -277,8 +258,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: headerColor,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(7)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
             ),
             child: Row(
               children: [
@@ -294,8 +274,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
                 ),
                 const Spacer(),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
                     color: Colors.white24,
                     borderRadius: BorderRadius.circular(12),
@@ -311,7 +290,9 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
           // Table
           Padding(
             padding: const EdgeInsets.all(8),
-            child: isMobile ? _mobileList(courses) : _desktopTable(courses),
+            child: isMobile
+                ? _mobileList(courses)
+                : _desktopTable(courses),
           ),
         ],
       ),
@@ -324,27 +305,13 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
       child: DataTable(
         headingRowColor: WidgetStateProperty.all(Colors.grey[100]),
         columns: const [
-          DataColumn(
-              label:
-                  Text('S.No', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(
-              label: Text('Subject Code',
-                  style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(
-              label: Text('Subject Name',
-                  style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(
-              label:
-                  Text('Year', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(
-              label: Text('Semester',
-                  style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(
-              label:
-                  Text('Type', style: TextStyle(fontWeight: FontWeight.bold))),
-          DataColumn(
-              label: Text('Assigned Batches',
-                  style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('S.No', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('Subject Code', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('Subject Name', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('Year', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('Semester', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('Type', style: TextStyle(fontWeight: FontWeight.bold))),
+          DataColumn(label: Text('Assigned Batches', style: TextStyle(fontWeight: FontWeight.bold))),
         ],
         rows: courses.asMap().entries.map((entry) {
           final i = entry.key;
@@ -354,8 +321,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
             DataCell(Text(c.subjectCode.isNotEmpty ? c.subjectCode : '-')),
             DataCell(SizedBox(
               width: 260,
-              child: Text(c.subjectName,
-                  maxLines: 2, overflow: TextOverflow.ellipsis),
+              child: Text(c.subjectName, maxLines: 2, overflow: TextOverflow.ellipsis),
             )),
             DataCell(Text(c.year > 0 ? 'Year ${c.year}' : '-')),
             DataCell(Text(c.semester.isNotEmpty ? 'Sem ${c.semester}' : '-')),
@@ -376,8 +342,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (i > 0) Divider(color: Colors.grey[300], height: 16),
-            _mRow(
-                'Subject Code', c.subjectCode.isNotEmpty ? c.subjectCode : '-'),
+            _mRow('Subject Code', c.subjectCode.isNotEmpty ? c.subjectCode : '-'),
             _mRow('Subject Name', c.subjectName),
             _mRow('Year / Semester',
                 '${c.year > 0 ? "Year ${c.year}" : "-"} / ${c.semester.isNotEmpty ? "Sem ${c.semester}" : "-"}'),
@@ -389,10 +354,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
                   const SizedBox(
                     width: 120,
                     child: Text('Type',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1e3a5f))),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1e3a5f))),
                   ),
                   _typeBadge(c.subjectType),
                 ],
@@ -404,10 +366,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Assigned Batches',
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1e3a5f))),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1e3a5f))),
                   const SizedBox(height: 4),
                   _batchChips(c.assignedBatches),
                 ],
@@ -428,14 +387,10 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
           SizedBox(
             width: 120,
             child: Text(label,
-                style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1e3a5f))),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1e3a5f))),
           ),
           Expanded(
-            child: Text(value,
-                style: const TextStyle(fontSize: 12, color: Colors.black87)),
+            child: Text(value, style: const TextStyle(fontSize: 12, color: Colors.black87)),
           ),
         ],
       ),
@@ -445,11 +400,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
   Widget _typeBadge(String type) {
     final isLab = type.toLowerCase().contains('lab');
     final isTutorial = type.toLowerCase().contains('tutorial');
-    final color = isLab
-        ? Colors.orange
-        : isTutorial
-            ? Colors.purple
-            : Colors.blue;
+    final color = isLab ? Colors.orange : isTutorial ? Colors.purple : Colors.blue;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
@@ -459,8 +410,7 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
       ),
       child: Text(
         type.isNotEmpty ? type : 'Theory',
-        style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w600, color: color[800]),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color[800]),
       ),
     );
   }
@@ -470,22 +420,15 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
     return Wrap(
       spacing: 6,
       runSpacing: 4,
-      children: batches
-          .map((b) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1e3a5f).withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: const Color(0xFF1e3a5f).withOpacity(0.3)),
-                ),
-                child: Text(b,
-                    style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF1e3a5f))),
-              ))
-          .toList(),
+      children: batches.map((b) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1e3a5f).withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF1e3a5f).withOpacity(0.3)),
+        ),
+        child: Text(b, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF1e3a5f))),
+      )).toList(),
     );
   }
 }
