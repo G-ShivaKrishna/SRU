@@ -23,6 +23,7 @@ class _AdminCourseManagementScreenState
 
   // Local state for year selection with safe defaults
   List<String> _selectedYears = <String>['1', '2', '3', '4'];
+  List<String> _selectedSemesters = <String>['1', '2'];
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
 
@@ -46,6 +47,9 @@ class _AdminCourseManagementScreenState
           _selectedYears = settings.enabledYears.isNotEmpty 
               ? List<String>.from(settings.enabledYears)
               : ['1', '2', '3', '4'];
+          _selectedSemesters = settings.enabledSemesters.isNotEmpty
+              ? List<String>.from(settings.enabledSemesters)
+              : ['1', '2'];
           _startDate = settings.registrationStartDate;
           _endDate = settings.registrationEndDate;
         }
@@ -65,8 +69,6 @@ class _AdminCourseManagementScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -135,6 +137,11 @@ class _AdminCourseManagementScreenState
                         ? 'None'
                         : _settings!.enabledYears.map((y) => 'Year $y').join(', ')),
                 _buildInfoRow(
+                    'Enabled Semesters:',
+                    _settings!.enabledSemesters.isEmpty
+                        ? 'None'
+                        : _settings!.enabledSemesters.map((s) => 'Sem $s').join(', ')),
+                _buildInfoRow(
                     'Start Date:', _formatDate(_settings!.registrationStartDate)),
                 _buildInfoRow(
                     'End Date:', _formatDate(_settings!.registrationEndDate)),
@@ -167,6 +174,7 @@ class _AdminCourseManagementScreenState
                 _startDate,
                 _endDate,
                 enabledYears: _selectedYears,
+                enabledSemesters: _selectedSemesters,
               );
               await _loadRegistrationSettings();
               if (mounted) {
@@ -252,8 +260,58 @@ class _AdminCourseManagementScreenState
                     );
                   }).toList(),
                 ),
+                const SizedBox(height: 16),
+                // ── Semester selection ──────────────────────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Enable for Semesters:',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          if (_selectedSemesters.length == 2) {
+                            _selectedSemesters.clear();
+                          } else {
+                            _selectedSemesters = ['1', '2'];
+                          }
+                        });
+                      },
+                      icon: Icon(
+                        _selectedSemesters.length == 2 ? Icons.deselect : Icons.select_all,
+                        size: 18,
+                      ),
+                      label: Text(_selectedSemesters.length == 2 ? 'Deselect All' : 'Select All'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: ['1', '2'].map((sem) {
+                    final isSemEnabled = _selectedSemesters.contains(sem);
+                    return FilterChip(
+                      label: Text('Semester $sem'),
+                      selected: isSemEnabled,
+                      selectedColor: Colors.orange.shade100,
+                      checkmarkColor: Colors.orange.shade700,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedSemesters.add(sem);
+                          } else {
+                            _selectedSemesters.remove(sem);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
                 const SizedBox(height: 12),
-                // Save years button
+                // Save year & semester button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -261,7 +319,7 @@ class _AdminCourseManagementScreenState
                       backgroundColor: const Color(0xFF1e3a5f),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    onPressed: _selectedYears.isEmpty
+                    onPressed: (_selectedYears.isEmpty || _selectedSemesters.isEmpty)
                         ? null
                         : () async {
                             try {
@@ -270,13 +328,15 @@ class _AdminCourseManagementScreenState
                                 _startDate,
                                 _endDate,
                                 enabledYears: _selectedYears,
+                                enabledSemesters: _selectedSemesters,
                               );
                               await _loadRegistrationSettings();
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      'Registration enabled for Year(s): ${_selectedYears.join(", ")}',
+                                      'Enabled for Year(s): ${_selectedYears.join(", ")} | '
+                                      'Semester(s): ${_selectedSemesters.map((s) => "Sem $s").join(", ")}',
                                     ),
                                     backgroundColor: Colors.green,
                                   ),
@@ -292,7 +352,7 @@ class _AdminCourseManagementScreenState
                           },
                     icon: const Icon(Icons.save, color: Colors.white),
                     label: const Text(
-                      'Save Year Settings',
+                      'Save Year & Semester Settings',
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
@@ -443,6 +503,7 @@ class _AdminCourseManagementScreenState
   Widget _buildSubjectRequirementsForm(
       List<String> years, List<String> branches, BuildContext context) {
     String selectedYear = '1';
+    String selectedSemester = '1';
     String selectedBranch = 'CSE';
     int oeCount = 1;
     int peCount = 1;
@@ -459,6 +520,17 @@ class _AdminCourseManagementScreenState
               (value) {
                 setState(() {
                   selectedYear = value ?? '1';
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildDropdownField(
+              'Semester',
+              selectedSemester,
+              ['1', '2'],
+              (value) {
+                setState(() {
+                  selectedSemester = value ?? '1';
                 });
               },
             ),
@@ -512,6 +584,7 @@ class _AdminCourseManagementScreenState
                   final requirement = CourseRequirement(
                     id: '',
                     year: selectedYear,
+                    semester: selectedSemester,
                     branch: selectedBranch,
                     oeCount: oeCount,
                     peCount: peCount,
@@ -683,7 +756,7 @@ class _AdminCourseManagementScreenState
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Year ${requirement.year} - ${requirement.branch}',
+                'Year ${requirement.year}${requirement.semester.isNotEmpty ? ", Sem ${requirement.semester}" : ""} - ${requirement.branch}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
@@ -773,6 +846,7 @@ class _AdminCourseManagementScreenState
     const years = ['1', '2', '3', '4'];
     const branches = ['CSE', 'ECE', 'EEE', 'ME', 'CE'];
     String selectedYear = '1';
+    String selectedSemester = '1';
     String selectedBranch = 'CSE';
 
     return StatefulBuilder(
@@ -793,62 +867,134 @@ class _AdminCourseManagementScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Filter by Year and Branch',
+                      'Filter by Year, Semester and Branch',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedYear,
-                            items: years
-                                .map((year) => DropdownMenuItem(
-                                      value: year,
-                                      child: Text('Year $year'),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() => selectedYear = value);
-                              }
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Year',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                    if (isMobile) ...[
+                      DropdownButtonFormField<String>(
+                        value: selectedYear,
+                        items: years
+                            .map((y) => DropdownMenuItem(
+                                  value: y,
+                                  child: Text('Year $y'),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) setState(() => selectedYear = value);
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Year',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        value: selectedSemester,
+                        items: ['1', '2']
+                            .map((s) => DropdownMenuItem(
+                                  value: s,
+                                  child: Text('Semester $s'),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) setState(() => selectedSemester = value);
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Semester',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        value: selectedBranch,
+                        items: branches
+                            .map((b) => DropdownMenuItem(value: b, child: Text(b)))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) setState(() => selectedBranch = value);
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Branch',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ] else
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedYear,
+                              items: years
+                                  .map((year) => DropdownMenuItem(
+                                        value: year,
+                                        child: Text('Year $year'),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => selectedYear = value);
+                                }
+                              },
+                              decoration: InputDecoration(
+                                labelText: 'Year',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedBranch,
-                            items: branches
-                                .map((branch) => DropdownMenuItem(
-                                      value: branch,
-                                      child: Text(branch),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() => selectedBranch = value);
-                              }
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Branch',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedSemester,
+                              items: ['1', '2']
+                                  .map((s) => DropdownMenuItem(
+                                        value: s,
+                                        child: Text('Semester $s'),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => selectedSemester = value);
+                                }
+                              },
+                              decoration: InputDecoration(
+                                labelText: 'Semester',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedBranch,
+                              items: branches
+                                  .map((branch) => DropdownMenuItem(
+                                        value: branch,
+                                        child: Text(branch),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => selectedBranch = value);
+                                }
+                              },
+                              decoration: InputDecoration(
+                                labelText: 'Branch',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -871,7 +1017,14 @@ class _AdminCourseManagementScreenState
                     );
                   }
 
-                  final submissions = snapshot.data?.docs ?? [];
+                  // Filter by semester in Dart to avoid composite index
+                  final allDocs = snapshot.data?.docs ?? [];
+                  final submissions = allDocs.where((doc) {
+                    final d = doc.data() as Map<String, dynamic>;
+                    final docSem = (d['semester'] ?? '').toString();
+                    return docSem == selectedSemester;
+                  }).toList();
+
                   if (submissions.isEmpty) {
                     return Center(
                       child: Padding(
@@ -880,12 +1033,13 @@ class _AdminCourseManagementScreenState
                           children: [
                             Icon(Icons.inbox, size: 64, color: Colors.grey[400]),
                             const SizedBox(height: 16),
-                            const Text(
-                              'No student submissions yet',
-                              style: TextStyle(
+                            Text(
+                              'No submissions for Year $selectedYear Sem $selectedSemester – $selectedBranch',
+                              style: const TextStyle(
                                 fontSize: 16,
                                 color: Colors.grey,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
@@ -1158,41 +1312,6 @@ class _AdminCourseManagementScreenState
     );
   }
 
-  Widget _buildTextFieldWithLabel(
-    String label,
-    TextEditingController controller, {
-    bool isMobile = false,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1e3a5f),
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(6),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: isMobile ? 10 : 12,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildDropdownField(
     String label,
     String value,
@@ -1230,40 +1349,6 @@ class _AdminCourseManagementScreenState
               vertical: isMobile ? 10 : 12,
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMultiSelectField(
-    String label,
-    List<String> items,
-    List<String> selectedItems,
-    Function(String, bool) onChanged,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1e3a5f),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: items.map((item) {
-            return FilterChip(
-              label: Text(item),
-              selected: selectedItems.contains(item),
-              onSelected: (isSelected) {
-                onChanged(item, isSelected);
-              },
-            );
-          }).toList(),
         ),
       ],
     );

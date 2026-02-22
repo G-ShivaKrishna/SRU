@@ -103,8 +103,9 @@ class Course {
 
 class CourseRequirement {
   final String id;
-  final String year; // '1', '2', '3', '4'
-  final String branch; // 'CSE', 'ECE', etc.
+  final String year;     // '1', '2', '3', '4'
+  final String semester; // '1' or '2'
+  final String branch;   // 'CSE', 'ECE', etc.
   final int oeCount; // How many Open Electives required
   final int peCount; // How many Program Electives required
   final int seCount; // How many Subject Electives required
@@ -114,6 +115,7 @@ class CourseRequirement {
   CourseRequirement({
     required this.id,
     required this.year,
+    this.semester = '',
     required this.branch,
     required this.oeCount,
     required this.peCount,
@@ -126,6 +128,7 @@ class CourseRequirement {
   Map<String, dynamic> toFirestore() {
     return {
       'year': year,
+      'semester': semester,
       'branch': branch,
       'oeCount': oeCount,
       'peCount': peCount,
@@ -141,6 +144,7 @@ class CourseRequirement {
     return CourseRequirement(
       id: doc.id,
       year: data['year'] ?? '',
+      semester: data['semester']?.toString() ?? '',
       branch: data['branch'] ?? '',
       oeCount: data['oeCount'] ?? 0,
       peCount: data['peCount'] ?? 0,
@@ -154,6 +158,7 @@ class CourseRequirement {
   CourseRequirement copyWith({
     String? id,
     String? year,
+    String? semester,
     String? branch,
     int? oeCount,
     int? peCount,
@@ -164,6 +169,7 @@ class CourseRequirement {
     return CourseRequirement(
       id: id ?? this.id,
       year: year ?? this.year,
+      semester: semester ?? this.semester,
       branch: branch ?? this.branch,
       oeCount: oeCount ?? this.oeCount,
       peCount: peCount ?? this.peCount,
@@ -177,7 +183,8 @@ class CourseRequirement {
 class CourseRegistrationSettings {
   final String id;
   final bool isRegistrationEnabled;
-  final List<String> enabledYears; // Years for which registration is enabled ['1', '2', '3', '4']
+  final List<String> enabledYears;     // Years for which registration is enabled ['1', '2', '3', '4']
+  final List<String> enabledSemesters; // Semesters for which registration is enabled ['1', '2']
   final DateTime registrationStartDate;
   final DateTime registrationEndDate;
   final DateTime? lastModifiedBy; // Will store admin's timestamp
@@ -188,6 +195,7 @@ class CourseRegistrationSettings {
     required this.id,
     required this.isRegistrationEnabled,
     this.enabledYears = const ['1', '2', '3', '4'], // Default to all years
+    this.enabledSemesters = const ['1', '2'],        // Default to all semesters
     required this.registrationStartDate,
     required this.registrationEndDate,
     this.lastModifiedBy,
@@ -200,11 +208,19 @@ class CourseRegistrationSettings {
     return isRegistrationEnabled && enabledYears.contains(year);
   }
 
+  // Check if registration is enabled for a specific year AND semester
+  bool isEnabledForYearAndSemester(String year, String semester) {
+    return isRegistrationEnabled &&
+        enabledYears.contains(year) &&
+        enabledSemesters.contains(semester);
+  }
+
   // Convert to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
       'isRegistrationEnabled': isRegistrationEnabled,
       'enabledYears': enabledYears,
+      'enabledSemesters': enabledSemesters,
       'registrationStartDate': registrationStartDate,
       'registrationEndDate': registrationEndDate,
       'lastModifiedBy': lastModifiedBy,
@@ -217,16 +233,23 @@ class CourseRegistrationSettings {
   factory CourseRegistrationSettings.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     
-    // Safely parse enabledYears - ensure it's a valid list
+    // Safely parse enabledYears
     List<String> years = ['1', '2', '3', '4'];
     if (data['enabledYears'] != null && data['enabledYears'] is List) {
       years = List<String>.from(data['enabledYears']);
+    }
+
+    // Safely parse enabledSemesters
+    List<String> semesters = ['1', '2'];
+    if (data['enabledSemesters'] != null && data['enabledSemesters'] is List) {
+      semesters = List<String>.from(data['enabledSemesters']);
     }
     
     return CourseRegistrationSettings(
       id: doc.id,
       isRegistrationEnabled: data['isRegistrationEnabled'] ?? false,
       enabledYears: years,
+      enabledSemesters: semesters,
       registrationStartDate: data['registrationStartDate'] != null
           ? (data['registrationStartDate'] as Timestamp).toDate()
           : DateTime.now(),
@@ -250,6 +273,7 @@ class CourseRegistrationSettings {
     String? id,
     bool? isRegistrationEnabled,
     List<String>? enabledYears,
+    List<String>? enabledSemesters,
     DateTime? registrationStartDate,
     DateTime? registrationEndDate,
     DateTime? lastModifiedBy,
@@ -260,6 +284,7 @@ class CourseRegistrationSettings {
       id: id ?? this.id,
       isRegistrationEnabled: isRegistrationEnabled ?? this.isRegistrationEnabled,
       enabledYears: enabledYears ?? this.enabledYears,
+      enabledSemesters: enabledSemesters ?? this.enabledSemesters,
       registrationStartDate:
           registrationStartDate ?? this.registrationStartDate,
       registrationEndDate: registrationEndDate ?? this.registrationEndDate,
