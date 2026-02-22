@@ -231,7 +231,6 @@ class _FacultyHomeState extends State<FacultyHome> {
               'Course Preference',
               'Preference Report',
               'Feedback',
-              'Bio-metric Log Records',
               'Employee Directory',
               'Download',
             ]),
@@ -278,7 +277,6 @@ class _FacultyHomeState extends State<FacultyHome> {
               'Course Preference',
               'Preference Report',
               'Feedback',
-              'Bio-metric Log Records',
               'Employee Directory',
               'Download',
             ]),
@@ -723,11 +721,9 @@ class _FacultyHomeState extends State<FacultyHome> {
               itemBuilder: (BuildContext context) {
                 return [
                   'Check & Define CIE Format (UG/PG)',
-                  'Check & Define CIE Format (PhD)',
-                  'CIE Marks',
+                  'Total Marks',
                   'Makeup Mid Marks',
                   'Consolidated Marks Report(New)',
-                  'End Term Marks',
                 ].map((String choice) {
                   return PopupMenuItem<String>(
                     value: choice,
@@ -819,11 +815,9 @@ class _FacultyHomeState extends State<FacultyHome> {
 
       // Regular Exams submenu items
       'Check & Define CIE Format (UG/PG)': 'cie_format_ug',
-      'Check & Define CIE Format (PhD)': 'cie_format_phd',
-      'CIE Marks': 'cie_marks',
+      'Total Marks': 'cie_marks',
       'Makeup Mid Marks': 'makeup_marks',
       'Consolidated Marks Report(New)': 'consolidated_marks',
-      'End Term Marks': 'endterm_marks',
 
       // Academics submenu
       'Regulations': 'regulations',
@@ -844,7 +838,6 @@ class _FacultyHomeState extends State<FacultyHome> {
       'Course Preference': 'course_preference',
       'Preference Report': 'preference_report',
       'Feedback': 'feedback',
-      'Bio-metric Log Records': 'biometric',
       'Employee Directory': 'employee_directory',
       'Download': 'download',
     };

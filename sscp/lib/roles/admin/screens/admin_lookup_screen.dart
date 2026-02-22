@@ -221,10 +221,10 @@ class _StudentLookupTabState extends State<_StudentLookupTab> {
               decoration: InputDecoration(
                 hintText: 'Enter roll number or student name…',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 isDense: true,
               ),
               textCapitalization: TextCapitalization.characters,
@@ -258,19 +258,18 @@ class _StudentLookupTabState extends State<_StudentLookupTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text('${_searchResults.length} results found',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ),
           ..._searchResults.map((s) {
             final roll = s['_rollNumber']?.toString() ?? '';
             final name = s['name']?.toString() ?? roll;
             final dept = s['department']?.toString() ?? '';
             return ListTile(
-              leading: const CircleAvatar(
-                  child: Icon(Icons.person), radius: 20),
+              leading:
+                  const CircleAvatar(child: Icon(Icons.person), radius: 20),
               title: Text(name),
               subtitle: Text('$roll  •  $dept'),
               onTap: () => _selectStudent(s),
@@ -372,7 +371,8 @@ class _StudentProfileTab extends StatelessWidget {
                       f.value != null &&
                       f.value.toString().isNotEmpty &&
                       f.value.toString() != 'null')
-                  .map((f) => _InfoRow(label: f.label, value: f.value!.toString()))
+                  .map((f) =>
+                      _InfoRow(label: f.label, value: f.value!.toString()))
                   .toList(),
             ),
           ),
@@ -416,11 +416,11 @@ class _StudentProfileTab extends StatelessWidget {
                         fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text(roll,
-                    style: const TextStyle(
-                        color: Colors.white70, fontSize: 13)),
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 13)),
                 Text('$prog – $dept',
-                    style: const TextStyle(
-                        color: Colors.white60, fontSize: 12)),
+                    style:
+                        const TextStyle(color: Colors.white60, fontSize: 12)),
               ],
             ),
           ),
@@ -466,11 +466,11 @@ class _StudentMarksTabState extends State<_StudentMarksTab> {
       setState(() {
         _marks = snap.docs.map((d) => d.data()).toList()
           ..sort((a, b) {
-            final yr = (a['year']?.toString() ?? '').compareTo(
-                b['year']?.toString() ?? '');
+            final yr = (a['year']?.toString() ?? '')
+                .compareTo(b['year']?.toString() ?? '');
             if (yr != 0) return yr;
-            return (a['semester']?.toString() ?? '').compareTo(
-                b['semester']?.toString() ?? '');
+            return (a['semester']?.toString() ?? '')
+                .compareTo(b['semester']?.toString() ?? '');
           });
         _loading = false;
       });
@@ -520,8 +520,7 @@ class _MarksGroup extends StatelessWidget {
         children: [
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             decoration: const BoxDecoration(
               color: Color(0xFF1e3a5f),
               borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
@@ -533,7 +532,8 @@ class _MarksGroup extends StatelessWidget {
                     fontSize: 13)),
           ),
           ...rows.map((m) {
-            final compMarks = m['componentMarks'] as Map<String, dynamic>? ?? {};
+            final compMarks =
+                m['componentMarks'] as Map<String, dynamic>? ?? {};
             final total = m['totalMarks'];
             final maxM = m['maxMarks'];
             return Column(
@@ -548,8 +548,7 @@ class _MarksGroup extends StatelessWidget {
                       compMarks.entries
                           .map((e) => '${e.key}: ${e.value}')
                           .join('   '),
-                      style:
-                          const TextStyle(fontSize: 11, color: Colors.grey)),
+                      style: const TextStyle(fontSize: 11, color: Colors.grey)),
                   trailing: total != null
                       ? Container(
                           padding: const EdgeInsets.symmetric(
@@ -648,8 +647,7 @@ class _StudentAttendanceTabState extends State<_StudentAttendanceTab> {
           if (overall.isNotEmpty)
             Card(
               child: ListTile(
-                leading: const Icon(Icons.pie_chart,
-                    color: Color(0xFF1e3a5f)),
+                leading: const Icon(Icons.pie_chart, color: Color(0xFF1e3a5f)),
                 title: const Text('Overall Attendance',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 trailing: Text('$overall%',
@@ -671,7 +669,8 @@ class _StudentAttendanceTabState extends State<_StudentAttendanceTab> {
     // Group by subject
     final grouped = <String, List<Map<String, dynamic>>>{};
     for (final r in _records) {
-      final key = '${r['subjectCode'] ?? r['courseCode'] ?? 'Unknown'} – ${r['subjectName'] ?? r['courseName'] ?? ''}';
+      final key =
+          '${r['subjectCode'] ?? r['courseCode'] ?? 'Unknown'} – ${r['subjectName'] ?? r['courseName'] ?? ''}';
       grouped.putIfAbsent(key, () => []).add(r);
     }
 
@@ -693,10 +692,10 @@ class _StudentAttendanceTabState extends State<_StudentAttendanceTab> {
           ),
         const SizedBox(height: 8),
         ...grouped.entries.map((e) {
-          final held = e.value
-              .fold<int>(0, (s, r) => s + _toInt(r['classesHeld']));
-          final attended = e.value
-              .fold<int>(0, (s, r) => s + _toInt(r['classesAttended']));
+          final held =
+              e.value.fold<int>(0, (s, r) => s + _toInt(r['classesHeld']));
+          final attended =
+              e.value.fold<int>(0, (s, r) => s + _toInt(r['classesAttended']));
           final pct = held > 0 ? (attended / held * 100) : 0.0;
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
@@ -723,8 +722,7 @@ class _StudentAttendanceTabState extends State<_StudentAttendanceTab> {
 class _StudentMemosTab extends StatefulWidget {
   final String rollNumber;
   final Map<String, dynamic> studentData;
-  const _StudentMemosTab(
-      {required this.rollNumber, required this.studentData});
+  const _StudentMemosTab({required this.rollNumber, required this.studentData});
   @override
   State<_StudentMemosTab> createState() => _StudentMemosTabState();
 }
@@ -759,8 +757,8 @@ class _StudentMemosTabState extends State<_StudentMemosTab> {
         return m;
       }).toList()
         ..sort((a, b) {
-          final yr =
-              (b['year']?.toString() ?? '').compareTo(a['year']?.toString() ?? '');
+          final yr = (b['year']?.toString() ?? '')
+              .compareTo(a['year']?.toString() ?? '');
           if (yr != 0) return yr;
           return (b['semester']?.toString() ?? '')
               .compareTo(a['semester']?.toString() ?? '');
@@ -798,8 +796,7 @@ class _StudentMemosTabState extends State<_StudentMemosTab> {
         String dateStr = '';
         if (releasedAt is Timestamp) {
           final dt = releasedAt.toDate();
-          dateStr =
-              '${dt.day}/${dt.month}/${dt.year}';
+          dateStr = '${dt.day}/${dt.month}/${dt.year}';
         }
         return Card(
           margin: const EdgeInsets.only(bottom: 10),
@@ -810,8 +807,8 @@ class _StudentMemosTabState extends State<_StudentMemosTab> {
                 color: const Color(0xFF1e3a5f).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.article_outlined,
-                  color: Color(0xFF1e3a5f)),
+              child:
+                  const Icon(Icons.article_outlined, color: Color(0xFF1e3a5f)),
             ),
             title: Text('Year $yr – Semester $sem',
                 style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -819,8 +816,7 @@ class _StudentMemosTabState extends State<_StudentMemosTab> {
                 '${m['academicYear'] ?? ''}  •  $session  •  Branch: $branch'),
             trailing: dateStr.isNotEmpty
                 ? Text(dateStr,
-                    style: const TextStyle(
-                        fontSize: 11, color: Colors.grey))
+                    style: const TextStyle(fontSize: 11, color: Colors.grey))
                 : null,
             onTap: () => _viewMemoMarks(context, m),
           ),
@@ -896,11 +892,9 @@ class _AdminMemoMarksViewState extends State<_AdminMemoMarksView> {
         final d = doc.data();
         final docYear = d['year'];
         final yearMatch = memoYearInt != null
-            ? (docYear == memoYearInt ||
-                docYear?.toString() == memoYear)
+            ? (docYear == memoYearInt || docYear?.toString() == memoYear)
             : docYear?.toString() == memoYear;
-        final semMatch =
-            _normSem(d['semester']?.toString() ?? '') == memoSem;
+        final semMatch = _normSem(d['semester']?.toString() ?? '') == memoSem;
         return yearMatch && semMatch;
       }).toList();
 
@@ -921,8 +915,10 @@ class _AdminMemoMarksViewState extends State<_AdminMemoMarksView> {
           final val = v is int
               ? v
               : (v is num ? v.floor() : int.tryParse(v.toString()) ?? 0);
-          if (_isEte(e.key)) eteSum += val;
-          else cieSum += val;
+          if (_isEte(e.key))
+            eteSum += val;
+          else
+            cieSum += val;
         }
         final maxAll = d['maxMarks'] is int
             ? d['maxMarks'] as int
@@ -1020,8 +1016,7 @@ class _AdminMemoMarksViewState extends State<_AdminMemoMarksView> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: WidgetStateProperty.all(
-                  const Color(0xFF1e3a5f)),
+              headingRowColor: WidgetStateProperty.all(const Color(0xFF1e3a5f)),
               headingTextStyle: const TextStyle(
                   color: Colors.white, fontWeight: FontWeight.bold),
               columns: const [
@@ -1038,9 +1033,7 @@ class _AdminMemoMarksViewState extends State<_AdminMemoMarksView> {
               rows: _rows.asMap().entries.map((e) {
                 final idx = e.key;
                 final r = e.value;
-                final pct = r.maxMarks > 0
-                    ? (r.grand / r.maxMarks * 100)
-                    : 0.0;
+                final pct = r.maxMarks > 0 ? (r.grand / r.maxMarks * 100) : 0.0;
                 final grade = _grade(pct);
                 final gp = _gradePoint(pct);
                 final cp = gp * r.credits;
@@ -1056,11 +1049,10 @@ class _AdminMemoMarksViewState extends State<_AdminMemoMarksView> {
                   cells: [
                     DataCell(Text('${idx + 1}')),
                     DataCell(Text(r.code)),
-                    DataCell(SizedBox(
-                        width: 180, child: Text(r.name, maxLines: 2))),
+                    DataCell(
+                        SizedBox(width: 180, child: Text(r.name, maxLines: 2))),
                     DataCell(Text('${r.grand}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold))),
+                        style: const TextStyle(fontWeight: FontWeight.bold))),
                     DataCell(Text('${r.maxMarks}')),
                     DataCell(Text(grade,
                         style: TextStyle(
@@ -1072,8 +1064,7 @@ class _AdminMemoMarksViewState extends State<_AdminMemoMarksView> {
                                     : Colors.red.shade700))),
                     DataCell(Text('${r.credits}')),
                     DataCell(Text(cp.toStringAsFixed(1),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold))),
+                        style: const TextStyle(fontWeight: FontWeight.bold))),
                     DataCell(Text(
                       passed ? 'PASS' : 'FAIL',
                       style: TextStyle(
@@ -1090,8 +1081,7 @@ class _AdminMemoMarksViewState extends State<_AdminMemoMarksView> {
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFF1e3a5f),
               borderRadius: BorderRadius.circular(8),
@@ -1264,8 +1254,7 @@ class _FacultyLookupTabState extends State<_FacultyLookupTab> {
         if (_error != null)
           Padding(
             padding: const EdgeInsets.all(16),
-            child:
-                Text(_error!, style: const TextStyle(color: Colors.red)),
+            child: Text(_error!, style: const TextStyle(color: Colors.red)),
           ),
         if (_showResults) _buildResultsList(),
         if (_facultyData != null && _selectedId != null)
@@ -1296,10 +1285,10 @@ class _FacultyLookupTabState extends State<_FacultyLookupTab> {
               decoration: InputDecoration(
                 hintText: 'Enter faculty ID or name…',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 isDense: true,
               ),
               onSubmitted: (_) => _search(),
@@ -1332,11 +1321,10 @@ class _FacultyLookupTabState extends State<_FacultyLookupTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text('${_searchResults.length} results found',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ),
           ..._searchResults.map((f) {
             final id = f['_facultyId']?.toString() ?? '';
@@ -1497,8 +1485,7 @@ class _FacultyAssignmentsTab extends StatefulWidget {
   final String facultyId;
   const _FacultyAssignmentsTab({required this.facultyId});
   @override
-  State<_FacultyAssignmentsTab> createState() =>
-      _FacultyAssignmentsTabState();
+  State<_FacultyAssignmentsTab> createState() => _FacultyAssignmentsTabState();
 }
 
 class _FacultyAssignmentsTabState extends State<_FacultyAssignmentsTab> {
@@ -1548,10 +1535,8 @@ class _FacultyAssignmentsTabState extends State<_FacultyAssignmentsTab> {
         final d = _docs[i].data() as Map<String, dynamic>;
         return Card(
           child: ListTile(
-            leading: const Icon(Icons.book_outlined,
-                color: Color(0xFF1e3a5f)),
-            title: Text(
-                '${d['subjectCode'] ?? ''} – ${d['subjectName'] ?? ''}',
+            leading: const Icon(Icons.book_outlined, color: Color(0xFF1e3a5f)),
+            title: Text('${d['subjectCode'] ?? ''} – ${d['subjectName'] ?? ''}',
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text(
                 'Year ${d['year']}  •  Sem ${d['semester']}  •  ${d['department'] ?? d['branch'] ?? ''}'
@@ -1629,16 +1614,16 @@ class _FacultyMarksEnteredTabState extends State<_FacultyMarksEnteredTab> {
           margin: const EdgeInsets.only(bottom: 10),
           child: ExpansionTile(
             title: Text(e.key,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             subtitle: Text('${e.value.length} students'),
             children: e.value.map((m) {
               final compMarks =
                   m['componentMarks'] as Map<String, dynamic>? ?? {};
               return ListTile(
                 dense: true,
-                title: Text(
-                    '${m['studentId'] ?? '?'}  ${m['studentName'] ?? ''}'),
+                title:
+                    Text('${m['studentId'] ?? '?'}  ${m['studentName'] ?? ''}'),
                 subtitle: Text(
                     compMarks.entries
                         .map((c) => '${c.key}: ${c.value}')
@@ -1733,8 +1718,7 @@ class _EmptyView extends StatelessWidget {
             const SizedBox(height: 16),
             Text(message,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 14, color: Colors.grey.shade500)),
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
           ],
         ),
       ),
@@ -1761,8 +1745,7 @@ class _SearchPrompt extends StatelessWidget {
             forStudent
                 ? 'Search by roll number or student name'
                 : 'Search by faculty ID or name',
-            style:
-                TextStyle(fontSize: 14, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
         ],
       ),
@@ -1788,8 +1771,8 @@ class _PctBadge extends StatelessWidget {
           border: Border.all(color: color.withOpacity(0.5))),
       child: Text(
         '${pct.toStringAsFixed(1)}%',
-        style: TextStyle(
-            color: color, fontWeight: FontWeight.bold, fontSize: 12),
+        style:
+            TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
       ),
     );
   }
