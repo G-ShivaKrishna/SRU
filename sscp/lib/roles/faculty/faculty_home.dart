@@ -23,6 +23,7 @@ import 'screens/faculty_handbook_screen.dart';
 import 'screens/update_basic_data_screen.dart';
 import 'screens/course_preference_screen.dart';
 import 'screens/preference_report_screen.dart';
+import 'screens/course_view_screen.dart';
 
 class FacultyHome extends StatefulWidget {
   const FacultyHome({super.key});
@@ -224,6 +225,7 @@ class _FacultyHomeState extends State<FacultyHome> {
             _buildDropdownMenu(context, 'Professional Outline', [
               'View Profile',
               'Update Basic Data',
+              'Course View',
               'Course Preference',
               'Preference Report',
               'Feedback',
@@ -270,6 +272,7 @@ class _FacultyHomeState extends State<FacultyHome> {
             _buildDropdownMenu(context, 'Professional Outline', [
               'View Profile',
               'Update Basic Data',
+              'Course View',
               'Course Preference',
               'Preference Report',
               'Feedback',
@@ -835,6 +838,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       // Professional Outline submenu
       'View Profile': 'profile',
       'Update Basic Data': 'update_profile',
+      'Course View': 'course_view',
       'Course Preference': 'course_preference',
       'Preference Report': 'preference_report',
       'Feedback': 'feedback',
@@ -902,6 +906,8 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const CoursePreferenceScreen();
       case 'preference_report':
         page = const PreferenceReportScreen();
+      case 'course_view':
+        page = const CourseViewScreen();
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$route - Coming Soon')),
