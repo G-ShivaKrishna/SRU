@@ -157,7 +157,11 @@ class _StudentHomeState extends State<StudentHome> {
         int cieSum = 0, eteSum = 0;
         for (final e in rawMarks.entries) {
           final v = e.value;
-          final val = (v is int) ? v : (v is num) ? v.floor() : int.tryParse(v.toString()) ?? 0;
+          final val = (v is int)
+              ? v
+              : (v is num)
+                  ? v.floor()
+                  : int.tryParse(v.toString()) ?? 0;
           if (isEte(e.key)) {
             eteSum += val;
           } else {
@@ -215,7 +219,11 @@ class _StudentHomeState extends State<StudentHome> {
       });
     } catch (e) {
       debugPrint('[CGPA] computation error: $e');
-      if (mounted) setState(() { _computedCgpa = 0.0; _cgpaLoaded = true; });
+      if (mounted)
+        setState(() {
+          _computedCgpa = 0.0;
+          _cgpaLoaded = true;
+        });
     }
   }
 
