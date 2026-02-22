@@ -6,13 +6,12 @@ import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
 import 'screens/academics_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/course_registration_screen.dart';
 import 'screens/subject_registration_screen.dart';
 import 'screens/attendance_screen.dart';
 import 'screens/results_screen.dart';
+import 'screens/student_cie_marks_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
-import 'screens/university_clubs_screen.dart';
 import 'screens/central_library_screen.dart';
 
 class StudentHome extends StatefulWidget {
@@ -109,7 +108,11 @@ class _StudentHomeState extends State<StudentHome> {
         page = const AttendanceScreen();
         break;
       case 'Results':
+      case 'Semester Memos':
         page = const ResultsScreen();
+        break;
+      case 'CIE Marks':
+        page = const StudentCieMarksScreen();
         break;
       case 'Feedback':
         page = const FeedbackScreen();
@@ -262,6 +265,11 @@ class _StudentHomeState extends State<StudentHome> {
   }
 
   Widget _buildMobileMenu(BuildContext context, List<String> menuItems) {
+    // Remove 'Results' from main items; add sub-items directly
+    final visibleItems = menuItems
+        .where((item) => item != 'Home' && item != 'Results')
+        .toList();
+
     return Container(
       color: const Color(0xFF1e3a5f),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -271,10 +279,7 @@ class _StudentHomeState extends State<StudentHome> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: menuItems
-                    .where((item) => item != 'Home')
-                    .take(4)
-                    .map((item) {
+                children: visibleItems.take(4).map((item) {
                   return GestureDetector(
                     onTap: () => _navigateToPage(context, item),
                     child: Padding(
@@ -299,20 +304,50 @@ class _StudentHomeState extends State<StudentHome> {
             color: const Color(0xFF1e3a5f),
             onSelected: (value) => _navigateToPage(context, value),
             itemBuilder: (BuildContext context) {
-              return menuItems
-                  .where((item) =>
-                      item != 'Home' &&
-                      !['Academics', 'Profile', 'Course Reg.', 'Attendance']
-                          .contains(item))
-                  .map((String choice) {
-                return PopupMenuItem<String>(
-                  value: choice,
+              final overflowItems = visibleItems
+                  .where((item) => ![
+                        'Academics',
+                        'Profile',
+                        'Course Reg.',
+                        'Attendance'
+                      ].contains(item))
+                  .toList();
+              return [
+                // Results group header + submenu items for Results
+                const PopupMenuItem<String>(
+                  enabled: false,
+                  height: 30,
                   child: Text(
-                    choice,
-                    style: const TextStyle(color: Colors.white),
+                    'Results',
+                    style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold),
                   ),
-                );
-              }).toList();
+                ),
+                const PopupMenuItem<String>(
+                  value: 'Semester Memos',
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Text('Semester Memos',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'CIE Marks',
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Text('CIE Marks',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+                const PopupMenuDivider(),
+                ...overflowItems.map((item) => PopupMenuItem<String>(
+                      value: item,
+                      child: Text(item,
+                          style: const TextStyle(color: Colors.white)),
+                    )),
+              ];
             },
           ),
         ],
@@ -327,6 +362,45 @@ class _StudentHomeState extends State<StudentHome> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: menuItems.map((item) {
+            if (item == 'Results') {
+              // ── Results dropdown ──────────────────────────────
+              return PopupMenuButton<String>(
+                offset: const Offset(0, 40),
+                color: const Color(0xFF1e3a5f),
+                onSelected: (value) => _navigateToPage(context, value),
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'Semester Memos',
+                    child: Text('Semester Memos',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'CIE Marks',
+                    child: Text('CIE Marks',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 12),
+                  child: Row(
+                    children: const [
+                      Text(
+                        'Results',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(width: 3),
+                      Icon(Icons.arrow_drop_down,
+                          color: Colors.white70, size: 16),
+                    ],
+                  ),
+                ),
+              );
+            }
             return GestureDetector(
               onTap: () => _navigateToPage(context, item),
               child: Padding(
