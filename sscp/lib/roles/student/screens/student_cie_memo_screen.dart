@@ -898,8 +898,10 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
             _cell('COURSE\nCODE', headerText, rowPad),
             _cell('COURSE TITLE', headerText, rowPad),
             _cell('LETTER\nGRADE', headerText, rowPad, align: TextAlign.center),
-            _cell('COURSE\nCREDITS', headerText, rowPad, align: TextAlign.center),
-            _cell('CREDIT\nPOINTS', headerText, rowPad, align: TextAlign.center),
+            _cell('COURSE\nCREDITS', headerText, rowPad,
+                align: TextAlign.center),
+            _cell('CREDIT\nPOINTS', headerText, rowPad,
+                align: TextAlign.center),
             _cell('STATUS', headerText, rowPad, align: TextAlign.center),
           ],
         ),
@@ -988,8 +990,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
             _summaryCell('SUBJECTS\nREGISTERED\n$total', Colors.black),
             _summaryCell('APPEARED\n$total', Colors.black),
             _summaryCell('PASSED\n$passed', Colors.green.shade700),
-            _summaryCell(
-                'TOTAL\nCREDITS\n$_totalCredits', Colors.black),
+            _summaryCell('TOTAL\nCREDITS\n$_totalCredits', Colors.black),
             _summaryCell(
                 'TOTAL CREDIT\nPOINTS\n${_totalCreditPoints.toStringAsFixed(3)}',
                 Colors.black),

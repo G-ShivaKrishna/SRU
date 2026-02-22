@@ -339,8 +339,8 @@ class _StudentHomeState extends State<StudentHome> {
                   value: 'Semester Memo',
                   child: Padding(
                     padding: EdgeInsets.only(left: 12),
-                    child:
-                        Text('Semester Memo', style: TextStyle(color: Colors.white)),
+                    child: Text('Semester Memo',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 const PopupMenuDivider(),
@@ -378,8 +378,8 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                   const PopupMenuItem(
                     value: 'Semester Memo',
-                    child:
-                        Text('Semester Memo', style: TextStyle(color: Colors.white)),
+                    child: Text('Semester Memo',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ],
                 child: Padding(
