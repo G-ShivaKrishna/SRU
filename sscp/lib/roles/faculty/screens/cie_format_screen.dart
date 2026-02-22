@@ -11,17 +11,21 @@ class _MarksComponent {
   int marks;
   String type; // 'internal' | 'external'
 
-  _MarksComponent({required this.name, required this.marks, required this.type});
+  _MarksComponent(
+      {required this.name, required this.marks, required this.type});
 
   Map<String, dynamic> toMap() => {'name': name, 'marks': marks, 'type': type};
 
   static _MarksComponent fromMap(Map<String, dynamic> m) => _MarksComponent(
         name: m['name'] ?? '',
-        marks: (m['marks'] ?? 0) is int ? m['marks'] : int.tryParse(m['marks'].toString()) ?? 0,
+        marks: (m['marks'] ?? 0) is int
+            ? m['marks']
+            : int.tryParse(m['marks'].toString()) ?? 0,
         type: m['type'] ?? 'internal',
       );
 
-  _MarksComponent copy() => _MarksComponent(name: name, marks: marks, type: type);
+  _MarksComponent copy() =>
+      _MarksComponent(name: name, marks: marks, type: type);
 }
 
 class _Assignment {
@@ -92,7 +96,10 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
   // ── Load ───────────────────────────────────────────────────────────────────
 
   Future<void> _load() async {
-    setState(() { _isLoading = true; _loadError = null; });
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
@@ -115,7 +122,9 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
             batches: List<String>.from(d['assignedBatches'] ?? []),
             academicYear: d['academicYear'] ?? '',
             semester: d['semester'] ?? '',
-            year: (d['year'] ?? 0) is int ? d['year'] : int.tryParse(d['year'].toString()) ?? 0,
+            year: (d['year'] ?? 0) is int
+                ? d['year']
+                : int.tryParse(d['year'].toString()) ?? 0,
           ));
         }
       }
@@ -158,7 +167,10 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _loadError = e.toString(); _isLoading = false; });
+      setState(() {
+        _loadError = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
@@ -189,7 +201,10 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
             child: Text('Error: $_loadError', textAlign: TextAlign.center),
           ),
           const SizedBox(height: 16),
-          ElevatedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+          ElevatedButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry')),
         ]),
       );
     }
@@ -198,7 +213,8 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(Icons.assignment_outlined, size: 72, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          const Text('No assigned courses found', style: TextStyle(fontSize: 18, color: Colors.grey)),
+          const Text('No assigned courses found',
+              style: TextStyle(fontSize: 18, color: Colors.grey)),
           const SizedBox(height: 8),
           const Text(
             'You need to have courses assigned by the admin\nbefore defining marks format.',
@@ -219,7 +235,10 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
               const Center(
                 child: Text(
                   'Check & Define CIE Format',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87),
                 ),
               ),
               const SizedBox(height: 6),
@@ -248,8 +267,10 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
       return ay == year;
     }).toList();
 
-    final headerColor = isCurrent ? const Color(0xFF1e3a5f) : const Color(0xFF546e7a);
-    final defined = courses.where((c) => _definitions.containsKey(c.docId)).length;
+    final headerColor =
+        isCurrent ? const Color(0xFF1e3a5f) : const Color(0xFF546e7a);
+    final defined =
+        courses.where((c) => _definitions.containsKey(c.docId)).length;
 
     return Container(
       decoration: BoxDecoration(
@@ -266,20 +287,29 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: headerColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(7)),
             ),
             child: Row(
               children: [
                 const Icon(Icons.menu_book, color: Colors.white70, size: 18),
                 const SizedBox(width: 8),
                 Text(
-                  isCurrent ? 'Current Academic Year ($year)' : 'Academic Year ($year)',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  isCurrent
+                      ? 'Current Academic Year ($year)'
+                      : 'Academic Year ($year)',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14),
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(12)),
                   child: Text(
                     '$defined/${courses.length} defined',
                     style: const TextStyle(color: Colors.white, fontSize: 12),
@@ -310,11 +340,14 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: isMobile ? _buildCourseRowMobile(a, def, isDefined) : _buildCourseRowDesktop(a, def, isDefined),
+      child: isMobile
+          ? _buildCourseRowMobile(a, def, isDefined)
+          : _buildCourseRowDesktop(a, def, isDefined),
     );
   }
 
-  Widget _buildCourseRowDesktop(_Assignment a, _Definition? def, bool isDefined) {
+  Widget _buildCourseRowDesktop(
+      _Assignment a, _Definition? def, bool isDefined) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -326,15 +359,23 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
             children: [
               Row(children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1e3a5f).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(a.subjectCode, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF1e3a5f))),
+                  child: Text(a.subjectCode,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: Color(0xFF1e3a5f))),
                 ),
                 const SizedBox(width: 8),
-                Flexible(child: Text(a.subjectName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                Flexible(
+                    child: Text(a.subjectName,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13))),
               ]),
               const SizedBox(height: 6),
               Wrap(spacing: 6, runSpacing: 4, children: [
@@ -349,7 +390,10 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
         // Definition summary
         Expanded(
           flex: 3,
-          child: isDefined ? _buildDefSummary(def!) : const Text('Not defined yet', style: TextStyle(color: Colors.grey, fontSize: 12)),
+          child: isDefined
+              ? _buildDefSummary(def!)
+              : const Text('Not defined yet',
+                  style: TextStyle(color: Colors.grey, fontSize: 12)),
         ),
         const SizedBox(width: 16),
         // Action button
@@ -358,7 +402,8 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
           icon: Icon(isDefined ? Icons.edit : Icons.add, size: 16),
           label: Text(isDefined ? 'Edit' : 'Define'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: isDefined ? Colors.orange[700] : const Color(0xFF1e3a5f),
+            backgroundColor:
+                isDefined ? Colors.orange[700] : const Color(0xFF1e3a5f),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             textStyle: const TextStyle(fontSize: 12),
@@ -368,7 +413,8 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
     );
   }
 
-  Widget _buildCourseRowMobile(_Assignment a, _Definition? def, bool isDefined) {
+  Widget _buildCourseRowMobile(
+      _Assignment a, _Definition? def, bool isDefined) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -381,18 +427,27 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
                 children: [
                   Row(children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1e3a5f).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(a.subjectCode, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF1e3a5f))),
+                      child: Text(a.subjectCode,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              color: Color(0xFF1e3a5f))),
                     ),
                   ]),
                   const SizedBox(height: 4),
-                  Text(a.subjectName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  Text(a.subjectName,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 13)),
                   const SizedBox(height: 4),
-                  Text('Year ${a.year} • Sem ${a.semester} • ${a.batches.join(", ")}', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                  Text(
+                      'Year ${a.year} • Sem ${a.semester} • ${a.batches.join(", ")}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                 ],
               ),
             ),
@@ -400,9 +455,11 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
             ElevatedButton(
               onPressed: () => _openDefineDialog(a, def),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDefined ? Colors.orange[700] : const Color(0xFF1e3a5f),
+                backgroundColor:
+                    isDefined ? Colors.orange[700] : const Color(0xFF1e3a5f),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 textStyle: const TextStyle(fontSize: 12),
               ),
               child: Text(isDefined ? 'Edit' : 'Define'),
@@ -424,7 +481,11 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
         Row(children: [
           const Icon(Icons.check_circle, size: 14, color: Colors.green),
           const SizedBox(width: 4),
-          Text('Total: ${def.totalMarks} marks', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.green)),
+          Text('Total: ${def.totalMarks} marks',
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  color: Colors.green)),
           const SizedBox(width: 8),
           if (def.updatedAt != null)
             Text(
@@ -436,18 +497,31 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
         Wrap(
           spacing: 6,
           runSpacing: 4,
-          children: def.components.map((c) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: c.type == 'external' ? Colors.orange.withOpacity(0.12) : Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: c.type == 'external' ? Colors.orange.withOpacity(0.4) : Colors.blue.withOpacity(0.3)),
-            ),
-            child: Text(
-              '${c.name}: ${c.marks}',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: c.type == 'external' ? Colors.orange[800] : Colors.blue[800]),
-            ),
-          )).toList(),
+          children: def.components
+              .map((c) => Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: c.type == 'external'
+                          ? Colors.orange.withOpacity(0.12)
+                          : Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: c.type == 'external'
+                              ? Colors.orange.withOpacity(0.4)
+                              : Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      '${c.name}: ${c.marks}',
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: c.type == 'external'
+                              ? Colors.orange[800]
+                              : Colors.blue[800]),
+                    ),
+                  ))
+              .toList(),
         ),
       ],
     );
@@ -486,7 +560,11 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
         'batches': a.batches,
         'totalMarks': def.totalMarks,
         'components': def.components.map((c) => c.toMap()).toList(),
-        'definedAt': _definitions.containsKey(a.docId) ? (_definitions[a.docId]!.updatedAt != null ? Timestamp.fromDate(_definitions[a.docId]!.updatedAt!) : now) : now,
+        'definedAt': _definitions.containsKey(a.docId)
+            ? (_definitions[a.docId]!.updatedAt != null
+                ? Timestamp.fromDate(_definitions[a.docId]!.updatedAt!)
+                : now)
+            : now,
         'updatedAt': now,
       });
 
@@ -501,13 +579,16 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
           );
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Marks format saved successfully'), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text('Marks format saved successfully'),
+              backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Failed to save: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -531,7 +612,8 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFF1e3a5f).withOpacity(0.25)),
       ),
-      child: Text(batch, style: const TextStyle(fontSize: 11, color: Color(0xFF1e3a5f))),
+      child: Text(batch,
+          style: const TextStyle(fontSize: 11, color: Color(0xFF1e3a5f))),
     );
   }
 
@@ -547,7 +629,8 @@ class _DefineMarksDialog extends StatefulWidget {
   final _Definition? existing;
   final Future<void> Function(_Definition) onSave;
 
-  const _DefineMarksDialog({required this.assignment, this.existing, required this.onSave});
+  const _DefineMarksDialog(
+      {required this.assignment, this.existing, required this.onSave});
 
   @override
   State<_DefineMarksDialog> createState() => _DefineMarksDialogState();
@@ -571,7 +654,8 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
   void initState() {
     super.initState();
     if (widget.existing != null) {
-      _totalCtrl = TextEditingController(text: widget.existing!.totalMarks.toString());
+      _totalCtrl =
+          TextEditingController(text: widget.existing!.totalMarks.toString());
       _components = widget.existing!.components.map((c) => c.copy()).toList();
     } else {
       _totalCtrl = TextEditingController(text: '100');
@@ -614,7 +698,10 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
       await widget.onSave(def);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() { _saving = false; _error = e.toString(); });
+      setState(() {
+        _saving = false;
+        _error = e.toString();
+      });
     }
   }
 
@@ -663,12 +750,20 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Define Marks Format', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text('Define Marks Format',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16)),
                   const SizedBox(height: 2),
-                  Text('${a.subjectCode} • ${a.subjectName}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text('${a.subjectCode} • ${a.subjectName}',
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 12)),
                   const SizedBox(height: 2),
-                  Text('Year ${a.year} | Sem ${a.semester} | ${a.batches.join(", ")}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text(
+                      'Year ${a.year} | Sem ${a.semester} | ${a.batches.join(", ")}',
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 12)),
                 ],
               ),
             ),
@@ -682,20 +777,27 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                     // Total marks
                     Row(
                       children: [
-                        const Text('Total Marks', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        const Text('Total Marks',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 14)),
                         const SizedBox(width: 16),
                         SizedBox(
                           width: 120,
                           child: TextField(
                             controller: _totalCtrl,
                             keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
                               isDense: true,
                             ),
-                            onChanged: (_) => setState(() { _error = null; }),
+                            onChanged: (_) => setState(() {
+                              _error = null;
+                            }),
                           ),
                         ),
                       ],
@@ -704,31 +806,53 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                     // Components header
                     Row(
                       children: [
-                        const Expanded(child: Text('Mark Components', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
+                        const Expanded(
+                            child: Text('Mark Components',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14))),
                         TextButton.icon(
                           onPressed: _addComponent,
                           icon: const Icon(Icons.add, size: 16),
                           label: const Text('Add Component'),
-                          style: TextButton.styleFrom(foregroundColor: const Color(0xFF1e3a5f)),
+                          style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF1e3a5f)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     // Components table header
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(6)),
                         border: Border.all(color: Colors.grey[300]!),
                       ),
                       child: const Row(
                         children: [
-                          Expanded(flex: 3, child: Text('Component Name', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+                          Expanded(
+                              flex: 3,
+                              child: Text('Component Name',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12))),
                           SizedBox(width: 12),
-                          SizedBox(width: 90, child: Text('Marks', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+                          SizedBox(
+                              width: 90,
+                              child: Text('Marks',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12))),
                           SizedBox(width: 12),
-                          SizedBox(width: 110, child: Text('Type', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+                          SizedBox(
+                              width: 110,
+                              child: Text('Type',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12))),
                           SizedBox(width: 40),
                         ],
                       ),
@@ -740,7 +864,8 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                           right: BorderSide(color: Colors.grey[300]!),
                           bottom: BorderSide(color: Colors.grey[300]!),
                         ),
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(6)),
+                        borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(6)),
                       ),
                       child: Column(
                         children: _components.asMap().entries.map((entry) {
@@ -750,7 +875,9 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                             component: c,
                             isLast: i == _components.length - 1,
                             onDelete: () => _removeComponent(i),
-                            onChange: () => setState(() { _error = null; }),
+                            onChange: () => setState(() {
+                              _error = null;
+                            }),
                           );
                         }).toList(),
                       ),
@@ -769,7 +896,9 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: Colors.red[300]!),
                         ),
-                        child: Text(_error!, style: TextStyle(color: Colors.red[700], fontSize: 12)),
+                        child: Text(_error!,
+                            style: TextStyle(
+                                color: Colors.red[700], fontSize: 12)),
                       ),
                     ],
                   ],
@@ -786,14 +915,19 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: _saving ? null : () => Navigator.of(context).pop(),
+                    onPressed:
+                        _saving ? null : () => Navigator.of(context).pop(),
                     child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
                     onPressed: _saving ? null : _save,
                     icon: _saving
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.save, size: 16),
                     label: Text(_saving ? 'Saving...' : 'Save Format'),
                     style: ElevatedButton.styleFrom(
@@ -819,16 +953,29 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isOk ? Colors.green[50] : over ? Colors.red[50] : Colors.orange[50],
+        color: isOk
+            ? Colors.green[50]
+            : over
+                ? Colors.red[50]
+                : Colors.orange[50],
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: isOk ? Colors.green[300]! : over ? Colors.red[300]! : Colors.orange[300]!),
+        border: Border.all(
+            color: isOk
+                ? Colors.green[300]!
+                : over
+                    ? Colors.red[300]!
+                    : Colors.orange[300]!),
       ),
       child: Row(
         children: [
           Icon(
             isOk ? Icons.check_circle : Icons.info_outline,
             size: 16,
-            color: isOk ? Colors.green[700] : over ? Colors.red[700] : Colors.orange[700],
+            color: isOk
+                ? Colors.green[700]
+                : over
+                    ? Colors.red[700]
+                    : Colors.orange[700],
           ),
           const SizedBox(width: 8),
           Text(
@@ -836,17 +983,24 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,
-              color: isOk ? Colors.green[700] : over ? Colors.red[700] : Colors.orange[700],
+              color: isOk
+                  ? Colors.green[700]
+                  : over
+                      ? Colors.red[700]
+                      : Colors.orange[700],
             ),
           ),
           const SizedBox(width: 8),
           if (!isOk)
             Text(
-              over ? '(${ sum - total} over)' : '(${total - sum} remaining)',
-              style: TextStyle(fontSize: 12, color: over ? Colors.red[700] : Colors.orange[700]),
+              over ? '(${sum - total} over)' : '(${total - sum} remaining)',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: over ? Colors.red[700] : Colors.orange[700]),
             ),
           if (isOk)
-            Text('✓ Balanced', style: TextStyle(fontSize: 12, color: Colors.green[700])),
+            Text('✓ Balanced',
+                style: TextStyle(fontSize: 12, color: Colors.green[700])),
         ],
       ),
     );
@@ -880,7 +1034,10 @@ class _ComponentRowState extends State<_ComponentRow> {
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.component.name);
-    _marksCtrl = TextEditingController(text: widget.component.marks > 0 ? widget.component.marks.toString() : '');
+    _marksCtrl = TextEditingController(
+        text: widget.component.marks > 0
+            ? widget.component.marks.toString()
+            : '');
   }
 
   @override
@@ -895,7 +1052,9 @@ class _ComponentRowState extends State<_ComponentRow> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        border: widget.isLast ? null : Border(bottom: BorderSide(color: Colors.grey[200]!)),
+        border: widget.isLast
+            ? null
+            : Border(bottom: BorderSide(color: Colors.grey[200]!)),
       ),
       child: Row(
         children: [
@@ -907,7 +1066,8 @@ class _ComponentRowState extends State<_ComponentRow> {
               decoration: const InputDecoration(
                 hintText: 'e.g., Mid Sem 1',
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 isDense: true,
               ),
               style: const TextStyle(fontSize: 13),
@@ -928,7 +1088,8 @@ class _ComponentRowState extends State<_ComponentRow> {
               decoration: const InputDecoration(
                 hintText: '0',
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 isDense: true,
               ),
               style: const TextStyle(fontSize: 13),
@@ -947,11 +1108,16 @@ class _ComponentRowState extends State<_ComponentRow> {
               isDense: true,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
               items: const [
-                DropdownMenuItem(value: 'internal', child: Text('Internal', style: TextStyle(fontSize: 12))),
-                DropdownMenuItem(value: 'external', child: Text('External', style: TextStyle(fontSize: 12))),
+                DropdownMenuItem(
+                    value: 'internal',
+                    child: Text('Internal', style: TextStyle(fontSize: 12))),
+                DropdownMenuItem(
+                    value: 'external',
+                    child: Text('External', style: TextStyle(fontSize: 12))),
               ],
               onChanged: (v) {
                 setState(() => widget.component.type = v ?? 'internal');
@@ -964,7 +1130,8 @@ class _ComponentRowState extends State<_ComponentRow> {
           SizedBox(
             width: 32,
             child: IconButton(
-              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+              icon:
+                  const Icon(Icons.delete_outline, size: 18, color: Colors.red),
               onPressed: widget.onDelete,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
