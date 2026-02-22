@@ -30,7 +30,8 @@ class _Component {
   final String name;
   final int maxMarks;
   final String type;
-  const _Component({required this.name, required this.maxMarks, required this.type});
+  const _Component(
+      {required this.name, required this.maxMarks, required this.type});
 }
 
 class _StudentRow {
@@ -114,7 +115,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
   // ── Load assignments ──────────────────────────────────────────────────────
 
   Future<void> _loadAssignments() async {
-    setState(() { _loadingAssignments = true; _assignmentError = null; });
+    setState(() {
+      _loadingAssignments = true;
+      _assignmentError = null;
+    });
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
@@ -136,16 +140,24 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             batches: List<String>.from(d['assignedBatches'] ?? []),
             academicYear: d['academicYear'] ?? '',
             semester: d['semester'] ?? '',
-            year: (d['year'] ?? 0) is int ? d['year'] : int.tryParse(d['year'].toString()) ?? 0,
+            year: (d['year'] ?? 0) is int
+                ? d['year']
+                : int.tryParse(d['year'].toString()) ?? 0,
           ));
         }
       }
 
       if (!mounted) return;
-      setState(() { _assignments = list; _loadingAssignments = false; });
+      setState(() {
+        _assignments = list;
+        _loadingAssignments = false;
+      });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _assignmentError = e.toString(); _loadingAssignments = false; });
+      setState(() {
+        _assignmentError = e.toString();
+        _loadingAssignments = false;
+      });
     }
   }
 
@@ -159,14 +171,21 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     // Dispose old rows
     for (final row in _studentRows) row.dispose();
 
-    setState(() { _loadingMarks = true; _marksError = null; _marksLoaded = false; _studentRows = []; });
+    setState(() {
+      _loadingMarks = true;
+      _marksError = null;
+      _marksLoaded = false;
+      _studentRows = [];
+    });
 
     try {
       // 1. Load marksDefinition for this assignment
-      final defDoc = await _fs.collection('marksDefinition').doc(assignment.docId).get();
+      final defDoc =
+          await _fs.collection('marksDefinition').doc(assignment.docId).get();
       if (!defDoc.exists) {
         setState(() {
-          _marksError = 'No marks format defined for this subject yet.\nGo to Marks Entry → Regular Exams → "Check & Define CIE Format" first.';
+          _marksError =
+              'No marks format defined for this subject yet.\nGo to Marks Entry → Regular Exams → "Check & Define CIE Format" first.';
           _loadingMarks = false;
         });
         return;
@@ -175,14 +194,18 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       final compList = (defData['components'] as List<dynamic>? ?? [])
           .map((c) => _Component(
                 name: c['name'] ?? '',
-                maxMarks: (c['marks'] ?? 0) is int ? c['marks'] : int.tryParse(c['marks'].toString()) ?? 0,
+                maxMarks: (c['marks'] ?? 0) is int
+                    ? c['marks']
+                    : int.tryParse(c['marks'].toString()) ?? 0,
                 type: c['type'] ?? 'internal',
               ))
           .toList();
 
       // 2. Parse batch → department + batchNumber  e.g. "CSE-A" → dept="CSE", bn="A"
       final parts = batch.split('-');
-      final dept = parts.length >= 2 ? parts.sublist(0, parts.length - 1).join('-') : batch;
+      final dept = parts.length >= 2
+          ? parts.sublist(0, parts.length - 1).join('-')
+          : batch;
       final batchNumber = parts.length >= 2 ? parts.last : '';
 
       // 3. Load students: single where (no composite index), filter in Dart
@@ -194,7 +217,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       final students = studentSnap.docs.where((doc) {
         final d = doc.data();
         final bn = (d['batchNumber'] ?? '').toString();
-        final yr = (d['year'] ?? 0) is int ? d['year'] as int : int.tryParse(d['year'].toString()) ?? 0;
+        final yr = (d['year'] ?? 0) is int
+            ? d['year'] as int
+            : int.tryParse(d['year'].toString()) ?? 0;
         final status = (d['status'] ?? 'active').toString();
         return bn == batchNumber &&
             yr == assignment.year &&
@@ -216,7 +241,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         final d = doc.data();
         if ((d['batch'] ?? '') == batch) {
           final sid = (d['studentId'] ?? '').toString();
-          existingMarks[sid] = Map<String, dynamic>.from(d['componentMarks'] ?? {});
+          existingMarks[sid] =
+              Map<String, dynamic>.from(d['componentMarks'] ?? {});
         }
       }
 
@@ -228,10 +254,12 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         final saved = existingMarks[sid];
         final controllers = <String, TextEditingController>{};
         for (final comp in compList) {
-          final existing = saved != null
-              ? (saved[comp.name] ?? '').toString()
-              : '';
-          controllers[comp.name] = TextEditingController(text: existing == '0' && saved == null ? '' : (existing == '0' ? '' : existing));
+          final existing =
+              saved != null ? (saved[comp.name] ?? '').toString() : '';
+          controllers[comp.name] = TextEditingController(
+              text: existing == '0' && saved == null
+                  ? ''
+                  : (existing == '0' ? '' : existing));
         }
         return _StudentRow(
           studentId: sid,
@@ -253,7 +281,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _marksError = e.toString(); _loadingMarks = false; });
+      setState(() {
+        _marksError = e.toString();
+        _loadingMarks = false;
+      });
     }
   }
 
@@ -267,11 +298,13 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       final facultyId = _auth.currentUser!.email!.split('@')[0].toUpperCase();
       final compMarks = <String, int>{};
       for (final c in _components) {
-        compMarks[c.name] = int.tryParse(row.controllers[c.name]?.text ?? '') ?? 0;
+        compMarks[c.name] =
+            int.tryParse(row.controllers[c.name]?.text ?? '') ?? 0;
       }
       final total = compMarks.values.fold(0, (s, v) => s + v);
 
-      final docId = '${assignment.docId}_${batch.replaceAll('-', '_')}_${row.studentId}';
+      final docId =
+          '${assignment.docId}_${batch.replaceAll('-', '_')}_${row.studentId}';
       await _fs.collection('studentMarks').doc(docId).set({
         'facultyId': facultyId,
         'assignmentId': assignment.docId,
@@ -290,12 +323,17 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       }, SetOptions(merge: true));
 
       if (!mounted) return;
-      setState(() { row.isSaved = true; row.isSaving = false; });
+      setState(() {
+        row.isSaved = true;
+        row.isSaving = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => row.isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save ${row.studentId}: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Failed to save ${row.studentId}: $e'),
+            backgroundColor: Colors.red),
       );
     }
   }
@@ -311,13 +349,19 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         final val = int.tryParse(row.controllers[comp.name]?.text ?? '');
         if (val == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${row.studentId}: "${comp.name}" must be a number'), backgroundColor: Colors.red),
+            SnackBar(
+                content:
+                    Text('${row.studentId}: "${comp.name}" must be a number'),
+                backgroundColor: Colors.red),
           );
           return;
         }
         if (val < 0 || val > comp.maxMarks) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${row.studentId}: "${comp.name}" must be 0–${comp.maxMarks}'), backgroundColor: Colors.red),
+            SnackBar(
+                content: Text(
+                    '${row.studentId}: "${comp.name}" must be 0–${comp.maxMarks}'),
+                backgroundColor: Colors.red),
           );
           return;
         }
@@ -335,10 +379,12 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       for (final row in _studentRows) {
         final compMarks = <String, int>{};
         for (final c in _components) {
-          compMarks[c.name] = int.tryParse(row.controllers[c.name]?.text ?? '') ?? 0;
+          compMarks[c.name] =
+              int.tryParse(row.controllers[c.name]?.text ?? '') ?? 0;
         }
         final total = compMarks.values.fold(0, (s, v) => s + v);
-        final docId = '${assignment.docId}_${batch.replaceAll('-', '_')}_${row.studentId}';
+        final docId =
+            '${assignment.docId}_${batch.replaceAll('-', '_')}_${row.studentId}';
         wb.set(
           _fs.collection('studentMarks').doc(docId),
           {
@@ -367,7 +413,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         _savingAll = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Marks saved for ${_studentRows.length} students'), backgroundColor: Colors.green),
+        SnackBar(
+            content: Text('Marks saved for ${_studentRows.length} students'),
+            backgroundColor: Colors.green),
       );
     } catch (e) {
       if (!mounted) return;
@@ -394,9 +442,11 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
   }
 
   Widget _buildBody() {
-    if (_loadingAssignments) return const Center(child: CircularProgressIndicator());
+    if (_loadingAssignments)
+      return const Center(child: CircularProgressIndicator());
     if (_assignmentError != null) {
-      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      return Center(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         const Icon(Icons.error_outline, size: 64, color: Colors.red),
         const SizedBox(height: 16),
         Padding(
@@ -404,7 +454,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           child: Text(_assignmentError!, textAlign: TextAlign.center),
         ),
         const SizedBox(height: 16),
-        ElevatedButton.icon(onPressed: _loadAssignments, icon: const Icon(Icons.refresh), label: const Text('Retry')),
+        ElevatedButton.icon(
+            onPressed: _loadAssignments,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry')),
       ]));
     }
 
@@ -418,12 +471,17 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             children: [
               const Center(
                 child: Text('CIE Marks Entry',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87)),
               ),
               const SizedBox(height: 4),
               const Center(
-                child: Text('Enter internal/external marks for your assigned courses',
-                    style: TextStyle(color: Colors.grey, fontSize: 13), textAlign: TextAlign.center),
+                child: Text(
+                    'Enter internal/external marks for your assigned courses',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                    textAlign: TextAlign.center),
               ),
               const SizedBox(height: 20),
               _buildSelectionCard(),
@@ -462,18 +520,27 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           Row(children: [
             const Icon(Icons.tune, color: Color(0xFF1e3a5f), size: 18),
             const SizedBox(width: 8),
-            const Text('Select Subject & Batch', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1e3a5f))),
+            const Text('Select Subject & Batch',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Color(0xFF1e3a5f))),
           ]),
           const SizedBox(height: 16),
           if (_assignments.isEmpty)
-            const Text('No active assignments found. Contact admin to assign courses.', style: TextStyle(color: Colors.grey))
+            const Text(
+                'No active assignments found. Contact admin to assign courses.',
+                style: TextStyle(color: Colors.grey))
           else ...[
             isMobile ? _buildSelectionMobile() : _buildSelectionDesktop(),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: (_selectedAssignment != null && _selectedBatch != null) ? _loadMarksEntry : null,
+                onPressed:
+                    (_selectedAssignment != null && _selectedBatch != null)
+                        ? _loadMarksEntry
+                        : null,
                 icon: const Icon(Icons.search),
                 label: const Text('Load Students'),
                 style: ElevatedButton.styleFrom(
@@ -512,18 +579,28 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Subject *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1e3a5f))),
+        const Text('Subject *',
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1e3a5f))),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           value: _selectedAssignment?.docId,
           isExpanded: true,
-          decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+          decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
           hint: const Text('Select subject'),
           items: _assignments.map((a) {
             return DropdownMenuItem(
               value: a.docId,
-              child: Text('${a.subjectCode} – ${a.subjectName}  (Y${a.year} Sem${a.semester})',
-                  overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)),
+              child: Text(
+                  '${a.subjectCode} – ${a.subjectName}  (Y${a.year} Sem${a.semester})',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13)),
             );
           }).toList(),
           onChanged: (id) {
@@ -547,23 +624,35 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Batch *', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF1e3a5f))),
+        const Text('Batch *',
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1e3a5f))),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           value: batches.contains(_selectedBatch) ? _selectedBatch : null,
           isExpanded: true,
-          decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+          decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              isDense: true,
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
           hint: const Text('Select batch'),
-          items: batches.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
-          onChanged: batches.isEmpty ? null : (b) {
-            setState(() {
-              _selectedBatch = b;
-              _marksLoaded = false;
-              _marksError = null;
-              for (final row in _studentRows) row.dispose();
-              _studentRows = [];
-            });
-          },
+          items: batches
+              .map((b) => DropdownMenuItem(value: b, child: Text(b)))
+              .toList(),
+          onChanged: batches.isEmpty
+              ? null
+              : (b) {
+                  setState(() {
+                    _selectedBatch = b;
+                    _marksLoaded = false;
+                    _marksError = null;
+                    for (final row in _studentRows) row.dispose();
+                    _studentRows = [];
+                  });
+                },
         ),
       ],
     );
@@ -585,7 +674,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         children: [
           Icon(Icons.info_outline, color: Colors.orange[700], size: 20),
           const SizedBox(width: 10),
-          Expanded(child: Text(msg, style: TextStyle(color: Colors.orange[800]))),
+          Expanded(
+              child: Text(msg, style: TextStyle(color: Colors.orange[800]))),
         ],
       ),
     );
@@ -618,7 +708,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('${a.subjectCode} – ${a.subjectName}',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14)),
                 const SizedBox(height: 4),
                 Wrap(spacing: 12, children: [
                   _headerInfo('Batch: $_selectedBatch'),
@@ -626,7 +719,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                   _headerInfo('AY: ${a.academicYear}'),
                   _headerInfo('Max Marks: $_maxTotalMarks'),
                   _headerInfo('${_studentRows.length} students'),
-                  _headerInfo('Components: ${_components.map((c) => "${c.name} (${c.maxMarks})").join("  •  ")}'),
+                  _headerInfo(
+                      'Components: ${_components.map((c) => "${c.name} (${c.maxMarks})").join("  •  ")}'),
                 ]),
               ],
             ),
@@ -639,17 +733,18 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                 child: Column(children: [
                   Icon(Icons.people_outline, size: 48, color: Colors.grey[400]),
                   const SizedBox(height: 12),
-                  const Text('No students found in this batch.', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                  const Text('No students found in this batch.',
+                      style: TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 4),
-                  Text('Check that students have department & batchNumber matching "$_selectedBatch".',
-                      style: TextStyle(color: Colors.grey[500], fontSize: 12), textAlign: TextAlign.center),
+                  Text(
+                      'Check that students have department & batchNumber matching "$_selectedBatch".',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                      textAlign: TextAlign.center),
                 ]),
               ),
             )
           else
-            isMobile
-                ? _buildMobileList()
-                : _buildDesktopTable(),
+            isMobile ? _buildMobileList() : _buildDesktopTable(),
           // Save all footer
           if (_studentRows.isNotEmpty)
             Container(
@@ -657,7 +752,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: Colors.grey[200]!)),
                 color: Colors.grey[50],
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(7)),
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(7)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -669,13 +765,18 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                   ElevatedButton.icon(
                     onPressed: _savingAll ? null : _saveAll,
                     icon: _savingAll
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.save, size: 16),
                     label: Text(_savingAll ? 'Saving...' : 'Save All Marks'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green[700],
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
                     ),
                   ),
                 ],
@@ -687,7 +788,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
   }
 
   Widget _headerInfo(String text) {
-    return Text(text, style: const TextStyle(color: Colors.white70, fontSize: 11));
+    return Text(text,
+        style: const TextStyle(color: Colors.white70, fontSize: 11));
   }
 
   // ── Desktop table ──────────────────────────────────────────────────────────
@@ -696,24 +798,43 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
-        constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 64),
+        constraints:
+            BoxConstraints(minWidth: MediaQuery.of(context).size.width - 64),
         child: DataTable(
           headingRowColor: WidgetStateProperty.all(Colors.grey[100]),
           columnSpacing: 16,
           columns: [
-            const DataColumn(label: Text('S.No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-            const DataColumn(label: Text('Roll No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-            const DataColumn(label: SizedBox(width: 180, child: Text('Student Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)))),
+            const DataColumn(
+                label: Text('S.No',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+            const DataColumn(
+                label: Text('Roll No',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+            const DataColumn(
+                label: SizedBox(
+                    width: 180,
+                    child: Text('Student Name',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 12)))),
             ..._components.map((c) => DataColumn(
-                label: Column(
+                    label: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(c.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                    Text('/ ${c.maxMarks}', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+                    Text(c.name,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 11)),
+                    Text('/ ${c.maxMarks}',
+                        style:
+                            TextStyle(fontSize: 10, color: Colors.grey[600])),
                   ],
                 ))),
-            const DataColumn(label: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+            const DataColumn(
+                label: Text('Total',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
             const DataColumn(label: Text('', style: TextStyle(fontSize: 12))),
           ],
           rows: _studentRows.asMap().entries.map((entry) {
@@ -727,28 +848,48 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                 return null;
               }),
               cells: [
-                DataCell(Text('${i + 1}', style: const TextStyle(fontSize: 12))),
-                DataCell(Text(row.studentId, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
-                DataCell(SizedBox(width: 180, child: Text(row.studentName, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis))),
+                DataCell(
+                    Text('${i + 1}', style: const TextStyle(fontSize: 12))),
+                DataCell(Text(row.studentId,
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w500))),
+                DataCell(SizedBox(
+                    width: 180,
+                    child: Text(row.studentName,
+                        style: const TextStyle(fontSize: 12),
+                        overflow: TextOverflow.ellipsis))),
                 ..._components.map((c) => DataCell(_marksField(row, c))),
                 DataCell(Text(
                   '$total / $_maxTotalMarks',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
-                    color: isOver ? Colors.red : total == _maxTotalMarks ? Colors.green : Colors.black87,
+                    color: isOver
+                        ? Colors.red
+                        : total == _maxTotalMarks
+                            ? Colors.green
+                            : Colors.black87,
                   ),
                 )),
                 DataCell(
                   row.isSaving
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : IconButton(
                           icon: Icon(
-                            row.isSaved ? Icons.check_circle : Icons.save_outlined,
+                            row.isSaved
+                                ? Icons.check_circle
+                                : Icons.save_outlined,
                             size: 18,
-                            color: row.isSaved ? Colors.green : const Color(0xFF1e3a5f),
+                            color: row.isSaved
+                                ? Colors.green
+                                : const Color(0xFF1e3a5f),
                           ),
-                          tooltip: row.isSaved ? 'Saved – click to re-save' : 'Save this row',
+                          tooltip: row.isSaved
+                              ? 'Saved – click to re-save'
+                              : 'Save this row',
                           onPressed: () => _saveRow(row),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -774,7 +915,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           style: const TextStyle(fontSize: 13),
           decoration: InputDecoration(
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
             border: const OutlineInputBorder(),
             errorText: (() {
               final val = int.tryParse(row.controllers[comp.name]?.text ?? '');
@@ -784,7 +926,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           ),
           onChanged: (_) {
             setMarksState(() {});
-            setState(() { row.isSaved = false; });
+            setState(() {
+              row.isSaved = false;
+            });
           },
         );
       }),
@@ -821,29 +965,52 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
               CircleAvatar(
                 radius: 14,
                 backgroundColor: const Color(0xFF1e3a5f).withOpacity(0.1),
-                child: Text('$serial', style: const TextStyle(fontSize: 11, color: Color(0xFF1e3a5f), fontWeight: FontWeight.bold)),
+                child: Text('$serial',
+                    style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF1e3a5f),
+                        fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(row.studentId, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    Text(row.studentName, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                    Text(row.studentId,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
+                    Text(row.studentName,
+                        style:
+                            TextStyle(fontSize: 11, color: Colors.grey[600])),
                   ],
                 ),
               ),
               Text(
                 '$total / $_maxTotalMarks',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13,
-                    color: isOver ? Colors.red : total == _maxTotalMarks ? Colors.green : Colors.black87),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: isOver
+                        ? Colors.red
+                        : total == _maxTotalMarks
+                            ? Colors.green
+                            : Colors.black87),
               ),
               const SizedBox(width: 8),
               row.isSaving
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
                   : IconButton(
-                      icon: Icon(row.isSaved ? Icons.check_circle : Icons.save_outlined,
-                          size: 20, color: row.isSaved ? Colors.green : const Color(0xFF1e3a5f)),
+                      icon: Icon(
+                          row.isSaved
+                              ? Icons.check_circle
+                              : Icons.save_outlined,
+                          size: 20,
+                          color: row.isSaved
+                              ? Colors.green
+                              : const Color(0xFF1e3a5f)),
                       onPressed: () => _saveRow(row),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -854,29 +1021,39 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           Wrap(
             spacing: 10,
             runSpacing: 10,
-            children: _components.map((c) => SizedBox(
-              width: 120,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${c.name} (/${c.maxMarks})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF1e3a5f))),
-                  const SizedBox(height: 4),
-                  TextField(
-                    controller: row.controllers[c.name],
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13),
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (_) => setState(() => row.isSaved = false),
-                  ),
-                ],
-              ),
-            )).toList(),
+            children: _components
+                .map((c) => SizedBox(
+                      width: 120,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${c.name} (/${c.maxMarks})',
+                              style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF1e3a5f))),
+                          const SizedBox(height: 4),
+                          TextField(
+                            controller: row.controllers[c.name],
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 13),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 8),
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (_) =>
+                                setState(() => row.isSaved = false),
+                          ),
+                        ],
+                      ),
+                    ))
+                .toList(),
           ),
         ],
       ),
