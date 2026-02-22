@@ -190,7 +190,8 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
               // ── Page title ──────────────────────────────────────────
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                 decoration: const BoxDecoration(
                   color: Color(0xFF1e3a5f),
                   borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
@@ -212,8 +213,8 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(color: Colors.grey[300]!),
-                    borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(8)),
+                    borderRadius:
+                        const BorderRadius.vertical(bottom: Radius.circular(8)),
                   ),
                   child: Column(
                     children: [
@@ -229,9 +230,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                   ),
                 )
               else
-                isMobile
-                    ? _buildMobileList()
-                    : _buildDesktopTable(),
+                isMobile ? _buildMobileList() : _buildDesktopTable(),
             ],
           ),
         ),
@@ -252,8 +251,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey[300]!),
-        borderRadius:
-            const BorderRadius.vertical(bottom: Radius.circular(8)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -299,8 +297,8 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 12)),
                       Text(entry.subjectName,
-                          style: TextStyle(
-                              fontSize: 11, color: Colors.grey[600]),
+                          style:
+                              TextStyle(fontSize: 11, color: Colors.grey[600]),
                           overflow: TextOverflow.ellipsis),
                     ],
                   ),
@@ -331,8 +329,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey[300]!),
-        borderRadius:
-            const BorderRadius.vertical(bottom: Radius.circular(8)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
       ),
       child: Column(
         children: _entries.asMap().entries.map((e) {
@@ -373,8 +370,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                                       fontSize: 13)),
                               Text(entry.subjectName,
                                   style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey[600]),
+                                      fontSize: 11, color: Colors.grey[600]),
                                   overflow: TextOverflow.ellipsis),
                             ],
                           ),
@@ -383,14 +379,12 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color:
-                                const Color(0xFF1e3a5f).withOpacity(0.1),
+                            color: const Color(0xFF1e3a5f).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(entry.yearSem,
                               style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600)),
+                                  fontSize: 11, fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
@@ -414,8 +408,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                               style: TextStyle(fontSize: 12)),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFF1e3a5f),
-                            side: const BorderSide(
-                                color: Color(0xFF1e3a5f)),
+                            side: const BorderSide(color: Color(0xFF1e3a5f)),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 6),
                           ),
@@ -438,10 +431,8 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
-        insetPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -451,8 +442,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
                 color: Color(0xFF1e3a5f),
-                borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(11)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(11)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,12 +454,13 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                           fontSize: 15)),
                   const SizedBox(height: 2),
                   Text(entry.subjectName,
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 12)),
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 12)),
                   const SizedBox(height: 6),
-                  Text('Year ${entry.yearNum}  •  Semester ${entry.semester}  •  ${entry.academicYear}',
-                      style: const TextStyle(
-                          color: Colors.white60, fontSize: 11)),
+                  Text(
+                      'Year ${entry.yearNum}  •  Semester ${entry.semester}  •  ${entry.academicYear}',
+                      style:
+                          const TextStyle(color: Colors.white60, fontSize: 11)),
                 ],
               ),
             ),
@@ -482,8 +473,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                     ...entry.componentMarks.entries.map((e) {
                       final isEte = _CieEntry._isEte(e.key);
                       return Padding(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 6),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Row(
                           children: [
                             Expanded(
@@ -494,16 +484,14 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                                     height: 8,
                                     margin: const EdgeInsets.only(right: 8),
                                     decoration: BoxDecoration(
-                                      color: isEte
-                                          ? Colors.orange
-                                          : Colors.green,
+                                      color:
+                                          isEte ? Colors.orange : Colors.green,
                                       shape: BoxShape.circle,
                                     ),
                                   ),
                                   Expanded(
                                     child: Text(e.key,
-                                        style: const TextStyle(
-                                            fontSize: 13)),
+                                        style: const TextStyle(fontSize: 13)),
                                   ),
                                 ],
                               ),
@@ -517,9 +505,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                                     : Colors.green.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: isEte
-                                      ? Colors.orange
-                                      : Colors.green,
+                                  color: isEte ? Colors.orange : Colors.green,
                                   width: 1,
                                 ),
                               ),
@@ -619,8 +605,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                   fontWeight: FontWeight.bold,
                   color: color.shade700)),
           Text(label,
-              style:
-                  TextStyle(fontSize: 9, color: color.shade700),
+              style: TextStyle(fontSize: 9, color: color.shade700),
               textAlign: TextAlign.center),
         ],
       ),
@@ -639,9 +624,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
         children: [
           Text('$value',
               style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: color)),
+                  fontSize: 20, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 2),
           Text(label,
               style: TextStyle(fontSize: 10, color: color),

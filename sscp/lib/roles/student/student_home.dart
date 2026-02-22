@@ -266,9 +266,8 @@ class _StudentHomeState extends State<StudentHome> {
 
   Widget _buildMobileMenu(BuildContext context, List<String> menuItems) {
     // Remove 'Results' from main items; add sub-items directly
-    final visibleItems = menuItems
-        .where((item) => item != 'Home' && item != 'Results')
-        .toList();
+    final visibleItems =
+        menuItems.where((item) => item != 'Home' && item != 'Results').toList();
 
     return Container(
       color: const Color(0xFF1e3a5f),
@@ -381,8 +380,8 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ],
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
                     children: const [
                       Text(
