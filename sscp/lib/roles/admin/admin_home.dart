@@ -11,6 +11,7 @@ import 'pages/subject_management_page.dart';
 import 'pages/student_promotion_page.dart';
 import 'screens/admin_course_management_screen.dart';
 import 'screens/admin_cie_memo_release_screen.dart';
+import 'screens/admin_lookup_screen.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -74,6 +75,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const SubjectManagementPage();
     } else if (pageName == 'Faculty Assignment') {
       page = const FacultyAssignmentPage();
+    } else if (pageName == 'Student Lookup') {
+      page = const AdminLookupScreen();
     } else {
       return;
     }
@@ -187,6 +190,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Course Management',
       'CIE Memo Release',
       'View Only',
+      'Student Lookup',
     ];
 
     if (isMobile) {
@@ -647,6 +651,13 @@ class _AdminHomeState extends State<AdminHome> {
           Colors.indigo,
           context,
           () => _navigateToPage(context, 'CIE Memo Release'),
+        ),
+        _buildActionCard(
+          'Student\nLookup',
+          Icons.manage_search,
+          const Color(0xFF1e3a5f),
+          context,
+          () => _navigateToPage(context, 'Student Lookup'),
         ),
       ],
     );
