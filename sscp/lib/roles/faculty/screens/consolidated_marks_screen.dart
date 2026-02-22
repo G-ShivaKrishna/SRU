@@ -113,8 +113,7 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
           final mSnap = await _fs
               .collection('studentMarks')
               .where('subjectCode', isEqualTo: subject.code)
-              .where('year', isEqualTo:
-                  int.tryParse(batch.year) ?? batch.year)
+              .where('year', isEqualTo: int.tryParse(batch.year) ?? batch.year)
               .get();
 
           // Filter by semester
@@ -125,9 +124,12 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
               continue;
             }
             // Optionally filter by branch
-            final mBranch =
-                (mData['branch'] ?? mData['department'] ?? '').toString().toUpperCase();
-            if (mBranch.isNotEmpty && batch.branch.isNotEmpty && mBranch != batch.branch) {
+            final mBranch = (mData['branch'] ?? mData['department'] ?? '')
+                .toString()
+                .toUpperCase();
+            if (mBranch.isNotEmpty &&
+                batch.branch.isNotEmpty &&
+                mBranch != batch.branch) {
               continue;
             }
             subject.marks.add(_StudentMark(
@@ -145,8 +147,7 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
 
       setState(() {
         _batches = batches;
-        _tabCtrl = TabController(
-            length: batches.length, vsync: this);
+        _tabCtrl = TabController(length: batches.length, vsync: this);
         _loading = false;
       });
     } catch (e) {
@@ -226,7 +227,15 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.red)),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: () { setState(() { _loading = true; _error = null; }); _load(); }, child: const Text('Retry')),
+              ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _loading = true;
+                      _error = null;
+                    });
+                    _load();
+                  },
+                  child: const Text('Retry')),
             ],
           ),
         ),
@@ -284,7 +293,8 @@ class _BatchView extends StatelessWidget {
             _Chip(label: 'Year ${batch.year}'),
             _Chip(label: 'Semester ${batch.semester}'),
             if (batch.branch.isNotEmpty) _Chip(label: batch.branch),
-            if (batch.section.isNotEmpty) _Chip(label: 'Section / Batch: ${batch.section}'),
+            if (batch.section.isNotEmpty)
+              _Chip(label: 'Section / Batch: ${batch.section}'),
           ],
         ),
         const SizedBox(height: 12),
@@ -340,7 +350,9 @@ class _SubjectCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  subject.name.isNotEmpty ? subject.name : '(Subject name not set)',
+                  subject.name.isNotEmpty
+                      ? subject.name
+                      : '(Subject name not set)',
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -387,13 +399,10 @@ class _SubjectCard extends StatelessWidget {
                   final idx = e.key;
                   final m = e.value;
                   final total = m.totalMarks ??
-                      m.componentMarks.values.fold<int>(
-                          0,
-                          (s, v) =>
-                              s + (_toInt(v) ?? 0));
-                  final pct = m.maxMarks > 0
-                      ? (total / m.maxMarks * 100)
-                      : null;
+                      m.componentMarks.values
+                          .fold<int>(0, (s, v) => s + (_toInt(v) ?? 0));
+                  final pct =
+                      m.maxMarks > 0 ? (total / m.maxMarks * 100) : null;
                   final passed = pct != null && pct >= 40;
                   return DataRow(
                     color: WidgetStateProperty.resolveWith((states) =>
@@ -404,7 +413,8 @@ class _SubjectCard extends StatelessWidget {
                       DataCell(Text(m.studentId)),
                       DataCell(SizedBox(
                           width: 130,
-                          child: Text(m.studentName.isNotEmpty ? m.studentName : '–',
+                          child: Text(
+                              m.studentName.isNotEmpty ? m.studentName : '–',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis))),
                       ...components.map((c) {
@@ -434,8 +444,7 @@ class _SubjectCard extends StatelessWidget {
             ),
 
           // Summary footer
-          if (subject.marks.isNotEmpty)
-            _buildSummary(subject, components),
+          if (subject.marks.isNotEmpty) _buildSummary(subject, components),
         ],
       ),
     );
@@ -452,8 +461,8 @@ class _SubjectCard extends StatelessWidget {
         ? subject.marks
                 .map((m) =>
                     m.totalMarks ??
-                    m.componentMarks.values.fold<int>(
-                        0, (s, v) => s + (_toInt(v) ?? 0)))
+                    m.componentMarks.values
+                        .fold<int>(0, (s, v) => s + (_toInt(v) ?? 0)))
                 .reduce((a, b) => a + b) /
             count
         : 0.0;
@@ -540,8 +549,7 @@ class _Chip extends StatelessWidget {
       decoration: BoxDecoration(
           color: const Color(0xFF1e3a5f).withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: const Color(0xFF1e3a5f).withOpacity(0.25))),
+          border: Border.all(color: const Color(0xFF1e3a5f).withOpacity(0.25))),
       child: Text(label,
           style: const TextStyle(
               fontSize: 12,
