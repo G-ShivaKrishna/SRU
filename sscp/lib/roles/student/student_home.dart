@@ -109,13 +109,12 @@ class _StudentHomeState extends State<StudentHome> {
         page = const AttendanceScreen();
         break;
       case 'Results':
-      case 'Semester Memos':
         page = const ResultsScreen();
         break;
       case 'CIE Marks':
         page = const StudentCieMarksScreen();
         break;
-      case 'CIE Memo':
+      case 'Semester Memo':
         page = const StudentCieMemoScreen();
         break;
       case 'Feedback':
@@ -329,14 +328,6 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ),
                 const PopupMenuItem<String>(
-                  value: 'Semester Memos',
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 12),
-                    child: Text('Semester Memos',
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-                const PopupMenuItem<String>(
                   value: 'CIE Marks',
                   child: Padding(
                     padding: EdgeInsets.only(left: 12),
@@ -345,11 +336,11 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ),
                 const PopupMenuItem<String>(
-                  value: 'CIE Memo',
+                  value: 'Semester Memo',
                   child: Padding(
                     padding: EdgeInsets.only(left: 12),
                     child:
-                        Text('CIE Memo', style: TextStyle(color: Colors.white)),
+                        Text('Semester Memo', style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 const PopupMenuDivider(),
@@ -381,19 +372,14 @@ class _StudentHomeState extends State<StudentHome> {
                 onSelected: (value) => _navigateToPage(context, value),
                 itemBuilder: (ctx) => [
                   const PopupMenuItem(
-                    value: 'Semester Memos',
-                    child: Text('Semester Memos',
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                  const PopupMenuItem(
                     value: 'CIE Marks',
                     child: Text('CIE Marks',
                         style: TextStyle(color: Colors.white)),
                   ),
                   const PopupMenuItem(
-                    value: 'CIE Memo',
+                    value: 'Semester Memo',
                     child:
-                        Text('CIE Memo', style: TextStyle(color: Colors.white)),
+                        Text('Semester Memo', style: TextStyle(color: Colors.white)),
                   ),
                 ],
                 child: Padding(

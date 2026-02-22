@@ -45,13 +45,17 @@ class _ReleasedMemo {
   }
 }
 
-// Model for one subject's CIE marks
+// Model for one subject's semester marks
 class _SubjectEntry {
   final String subjectCode;
   final String subjectName;
   final int cieTotal;
   final int eteTotal;
   final int maxMarks;
+  // Credit hours — default 3 (stored in marksDefinition as 'credits' if available)
+  // Stored as nullable so old/hot-reloaded instances with null survive gracefully.
+  final int? _credits;
+  int get credits => _credits ?? 3;
 
   const _SubjectEntry({
     required this.subjectCode,
@@ -59,7 +63,8 @@ class _SubjectEntry {
     required this.cieTotal,
     required this.eteTotal,
     required this.maxMarks,
-  });
+    int? credits,
+  }) : _credits = credits;
 
   int get grandTotal => cieTotal + eteTotal;
 
@@ -88,6 +93,9 @@ class _SubjectEntry {
     return 0;
   }
 
+  /// Credit Points = grade point × credit hours
+  double get creditPoints => gradePoint * credits.toDouble();
+
   bool isPassedFor(int minMarks) => grandTotal >= minMarks;
 
   static bool _isEte(String name) {
@@ -113,7 +121,14 @@ class _SubjectEntry {
     }
     final maxAll = (d['maxMarks'] is int)
         ? d['maxMarks'] as int
-        : int.tryParse(d['maxMarks'].toString()) ?? 0;
+        : int.tryParse(d['maxMarks']?.toString() ?? '') ?? 0;
+    // credits may be missing (null) or stored as double — safe parse with fallback
+    final rawCr = d['credits'];
+    final int? cr = (rawCr is int)
+        ? rawCr
+        : (rawCr is num)
+            ? rawCr.floor()
+            : int.tryParse(rawCr?.toString() ?? '');
 
     return _SubjectEntry(
       subjectCode: (d['subjectCode'] ?? '').toString(),
@@ -121,6 +136,7 @@ class _SubjectEntry {
       cieTotal: cieSum,
       eteTotal: eteSum,
       maxMarks: maxAll,
+      credits: cr, // null → defaults to 3 via getter
     );
   }
 }
@@ -259,7 +275,7 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
                   borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
                 ),
                 child: const Text(
-                  'CIE Mark Memos',
+                  'Semester Memos',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -305,7 +321,7 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
           Icon(Icons.description_outlined, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            'No CIE memos released yet.\nMemos will appear here once the Admin releases them.',
+            'No semester memos released yet.\nMemos will appear here once the Admin releases them.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
@@ -563,20 +579,20 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
   String get _examTitle => '$_yearRoman $_program $_branch $_semRoman SEMESTER';
 
   String get _memoNumber =>
-      'CIE-${widget.memo.year}-${widget.memo.semester}-${widget.rollNumber}';
+      'SEM-${widget.memo.year}-${widget.memo.semester}-${widget.rollNumber}';
 
   String get _serialNumber => 'SRU-${widget.rollNumber}';
 
-  int get _totalGrand => _subjects.fold<int>(0, (s, e) => s + e.grandTotal);
-  int get _totalMax => _subjects.fold<int>(0, (s, e) => s + e.maxMarks);
+  int get _totalCredits => _subjects.fold<int>(0, (s, e) => s + e.credits);
+  double get _totalCreditPoints =>
+      _subjects.fold<double>(0, (s, e) => s + e.creditPoints);
   int get _passed =>
       _subjects.where((e) => e.isPassedFor(widget.memo.minPassMarks)).length;
 
-  /// SGPA = sum of grade points / number of subjects
+  /// SGPA = total credit points / total credits
   double get _sgpa {
-    if (_subjects.isEmpty) return 0.0;
-    final sumGP = _subjects.fold<int>(0, (s, e) => s + e.gradePoint);
-    return sumGP / _subjects.length;
+    if (_subjects.isEmpty || _totalCredits == 0) return 0.0;
+    return _totalCreditPoints / _totalCredits;
   }
 
   // ── Build ────────────────────────────────────────────────────────────────────
@@ -586,7 +602,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F0F0),
       appBar: AppBar(
-        title: const Text('CIE Marks Memo'),
+        title: const Text('Semester Marks Memo'),
         backgroundColor: const Color(0xFF1e3a5f),
         foregroundColor: Colors.white,
       ),
@@ -638,7 +654,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
               border: Border.all(color: Colors.black, width: 1.2),
             ),
             child: const Text(
-              'MEMORANDUM OF CIE MARKS',
+              'MEMORANDUM OF SEMESTER MARKS',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
@@ -657,7 +673,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
           _buildMarksTable(),
           const SizedBox(height: 8),
 
-          // ── Summary row ───────────────────────────────────────────────────
+          // ── Bottom summary row ────────────────────────────────────────────
           _buildSummaryRow(),
 
           // ── SGPA bar ──────────────────────────────────────────────────────
@@ -689,8 +705,8 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
               border: Border.all(color: Colors.grey.shade400),
             ),
             child: const Text(
-              'This is a computer-generated internal assessment memo. '
-              'It is valid as a record of CIE marks for the stated semester.',
+              'This is a computer-generated semester marks memorandum. '
+              'It is valid as a record of semester marks for the stated exam session.',
               style: TextStyle(fontSize: 10, color: Colors.black54),
               textAlign: TextAlign.center,
             ),
@@ -843,7 +859,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
           border: Border.all(color: Colors.black),
         ),
         child: const Text(
-          'No CIE marks available for this semester.',
+          'No marks available for this semester.',
           textAlign: TextAlign.center,
           style: TextStyle(fontStyle: FontStyle.italic, color: Colors.black54),
         ),
@@ -868,11 +884,10 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
         0: FixedColumnWidth(36),
         1: FixedColumnWidth(90),
         2: FlexColumnWidth(3),
-        3: FixedColumnWidth(62),
-        4: FixedColumnWidth(62),
-        5: FixedColumnWidth(60),
-        6: FixedColumnWidth(62),
-        7: FixedColumnWidth(60),
+        3: FixedColumnWidth(60),
+        4: FixedColumnWidth(70),
+        5: FixedColumnWidth(75),
+        6: FixedColumnWidth(60),
       },
       children: [
         // ── Header ──────────────────────────────────────────────────────────
@@ -882,10 +897,9 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
             _cell('S.NO', headerText, rowPad),
             _cell('COURSE\nCODE', headerText, rowPad),
             _cell('COURSE TITLE', headerText, rowPad),
-            _cell('TOTAL\nMARKS', headerText, rowPad, align: TextAlign.center),
-            _cell('MAX\nMARKS', headerText, rowPad, align: TextAlign.center),
             _cell('LETTER\nGRADE', headerText, rowPad, align: TextAlign.center),
-            _cell('GRADE\nPOINTS', headerText, rowPad, align: TextAlign.center),
+            _cell('COURSE\nCREDITS', headerText, rowPad, align: TextAlign.center),
+            _cell('CREDIT\nPOINTS', headerText, rowPad, align: TextAlign.center),
             _cell('STATUS', headerText, rowPad, align: TextAlign.center),
           ],
         ),
@@ -904,18 +918,6 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
               _cell(s.subjectCode, cellText, rowPad),
               _cell(s.subjectName, cellText, rowPad),
               _cell(
-                '${s.grandTotal}',
-                cellText.copyWith(fontWeight: FontWeight.bold),
-                rowPad,
-                align: TextAlign.center,
-              ),
-              _cell(
-                '${s.maxMarks}',
-                cellText,
-                rowPad,
-                align: TextAlign.center,
-              ),
-              _cell(
                 s.letterGrade,
                 cellText.copyWith(
                   fontWeight: FontWeight.bold,
@@ -929,7 +931,13 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
                 align: TextAlign.center,
               ),
               _cell(
-                '${s.gradePoint}',
+                '${s.credits}',
+                cellText,
+                rowPad,
+                align: TextAlign.center,
+              ),
+              _cell(
+                s.creditPoints.toStringAsFixed(3),
                 cellText.copyWith(fontWeight: FontWeight.bold),
                 rowPad,
                 align: TextAlign.center,
@@ -962,9 +970,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
 
   Widget _buildSummaryRow() {
     final total = _subjects.length;
-    final appeared = total;
     final passed = _passed;
-    final failed = total - passed;
 
     return Table(
       border: TableBorder.all(color: Colors.grey.shade500, width: 0.8),
@@ -972,33 +978,21 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
         0: FlexColumnWidth(2),
         1: FlexColumnWidth(2),
         2: FlexColumnWidth(2),
-        3: FlexColumnWidth(3),
+        3: FlexColumnWidth(2),
+        4: FlexColumnWidth(2),
       },
       children: [
         TableRow(
           decoration: const BoxDecoration(color: Color(0xFFF5F5F5)),
           children: [
-            _summaryCell('SUBJECTS REGISTERED\n$total', Colors.black),
-            _summaryCell('APPEARED\n$appeared', Colors.black),
+            _summaryCell('SUBJECTS\nREGISTERED\n$total', Colors.black),
+            _summaryCell('APPEARED\n$total', Colors.black),
             _summaryCell('PASSED\n$passed', Colors.green.shade700),
             _summaryCell(
-                'TOTAL MARKS / MAX\n$_totalGrand / $_totalMax', Colors.black),
-          ],
-        ),
-        TableRow(
-          decoration:
-              BoxDecoration(color: const Color(0xFF1e3a5f).withOpacity(0.07)),
-          children: [
-            _summaryCell('FAILED\n$failed', Colors.red.shade700),
+                'TOTAL\nCREDITS\n$_totalCredits', Colors.black),
             _summaryCell(
-                'PASS %\n${total > 0 ? ((passed / total) * 100).toStringAsFixed(1) : '0.0'}%',
-                Colors.blue.shade700),
-            _summaryCell(
-                'AVERAGE\n${total > 0 && _totalMax > 0 ? ((_totalGrand / _totalMax) * 100).toStringAsFixed(1) : '0.0'}%',
-                Colors.purple.shade700),
-            _summaryCell(
-                'MIN PASS MARKS\n>= ${widget.memo.minPassMarks} / 100\n(${widget.memo.examSession})',
-                Colors.indigo.shade700),
+                'TOTAL CREDIT\nPOINTS\n${_totalCreditPoints.toStringAsFixed(3)}',
+                Colors.black),
           ],
         ),
       ],
