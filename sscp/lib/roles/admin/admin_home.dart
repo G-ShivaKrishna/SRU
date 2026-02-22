@@ -10,6 +10,7 @@ import 'pages/faculty_assignment_page.dart';
 import 'pages/subject_management_page.dart';
 import 'pages/student_promotion_page.dart';
 import 'screens/admin_course_management_screen.dart';
+import 'screens/admin_cie_memo_release_screen.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -66,6 +67,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const AcademicCalendarManagementPage();
     } else if (pageName == 'Course Management') {
       page = const AdminCourseManagementScreen();
+    } else if (pageName == 'CIE Memo Release') {
+      page = const AdminCieMemoReleaseScreen();
     } else if (pageName == 'Subject Management') {
       page = const SubjectManagementPage();
     } else if (pageName == 'Faculty Assignment') {
@@ -181,6 +184,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Subject Management',
       'Faculty Assignment',
       'Course Management',
+      'CIE Memo Release',
       'View Only',
     ];
 
@@ -636,6 +640,13 @@ class _AdminHomeState extends State<AdminHome> {
           Colors.orange,
           context,
           () => _navigateToPage(context, 'Course Management'),
+        ),
+        _buildActionCard(
+          'CIE Memo\nRelease',
+          Icons.assignment_turned_in,
+          Colors.indigo,
+          context,
+          () => _navigateToPage(context, 'CIE Memo Release'),
         ),
       ],
     );

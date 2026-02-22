@@ -10,6 +10,7 @@ import 'screens/subject_registration_screen.dart';
 import 'screens/attendance_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/student_cie_marks_screen.dart';
+import 'screens/student_cie_memo_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
 import 'screens/central_library_screen.dart';
@@ -113,6 +114,9 @@ class _StudentHomeState extends State<StudentHome> {
         break;
       case 'CIE Marks':
         page = const StudentCieMarksScreen();
+        break;
+      case 'CIE Memo':
+        page = const StudentCieMemoScreen();
         break;
       case 'Feedback':
         page = const FeedbackScreen();
@@ -340,6 +344,14 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                 ),
+                const PopupMenuItem<String>(
+                  value: 'CIE Memo',
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Text('CIE Memo',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
                 const PopupMenuDivider(),
                 ...overflowItems.map((item) => PopupMenuItem<String>(
                       value: item,
@@ -376,6 +388,11 @@ class _StudentHomeState extends State<StudentHome> {
                   const PopupMenuItem(
                     value: 'CIE Marks',
                     child: Text('CIE Marks',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'CIE Memo',
+                    child: Text('CIE Memo',
                         style: TextStyle(color: Colors.white)),
                   ),
                 ],
