@@ -663,8 +663,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
           // ── SGPA bar ──────────────────────────────────────────────────────
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFF1e3a5f),
               border: Border.all(color: Colors.grey.shade500, width: 0.8),
