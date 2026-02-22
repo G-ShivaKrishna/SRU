@@ -652,6 +652,7 @@ class _AdminCourseManagementScreenState
         // Group by year, semester and type
         // Key format: "year_semester" e.g., "1_I", "1_II", "2_I", etc.
         final Map<String, Map<SubjectType, int>> yearSemTypeCount = {};
+        final Map<String, List<Subject>> yearSemSubjects = {};
         
         // Initialize structure for all year+semester combinations
         for (int year = 1; year <= 4; year++) {
@@ -662,6 +663,7 @@ class _AdminCourseManagementScreenState
               SubjectType.oe: 0,
               SubjectType.pe: 0,
             };
+            yearSemSubjects[key] = [];
           }
         }
 
@@ -670,6 +672,7 @@ class _AdminCourseManagementScreenState
           if (yearSemTypeCount.containsKey(key)) {
             yearSemTypeCount[key]![subject.subjectType] =
                 (yearSemTypeCount[key]![subject.subjectType] ?? 0) + 1;
+            yearSemSubjects[key]!.add(subject);
           }
         }
 
@@ -692,31 +695,24 @@ class _AdminCourseManagementScreenState
             final peCount = (yearSemTypeCount[key]?[SubjectType.pe] ?? 0) + 
                             (yearSemTypeCount[altKey]?[SubjectType.pe] ?? 0);
             
+            // Merge subjects from both key formats
+            final List<Subject> subjectsForYearSem = [
+              ...(yearSemSubjects[key] ?? <Subject>[]),
+              ...(yearSemSubjects[altKey] ?? <Subject>[]),
+            ];
+            
             // Only show if there are subjects
             if (coreCount == 0 && oeCount == 0 && peCount == 0) continue;
             
             displayList.add(
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Year $year, Sem $sem',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const Spacer(),
-                    _buildSubjectCountChip('Core', coreCount, Colors.blue),
-                    const SizedBox(width: 8),
-                    _buildSubjectCountChip('OE', oeCount, Colors.green),
-                    const SizedBox(width: 8),
-                    _buildSubjectCountChip('PE', peCount, Colors.orange),
-                  ],
-                ),
+              _buildExpandableSubjectRow(
+                context: context,
+                year: year,
+                semester: sem,
+                coreCount: coreCount,
+                oeCount: oeCount,
+                peCount: peCount,
+                subjects: subjectsForYearSem,
               ),
             );
           }
@@ -728,6 +724,387 @@ class _AdminCourseManagementScreenState
 
         return Column(children: displayList);
       },
+    );
+  }
+
+  Widget _buildExpandableSubjectRow({
+    required BuildContext context,
+    required int year,
+    required String semester,
+    required int coreCount,
+    required int oeCount,
+    required int peCount,
+    required List<Subject> subjects,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        childrenPadding: const EdgeInsets.all(12),
+        title: Text(
+          'Year $year, Sem $semester',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSubjectCountChip('Core', coreCount, Colors.blue),
+            const SizedBox(width: 8),
+            _buildSubjectCountChip('OE', oeCount, Colors.green),
+            const SizedBox(width: 8),
+            _buildSubjectCountChip('PE', peCount, Colors.orange),
+            const SizedBox(width: 8),
+            const Icon(Icons.expand_more),
+          ],
+        ),
+        children: [
+          if (subjects.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('No subjects in this semester'),
+            )
+          else
+            ...subjects.map((subject) => _buildSubjectListItem(context, subject)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubjectListItem(BuildContext context, Subject subject) {
+    Color typeColor;
+    switch (subject.subjectType) {
+      case SubjectType.core:
+        typeColor = Colors.blue;
+        break;
+      case SubjectType.oe:
+        typeColor = Colors.green;
+        break;
+      case SubjectType.pe:
+        typeColor = Colors.orange;
+        break;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: typeColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: typeColor.withOpacity(0.3)),
+            ),
+            child: Text(
+              subject.subjectType.displayName,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: typeColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  subject.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  '${subject.code} • ${subject.department} • ${subject.credits} Credits',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit, size: 20),
+            color: const Color(0xFF1e3a5f),
+            tooltip: 'Edit Subject',
+            onPressed: () => _showEditSubjectDialog(context, subject),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete, size: 20),
+            color: Colors.red,
+            tooltip: 'Delete Subject',
+            onPressed: () => _confirmDeleteSubject(context, subject),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditSubjectDialog(BuildContext context, Subject subject) {
+    final codeController = TextEditingController(text: subject.code);
+    final nameController = TextEditingController(text: subject.name);
+    final creditsController = TextEditingController(text: subject.credits.toString());
+    String selectedDepartment = subject.department;
+    int selectedYear = subject.year;
+    String selectedSemester = subject.semester;
+    SubjectType selectedSubjectType = subject.subjectType;
+
+    final departments = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'AIDS', 'AIML', 'CSM', 'CSD'];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.edit, color: Color(0xFF1e3a5f)),
+                  SizedBox(width: 8),
+                  Text('Edit Subject'),
+                ],
+              ),
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: codeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Subject Code *',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.code),
+                        ),
+                        textCapitalization: TextCapitalization.characters,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Subject Name *',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.text_fields),
+                        ),
+                        textCapitalization: TextCapitalization.words,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'Department *',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.business),
+                        ),
+                        value: departments.contains(selectedDepartment) ? selectedDepartment : departments.first,
+                        items: departments.map((dept) {
+                          return DropdownMenuItem(value: dept, child: Text(dept));
+                        }).toList(),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedDepartment = value ?? selectedDepartment;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<SubjectType>(
+                        decoration: const InputDecoration(
+                          labelText: 'Subject Type *',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.category),
+                        ),
+                        value: selectedSubjectType,
+                        items: SubjectType.values.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type.displayName),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedSubjectType = value ?? selectedSubjectType;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              decoration: const InputDecoration(
+                                labelText: 'Year *',
+                                border: OutlineInputBorder(),
+                              ),
+                              value: selectedYear,
+                              items: [1, 2, 3, 4].map((year) {
+                                return DropdownMenuItem(
+                                  value: year,
+                                  child: Text('Year $year'),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  selectedYear = value ?? selectedYear;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              decoration: const InputDecoration(
+                                labelText: 'Semester *',
+                                border: OutlineInputBorder(),
+                              ),
+                              value: ['I', 'II'].contains(selectedSemester) ? selectedSemester : 'I',
+                              items: ['I', 'II'].map((sem) {
+                                return DropdownMenuItem(
+                                  value: sem,
+                                  child: Text('Semester $sem'),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  selectedSemester = value ?? selectedSemester;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: creditsController,
+                        decoration: const InputDecoration(
+                          labelText: 'Credits',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.star),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    if (codeController.text.trim().isEmpty ||
+                        nameController.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill all required fields'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    try {
+                      await _subjectService.updateSubject(
+                        subject.id,
+                        Subject(
+                          id: subject.id,
+                          code: codeController.text.trim().toUpperCase(),
+                          name: nameController.text.trim(),
+                          department: selectedDepartment,
+                          credits: int.tryParse(creditsController.text) ?? 3,
+                          year: selectedYear,
+                          semester: selectedSemester,
+                          subjectType: selectedSubjectType,
+                        ),
+                      );
+                      Navigator.pop(context);
+                      setState(() {}); // Refresh the list
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Subject updated successfully'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.save),
+                  label: const Text('Save'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1e3a5f),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteSubject(BuildContext context, Subject subject) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Subject?'),
+        content: Text(
+            'Are you sure you want to delete "${subject.name}" (${subject.code})?\n\nThis action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await _subjectService.deleteSubject(subject.id);
+                Navigator.pop(context);
+                setState(() {}); // Refresh the list
+                
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Subject deleted successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error deleting subject: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 

@@ -10,6 +10,7 @@ class _CieAssignment {
   final String docId;
   final String subjectCode;
   final String subjectName;
+  final String department;
   final List<String> batches;
   final String academicYear;
   final String semester;
@@ -19,6 +20,7 @@ class _CieAssignment {
     required this.docId,
     required this.subjectCode,
     required this.subjectName,
+    required this.department,
     required this.batches,
     required this.academicYear,
     required this.semester,
@@ -137,6 +139,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             docId: doc.id,
             subjectCode: d['subjectCode'] ?? '',
             subjectName: d['subjectName'] ?? '',
+            department: d['department'] ?? '',
             batches: List<String>.from(d['assignedBatches'] ?? []),
             academicYear: d['academicYear'] ?? '',
             semester: d['semester'] ?? '',
@@ -201,14 +204,21 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
               ))
           .toList();
 
-      // 2. Parse batch → department + batchNumber  e.g. "CSE-A" → dept="CSE", bn="A"
-      final parts = batch.split('-');
-      final dept = parts.length >= 2
-          ? parts.sublist(0, parts.length - 1).join('-')
-          : batch;
-      final batchNumber = parts.length >= 2 ? parts.last : '';
+      // 2. Get department from assignment and parse batchNumber from batch
+      // Batch can be "B1", "CSE-A", "A", etc.
+      // For "CSE-A" format: extract the section part after last hyphen
+      // For "B1" or "A" format: use directly as batchNumber
+      final dept = assignment.department;
+      String batchNumber;
+      if (batch.contains('-')) {
+        // Format like "CSE-A" or "CSE-B1" - take the last part
+        batchNumber = batch.split('-').last;
+      } else {
+        // Format like "B1" or "A" - use directly
+        batchNumber = batch;
+      }
 
-      // 3. Load students: single where (no composite index), filter in Dart
+      // 3. Load students: query by department, filter by batchNumber/section in Dart
       final studentSnap = await _fs
           .collection('students')
           .where('department', isEqualTo: dept)
@@ -216,12 +226,21 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
       final students = studentSnap.docs.where((doc) {
         final d = doc.data();
+        // Check both batchNumber and section fields
         final bn = (d['batchNumber'] ?? '').toString();
+        final section = (d['section'] ?? '').toString();
         final yr = (d['year'] ?? 0) is int
             ? d['year'] as int
             : int.tryParse(d['year'].toString()) ?? 0;
         final status = (d['status'] ?? 'active').toString();
-        return bn == batchNumber &&
+        
+        // Match if batchNumber OR section equals the batch identifier
+        final batchMatch = bn == batchNumber || 
+                           section == batchNumber || 
+                           bn == batch || 
+                           section == batch;
+        
+        return batchMatch &&
             yr == assignment.year &&
             status != 'graduated' &&
             status != 'inactive';
@@ -737,8 +756,13 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                       style: TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 4),
                   Text(
-                      'Check that students have department & batchNumber matching "$_selectedBatch".',
+                      'Looking for: department="${a.department}", Year ${a.year}, batch/section="$_selectedBatch"',
                       style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 4),
+                  Text(
+                      'Check that students have matching department, year, and batchNumber/section.',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 11),
                       textAlign: TextAlign.center),
                 ]),
               ),
