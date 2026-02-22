@@ -37,8 +37,7 @@ class _ReleasedMemo {
       branch: (d['branch'] ?? 'ALL').toString(),
       academicYear: (d['academicYear'] ?? '').toString(),
       examSession: (d['examSession'] ?? '').toString(),
-      releasedAt:
-          (d['releasedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      releasedAt: (d['releasedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       minPassMarks: (d['minPassMarks'] is int)
           ? d['minPassMarks'] as int
           : int.tryParse(d['minPassMarks']?.toString() ?? '') ?? 40,
@@ -153,21 +152,19 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
       final studentBranch =
           (sData['department'] ?? '').toString().toUpperCase();
 
-      final memos = releasesSnap.docs
-          .map((d) => _ReleasedMemo.fromDoc(d))
-          .where((m) {
-            final branchMatch =
-                m.branch == 'ALL' || m.branch.toUpperCase() == studentBranch;
-            return branchMatch;
-          })
-          .toList()
-        ..sort((a, b) {
-          final yCmp = int.tryParse(b.year) ?? 0;
-          final yA = int.tryParse(a.year) ?? 0;
-          if (yCmp != yA) return yCmp.compareTo(yA);
-          return (int.tryParse(b.semester) ?? 0)
-              .compareTo(int.tryParse(a.semester) ?? 0);
-        });
+      final memos =
+          releasesSnap.docs.map((d) => _ReleasedMemo.fromDoc(d)).where((m) {
+        final branchMatch =
+            m.branch == 'ALL' || m.branch.toUpperCase() == studentBranch;
+        return branchMatch;
+      }).toList()
+            ..sort((a, b) {
+              final yCmp = int.tryParse(b.year) ?? 0;
+              final yA = int.tryParse(a.year) ?? 0;
+              if (yCmp != yA) return yCmp.compareTo(yA);
+              return (int.tryParse(b.semester) ?? 0)
+                  .compareTo(int.tryParse(a.semester) ?? 0);
+            });
 
       if (!mounted) return;
       setState(() {
@@ -209,8 +206,7 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
           children: [
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text('Failed to load memos:\n$_error',
-                textAlign: TextAlign.center),
+            Text('Failed to load memos:\n$_error', textAlign: TextAlign.center),
             const SizedBox(height: 20),
             ElevatedButton(onPressed: _load, child: const Text('Retry')),
           ],
@@ -235,8 +231,7 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
                     const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                 decoration: const BoxDecoration(
                   color: Color(0xFF1e3a5f),
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(8)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
                 ),
                 child: const Text(
                   'CIE Mark Memos',
@@ -257,15 +252,13 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
                 ),
                 child: Text(
                   'Memos are released by the Admin once per semester. You will see them here as soon as they are released.',
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.blue.shade800),
+                  style: TextStyle(fontSize: 12, color: Colors.blue.shade800),
                 ),
               ),
               if (_releasedMemos.isEmpty)
                 _buildEmptyState()
               else
-                ..._releasedMemos.map(
-                    (memo) => _buildMemoCard(memo, isMobile)),
+                ..._releasedMemos.map((memo) => _buildMemoCard(memo, isMobile)),
             ],
           ),
         ),
@@ -280,13 +273,11 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey[300]!),
-        borderRadius:
-            const BorderRadius.vertical(bottom: Radius.circular(8)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
       ),
       child: Column(
         children: [
-          Icon(Icons.description_outlined,
-              size: 64, color: Colors.grey[400]),
+          Icon(Icons.description_outlined, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'No CIE memos released yet.\nMemos will appear here once the Admin releases them.',
@@ -303,7 +294,8 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
     final semLabel = _semToRoman(memo.semester);
     final studentBranch =
         (_studentData?['department'] ?? '').toString().toUpperCase();
-    final program = (_studentData?['program'] ?? 'BTECH').toString().toUpperCase();
+    final program =
+        (_studentData?['program'] ?? 'BTECH').toString().toUpperCase();
 
     return Container(
       margin: const EdgeInsets.only(top: 0),
@@ -340,18 +332,16 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
                   const SizedBox(height: 4),
                   Text(
                     '${memo.academicYear}  •  ${memo.examSession}',
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
-                      border:
-                          Border.all(color: Colors.green.shade300),
+                      border: Border.all(color: Colors.green.shade300),
                     ),
                     child: Text(
                       'Released on ${_fmtDate(memo.releasedAt)}',
@@ -373,12 +363,10 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
                     horizontal: isMobile ? 10 : 16, vertical: 10),
               ),
               onPressed: () => _openMemo(memo),
-              icon: const Icon(Icons.visibility,
-                  color: Colors.white, size: 16),
+              icon: const Icon(Icons.visibility, color: Colors.white, size: 16),
               label: Text(
                 isMobile ? 'View' : 'View Memo',
-                style: const TextStyle(
-                    color: Colors.white, fontSize: 12),
+                style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
           ],
@@ -409,8 +397,19 @@ class _StudentCieMemoScreenState extends State<StudentCieMemoScreen> {
 
   String _fmtDate(DateTime dt) {
     const months = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return '${dt.day} ${months[dt.month]} ${dt.year}';
   }
@@ -528,29 +527,23 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
   String get _fatherName =>
       (widget.studentData['fatherName'] ?? 'N/A').toString().toUpperCase();
   String get _enrolmentNumber =>
-      (widget.studentData['hallTicketNumber'] ??
-               widget.rollNumber)
+      (widget.studentData['hallTicketNumber'] ?? widget.rollNumber)
           .toString()
           .toUpperCase();
   String get _branch =>
-      (widget.studentData['department'] ?? 'CSE')
-          .toString()
-          .toUpperCase();
+      (widget.studentData['department'] ?? 'CSE').toString().toUpperCase();
   String get _program =>
       (widget.studentData['program'] ?? 'BTECH').toString().toUpperCase();
 
-  String get _examTitle =>
-      '$_yearRoman $_program $_branch $_semRoman SEMESTER';
+  String get _examTitle => '$_yearRoman $_program $_branch $_semRoman SEMESTER';
 
   String get _memoNumber =>
       'CIE-${widget.memo.year}-${widget.memo.semester}-${widget.rollNumber}';
 
   String get _serialNumber => 'SRU-${widget.rollNumber}';
 
-  int get _totalGrand =>
-      _subjects.fold<int>(0, (s, e) => s + e.grandTotal);
-  int get _totalMax =>
-      _subjects.fold<int>(0, (s, e) => s + e.maxMarks);
+  int get _totalGrand => _subjects.fold<int>(0, (s, e) => s + e.grandTotal);
+  int get _totalMax => _subjects.fold<int>(0, (s, e) => s + e.maxMarks);
   int get _passed =>
       _subjects.where((e) => e.isPassedFor(widget.memo.minPassMarks)).length;
 
@@ -579,8 +572,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
                           textAlign: TextAlign.center),
                       const SizedBox(height: 20),
                       ElevatedButton(
-                          onPressed: _loadMarks,
-                          child: const Text('Retry')),
+                          onPressed: _loadMarks, child: const Text('Retry')),
                     ],
                   ),
                 )
@@ -609,8 +601,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
 
           // ── Title box ─────────────────────────────────────────────────────
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 7),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.black, width: 1.2),
             ),
@@ -700,8 +691,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
                 ),
                 Text(
                   'Hanmakonda - 506 371, Telangana State, INDIA',
-                  style: TextStyle(
-                      fontSize: 12, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                 ),
               ],
             ),
@@ -761,8 +751,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
     );
   }
 
-  Widget _detailRow(String label, String value,
-      {TextStyle? valueStyle}) {
+  Widget _detailRow(String label, String value, {TextStyle? valueStyle}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -772,13 +761,11 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w500),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
           const Text(': ',
-              style: TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w500)),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
           Expanded(
             child: Text(
               value,
@@ -807,8 +794,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
         child: const Text(
           'No CIE marks available for this semester.',
           textAlign: TextAlign.center,
-          style: TextStyle(
-              fontStyle: FontStyle.italic, color: Colors.black54),
+          style: TextStyle(fontStyle: FontStyle.italic, color: Colors.black54),
         ),
       );
     }
@@ -855,13 +841,10 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
           final isEven = idx % 2 == 0;
           return TableRow(
             decoration: BoxDecoration(
-              color: isEven
-                  ? Colors.white
-                  : Colors.grey.shade50,
+              color: isEven ? Colors.white : Colors.grey.shade50,
             ),
             children: [
-              _cell('${idx + 1}', cellText, rowPad,
-                  align: TextAlign.center),
+              _cell('${idx + 1}', cellText, rowPad, align: TextAlign.center),
               _cell(s.subjectCode, cellText, rowPad),
               _cell(s.subjectName, cellText, rowPad),
               _cell(
@@ -920,26 +903,20 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
       },
       children: [
         TableRow(
-          decoration: const BoxDecoration(
-              color: Color(0xFFF5F5F5)),
+          decoration: const BoxDecoration(color: Color(0xFFF5F5F5)),
           children: [
+            _summaryCell('SUBJECTS REGISTERED\n$total', Colors.black),
+            _summaryCell('APPEARED\n$appeared', Colors.black),
+            _summaryCell('PASSED\n$passed', Colors.green.shade700),
             _summaryCell(
-                'SUBJECTS REGISTERED\n$total', Colors.black),
-            _summaryCell(
-                'APPEARED\n$appeared', Colors.black),
-            _summaryCell(
-                'PASSED\n$passed', Colors.green.shade700),
-            _summaryCell(
-                'TOTAL MARKS / MAX\n$_totalGrand / $_totalMax',
-                Colors.black),
+                'TOTAL MARKS / MAX\n$_totalGrand / $_totalMax', Colors.black),
           ],
         ),
         TableRow(
-          decoration: BoxDecoration(
-              color: const Color(0xFF1e3a5f).withOpacity(0.07)),
+          decoration:
+              BoxDecoration(color: const Color(0xFF1e3a5f).withOpacity(0.07)),
           children: [
-            _summaryCell(
-                'FAILED\n$failed', Colors.red.shade700),
+            _summaryCell('FAILED\n$failed', Colors.red.shade700),
             _summaryCell(
                 'CIE PASS %\n${total > 0 ? ((passed / total) * 100).toStringAsFixed(1) : '0.0'}%',
                 Colors.blue.shade700),
@@ -960,10 +937,8 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Text(
         text,
-        style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: color),
+        style:
+            TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
         textAlign: TextAlign.center,
       ),
     );

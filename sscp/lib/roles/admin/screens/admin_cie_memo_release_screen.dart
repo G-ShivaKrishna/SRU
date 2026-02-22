@@ -66,8 +66,7 @@ class AdminCieMemoReleaseScreen extends StatefulWidget {
       _AdminCieMemoReleaseScreenState();
 }
 
-class _AdminCieMemoReleaseScreenState
-    extends State<AdminCieMemoReleaseScreen> {
+class _AdminCieMemoReleaseScreenState extends State<AdminCieMemoReleaseScreen> {
   final _fs = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
@@ -186,11 +185,9 @@ class _AdminCieMemoReleaseScreenState
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
           ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Revoke',
-                style: TextStyle(color: Colors.white)),
+            child: const Text('Revoke', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -222,11 +219,10 @@ class _AdminCieMemoReleaseScreenState
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
           ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1e3a5f)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1e3a5f)),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Release',
-                style: TextStyle(color: Colors.white)),
+            child: const Text('Release', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -324,9 +320,7 @@ class _AdminCieMemoReleaseScreenState
             const Divider(height: 28),
 
             // ── Form grid ─────────────────────────────────────────────────────
-            isMobile
-                ? _buildFormMobile()
-                : _buildFormDesktop(),
+            isMobile ? _buildFormMobile() : _buildFormDesktop(),
 
             const SizedBox(height: 20),
 
@@ -368,19 +362,29 @@ class _AdminCieMemoReleaseScreenState
       children: [
         Row(
           children: [
-            Expanded(child: _dropdownField('Year', _years, _selYear, (v) => setState(() => _selYear = v!))),
+            Expanded(
+                child: _dropdownField('Year', _years, _selYear,
+                    (v) => setState(() => _selYear = v!))),
             const SizedBox(width: 16),
-            Expanded(child: _dropdownField('Semester', _semesters, _selSemester, (v) => setState(() => _selSemester = v!))),
+            Expanded(
+                child: _dropdownField('Semester', _semesters, _selSemester,
+                    (v) => setState(() => _selSemester = v!))),
             const SizedBox(width: 16),
-            Expanded(child: _dropdownField('Branch', _branches, _selBranch, (v) => setState(() => _selBranch = v!))),
+            Expanded(
+                child: _dropdownField('Branch', _branches, _selBranch,
+                    (v) => setState(() => _selBranch = v!))),
           ],
         ),
         const SizedBox(height: 16),
         Row(
           children: [
-            Expanded(child: _textField('Academic Year', _academicYearCtrl, 'e.g. 2025-26')),
+            Expanded(
+                child: _textField(
+                    'Academic Year', _academicYearCtrl, 'e.g. 2025-26')),
             const SizedBox(width: 16),
-            Expanded(child: _textField('Exam Session', _examSessionCtrl, 'e.g. NOV 2025')),
+            Expanded(
+                child: _textField(
+                    'Exam Session', _examSessionCtrl, 'e.g. NOV 2025')),
             const SizedBox(width: 16),
             Expanded(
               child: _numericField(
@@ -398,23 +402,27 @@ class _AdminCieMemoReleaseScreenState
   Widget _buildFormMobile() {
     return Column(
       children: [
-        _dropdownField('Year', _years, _selYear, (v) => setState(() => _selYear = v!)),
+        _dropdownField(
+            'Year', _years, _selYear, (v) => setState(() => _selYear = v!)),
         const SizedBox(height: 12),
-        _dropdownField('Semester', _semesters, _selSemester, (v) => setState(() => _selSemester = v!)),
+        _dropdownField('Semester', _semesters, _selSemester,
+            (v) => setState(() => _selSemester = v!)),
         const SizedBox(height: 12),
-        _dropdownField('Branch', _branches, _selBranch, (v) => setState(() => _selBranch = v!)),
+        _dropdownField('Branch', _branches, _selBranch,
+            (v) => setState(() => _selBranch = v!)),
         const SizedBox(height: 12),
         _textField('Academic Year', _academicYearCtrl, 'e.g. 2025-26'),
         const SizedBox(height: 12),
         _textField('Exam Session', _examSessionCtrl, 'e.g. NOV 2025'),
         const SizedBox(height: 12),
-        _numericField('Min. Pass Marks (out of 100)', _minPassMarksCtrl, 'e.g. 40'),
+        _numericField(
+            'Min. Pass Marks (out of 100)', _minPassMarksCtrl, 'e.g. 40'),
       ],
     );
   }
 
-  Widget _dropdownField(
-      String label, List<String> items, String value, ValueChanged<String?> onChanged) {
+  Widget _dropdownField(String label, List<String> items, String value,
+      ValueChanged<String?> onChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -432,15 +440,18 @@ class _AdminCieMemoReleaseScreenState
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             isDense: true,
           ),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
+          items: items
+              .map((e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(e, style: const TextStyle(fontSize: 13))))
+              .toList(),
           onChanged: onChanged,
         ),
       ],
     );
   }
 
-  Widget _textField(
-      String label, TextEditingController ctrl, String hint) {
+  Widget _textField(String label, TextEditingController ctrl, String hint) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -466,8 +477,7 @@ class _AdminCieMemoReleaseScreenState
     );
   }
 
-  Widget _numericField(
-      String label, TextEditingController ctrl, String hint) {
+  Widget _numericField(String label, TextEditingController ctrl, String hint) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -567,9 +577,8 @@ class _AdminCieMemoReleaseScreenState
 
                 if (isMobile) {
                   return Column(
-                    children: releases
-                        .map((r) => _buildReleaseTile(r))
-                        .toList(),
+                    children:
+                        releases.map((r) => _buildReleaseTile(r)).toList(),
                   );
                 }
 
@@ -581,40 +590,31 @@ class _AdminCieMemoReleaseScreenState
                     columns: const [
                       DataColumn(
                           label: Text('Year',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold))),
+                              style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
                           label: Text('Sem',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold))),
+                              style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
                           label: Text('Branch',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold))),
+                              style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
                           label: Text('Academic Year',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold))),
+                              style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
                           label: Text('Exam Session',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold))),
+                              style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
                           label: Text('Status',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold))),
+                              style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
                           label: Text('Min Pass',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold))),
+                              style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
                           label: Text('Released At',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold))),
+                              style: TextStyle(fontWeight: FontWeight.bold))),
                       DataColumn(
                           label: Text('Action',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold))),
+                              style: TextStyle(fontWeight: FontWeight.bold))),
                     ],
                     rows: releases.map((r) {
                       return DataRow(cells: [
@@ -657,13 +657,9 @@ class _AdminCieMemoReleaseScreenState
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: r.isActive
-            ? Colors.green.shade50
-            : Colors.grey.shade100,
+        color: r.isActive ? Colors.green.shade50 : Colors.grey.shade100,
         border: Border.all(
-            color: r.isActive
-                ? Colors.green.shade300
-                : Colors.grey.shade300),
+            color: r.isActive ? Colors.green.shade300 : Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -684,7 +680,8 @@ class _AdminCieMemoReleaseScreenState
           const SizedBox(height: 6),
           Text('${r.academicYear} — ${r.examSession}',
               style: TextStyle(fontSize: 12, color: Colors.grey[700])),
-          Text('Min Pass: ${r.minPassMarks}/100  •  Released: ${_formatDate(r.releasedAt)}',
+          Text(
+              'Min Pass: ${r.minPassMarks}/100  •  Released: ${_formatDate(r.releasedAt)}',
               style: TextStyle(fontSize: 11, color: Colors.grey[500])),
           if (r.isActive) ...[
             const SizedBox(height: 8),
@@ -693,8 +690,8 @@ class _AdminCieMemoReleaseScreenState
               child: OutlinedButton.icon(
                 onPressed: () => _revokeMemo(r),
                 icon: const Icon(Icons.lock, size: 15, color: Colors.red),
-                label: const Text('Revoke',
-                    style: TextStyle(color: Colors.red)),
+                label:
+                    const Text('Revoke', style: TextStyle(color: Colors.red)),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.red),
                   padding: const EdgeInsets.symmetric(vertical: 8),
@@ -716,17 +713,14 @@ class _AdminCieMemoReleaseScreenState
             : Colors.grey.withOpacity(0.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: isActive
-                ? Colors.green.shade400
-                : Colors.grey.shade400),
+            color: isActive ? Colors.green.shade400 : Colors.grey.shade400),
       ),
       child: Text(
         isActive ? 'Active' : 'Revoked',
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,
-          color:
-              isActive ? Colors.green.shade700 : Colors.grey.shade600,
+          color: isActive ? Colors.green.shade700 : Colors.grey.shade600,
         ),
       ),
     );
@@ -734,8 +728,19 @@ class _AdminCieMemoReleaseScreenState
 
   String _formatDate(DateTime dt) {
     final months = [
-      '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     return '${dt.day} ${months[dt.month]} ${dt.year}  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }

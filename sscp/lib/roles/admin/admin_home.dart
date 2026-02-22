@@ -59,7 +59,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const StudentNameEditPage();
     } else if (pageName == 'Edit Admission' || pageName == 'Admission') {
       page = const StudentAdmissionEditPage();
-    } else if (pageName == 'Year Management' || pageName == 'Student Promotion') {
+    } else if (pageName == 'Year Management' ||
+        pageName == 'Student Promotion') {
       page = const StudentPromotionPage();
     } else if (pageName == 'View Only') {
       page = const ViewOnlyPage();
@@ -234,8 +235,7 @@ class _AdminHomeState extends State<AdminHome> {
             onSelected: (value) => _navigateToPage(context, value),
             itemBuilder: (BuildContext context) {
               return menuItems
-                  .where((item) =>
-                      item != 'Home')
+                  .where((item) => item != 'Home')
                   .map((String choice) {
                 return PopupMenuItem<String>(
                   value: choice,
