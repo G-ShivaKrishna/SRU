@@ -63,6 +63,31 @@ class _SubjectEntry {
 
   int get grandTotal => cieTotal + eteTotal;
 
+  /// Percentage based on grandTotal / maxMarks
+  double get percentage => maxMarks > 0 ? (grandTotal / maxMarks) * 100 : 0;
+
+  String get letterGrade {
+    final p = percentage;
+    if (p >= 90) return 'O';
+    if (p >= 80) return 'A';
+    if (p >= 70) return 'B';
+    if (p >= 60) return 'C';
+    if (p >= 50) return 'D';
+    if (p >= 40) return 'E';
+    return 'F';
+  }
+
+  int get gradePoint {
+    final p = percentage;
+    if (p >= 90) return 10;
+    if (p >= 80) return 9;
+    if (p >= 70) return 8;
+    if (p >= 60) return 7;
+    if (p >= 50) return 6;
+    if (p >= 40) return 5;
+    return 0;
+  }
+
   bool isPassedFor(int minMarks) => grandTotal >= minMarks;
 
   static bool _isEte(String name) {
@@ -547,6 +572,13 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
   int get _passed =>
       _subjects.where((e) => e.isPassedFor(widget.memo.minPassMarks)).length;
 
+  /// SGPA = sum of grade points / number of subjects
+  double get _sgpa {
+    if (_subjects.isEmpty) return 0.0;
+    final sumGP = _subjects.fold<int>(0, (s, e) => s + e.gradePoint);
+    return sumGP / _subjects.length;
+  }
+
   // ── Build ────────────────────────────────────────────────────────────────────
 
   @override
@@ -627,6 +659,26 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
 
           // ── Summary row ───────────────────────────────────────────────────
           _buildSummaryRow(),
+
+          // ── SGPA bar ──────────────────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1e3a5f),
+              border: Border.all(color: Colors.grey.shade500, width: 0.8),
+            ),
+            child: Text(
+              'SEMESTER GRADE POINT AVERAGE (SGPA): ${_sgpa.toStringAsFixed(3)}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
 
           // ── Watermark note ────────────────────────────────────────────────
@@ -814,12 +866,14 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
     return Table(
       border: TableBorder.all(color: Colors.grey.shade500, width: 0.8),
       columnWidths: const {
-        0: FixedColumnWidth(40),
-        1: FixedColumnWidth(100),
+        0: FixedColumnWidth(36),
+        1: FixedColumnWidth(90),
         2: FlexColumnWidth(3),
-        3: FixedColumnWidth(70),
-        4: FixedColumnWidth(70),
-        5: FixedColumnWidth(65),
+        3: FixedColumnWidth(62),
+        4: FixedColumnWidth(62),
+        5: FixedColumnWidth(60),
+        6: FixedColumnWidth(62),
+        7: FixedColumnWidth(60),
       },
       children: [
         // ── Header ──────────────────────────────────────────────────────────
@@ -831,6 +885,8 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
             _cell('COURSE TITLE', headerText, rowPad),
             _cell('TOTAL\nMARKS', headerText, rowPad, align: TextAlign.center),
             _cell('MAX\nMARKS', headerText, rowPad, align: TextAlign.center),
+            _cell('LETTER\nGRADE', headerText, rowPad, align: TextAlign.center),
+            _cell('GRADE\nPOINTS', headerText, rowPad, align: TextAlign.center),
             _cell('STATUS', headerText, rowPad, align: TextAlign.center),
           ],
         ),
@@ -839,6 +895,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
           final idx = e.key;
           final s = e.value;
           final isEven = idx % 2 == 0;
+          final passed = s.isPassedFor(widget.memo.minPassMarks);
           return TableRow(
             decoration: BoxDecoration(
               color: isEven ? Colors.white : Colors.grey.shade50,
@@ -860,11 +917,28 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
                 align: TextAlign.center,
               ),
               _cell(
-                s.isPassedFor(widget.memo.minPassMarks) ? 'PASS' : 'FAIL',
+                s.letterGrade,
                 cellText.copyWith(
-                  color: s.isPassedFor(widget.memo.minPassMarks)
-                      ? Colors.green.shade700
-                      : Colors.red.shade700,
+                  fontWeight: FontWeight.bold,
+                  color: s.gradePoint >= 7
+                      ? Colors.blue.shade700
+                      : s.gradePoint >= 5
+                          ? Colors.orange.shade700
+                          : Colors.red.shade700,
+                ),
+                rowPad,
+                align: TextAlign.center,
+              ),
+              _cell(
+                '${s.gradePoint}',
+                cellText.copyWith(fontWeight: FontWeight.bold),
+                rowPad,
+                align: TextAlign.center,
+              ),
+              _cell(
+                passed ? 'PASS' : 'FAIL',
+                cellText.copyWith(
+                  color: passed ? Colors.green.shade700 : Colors.red.shade700,
                   fontWeight: FontWeight.bold,
                 ),
                 rowPad,
@@ -918,7 +992,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
           children: [
             _summaryCell('FAILED\n$failed', Colors.red.shade700),
             _summaryCell(
-                'CIE PASS %\n${total > 0 ? ((passed / total) * 100).toStringAsFixed(1) : '0.0'}%',
+                'PASS %\n${total > 0 ? ((passed / total) * 100).toStringAsFixed(1) : '0.0'}%',
                 Colors.blue.shade700),
             _summaryCell(
                 'AVERAGE\n${total > 0 && _totalMax > 0 ? ((_totalGrand / _totalMax) * 100).toStringAsFixed(1) : '0.0'}%',
