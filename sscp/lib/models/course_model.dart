@@ -1,6 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum CourseType { OE, PE, SE } // OE: Open Elective, PE: Program Elective, SE: Subject Elective
+enum CourseType {
+  OE,
+  PE,
+  SE
+} // OE: Open Elective, PE: Program Elective, SE: Subject Elective
 
 class Course {
   final String id;
@@ -103,9 +107,9 @@ class Course {
 
 class CourseRequirement {
   final String id;
-  final String year;     // '1', '2', '3', '4'
+  final String year; // '1', '2', '3', '4'
   final String semester; // '1' or '2'
-  final String branch;   // 'CSE', 'ECE', etc.
+  final String branch; // 'CSE', 'ECE', etc.
   final int oeCount; // How many Open Electives required
   final int peCount; // How many Program Electives required
   final int seCount; // How many Subject Electives required
@@ -183,8 +187,10 @@ class CourseRequirement {
 class CourseRegistrationSettings {
   final String id;
   final bool isRegistrationEnabled;
-  final List<String> enabledYears;     // Years for which registration is enabled ['1', '2', '3', '4']
-  final List<String> enabledSemesters; // Semesters for which registration is enabled ['1', '2']
+  final List<String>
+      enabledYears; // Years for which registration is enabled ['1', '2', '3', '4']
+  final List<String>
+      enabledSemesters; // Semesters for which registration is enabled ['1', '2']
   final DateTime registrationStartDate;
   final DateTime registrationEndDate;
   final DateTime? lastModifiedBy; // Will store admin's timestamp
@@ -195,7 +201,7 @@ class CourseRegistrationSettings {
     required this.id,
     required this.isRegistrationEnabled,
     this.enabledYears = const ['1', '2', '3', '4'], // Default to all years
-    this.enabledSemesters = const ['1', '2'],        // Default to all semesters
+    this.enabledSemesters = const ['1', '2'], // Default to all semesters
     required this.registrationStartDate,
     required this.registrationEndDate,
     this.lastModifiedBy,
@@ -232,7 +238,7 @@ class CourseRegistrationSettings {
   // Create from Firestore document
   factory CourseRegistrationSettings.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    
+
     // Safely parse enabledYears
     List<String> years = ['1', '2', '3', '4'];
     if (data['enabledYears'] != null && data['enabledYears'] is List) {
@@ -244,7 +250,7 @@ class CourseRegistrationSettings {
     if (data['enabledSemesters'] != null && data['enabledSemesters'] is List) {
       semesters = List<String>.from(data['enabledSemesters']);
     }
-    
+
     return CourseRegistrationSettings(
       id: doc.id,
       isRegistrationEnabled: data['isRegistrationEnabled'] ?? false,
@@ -282,7 +288,8 @@ class CourseRegistrationSettings {
   }) {
     return CourseRegistrationSettings(
       id: id ?? this.id,
-      isRegistrationEnabled: isRegistrationEnabled ?? this.isRegistrationEnabled,
+      isRegistrationEnabled:
+          isRegistrationEnabled ?? this.isRegistrationEnabled,
       enabledYears: enabledYears ?? this.enabledYears,
       enabledSemesters: enabledSemesters ?? this.enabledSemesters,
       registrationStartDate:

@@ -103,9 +103,7 @@ class AdminCourseService {
   Future<List<Course>> getAllCourses() async {
     try {
       final snapshot = await _coursesCollection.get();
-      return snapshot.docs
-          .map((doc) => Course.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception('Failed to get courses: $e');
     }
@@ -117,9 +115,7 @@ class AdminCourseService {
       final snapshot = await _coursesCollection
           .where('type', isEqualTo: type.toString().split('.').last)
           .get();
-      return snapshot.docs
-          .map((doc) => Course.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception('Failed to get courses by type: $e');
     }
@@ -134,9 +130,7 @@ class AdminCourseService {
           .where('applicableBranches', arrayContains: branch)
           .where('isActive', isEqualTo: true)
           .get();
-      return snapshot.docs
-          .map((doc) => Course.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception(
           'Failed to get courses for year $year and branch $branch: $e');
@@ -153,9 +147,7 @@ class AdminCourseService {
           .where('applicableBranches', arrayContains: branch)
           .where('isActive', isEqualTo: true)
           .get();
-      return snapshot.docs
-          .map((doc) => Course.fromFirestore(doc))
-          .toList();
+      return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception(
           'Failed to get $type courses for year $year and branch $branch: $e');
