@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
+import '../faculty/screens/student_handbook_screen.dart';
+import '../faculty/screens/syllabus_screen.dart';
 import 'screens/academics_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/subject_registration_screen.dart';
@@ -501,6 +503,66 @@ class _StudentHomeState extends State<StudentHome> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: menuItems.map((item) {
+            if (item == 'Academics') {
+              // ── Academics dropdown ──────────────────────────────
+              return PopupMenuButton<String>(
+                offset: const Offset(0, 40),
+                color: const Color(0xFF1e3a5f),
+                onSelected: (value) {
+                  if (value == 'Calendar') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => AcademicsScreen()),
+                    );
+                  } else if (value == 'Handbook') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => StudentHandbookScreen()),
+                    );
+                  } else if (value == 'Syllabus') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => SyllabusScreen()),
+                    );
+                  } else {
+                    _navigateToPage(context, value);
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'Calendar',
+                    child: Text('Calendar',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'Handbook',
+                    child: Text('Handbook',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'Syllabus',
+                    child: Text('Syllabus',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Row(
+                    children: const [
+                      Text(
+                        'Academics',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(width: 3),
+                      Icon(Icons.arrow_drop_down,
+                          color: Colors.white70, size: 16),
+                    ],
+                  ),
+                ),
+              );
+            }
             if (item == 'Results') {
               // ── Results dropdown ──────────────────────────────
               return PopupMenuButton<String>(
@@ -717,6 +779,32 @@ class _StudentHomeState extends State<StudentHome> {
         ? '$year-$semester'
         : _studentData?['yearSemester']?.toString() ?? 'N/A';
 
+    // Only show core academic cards (no Calendar, Handbook, Syllabus)
+    final academicsItems = [
+      {
+        'label': 'Year-Semester',
+        'value': yearSemester,
+        'color': Colors.teal,
+      },
+      {
+        'label': 'Attendance %',
+        'value': '${_studentData?['attendance'] ?? '0'}%',
+        'color': Colors.green,
+      },
+      {
+        'label': 'CGPA',
+        'value': _cgpaLoaded
+            ? _computedCgpa.toStringAsFixed(2)
+            : (_studentData?['cgpa']?.toString() ?? '...'),
+        'color': Colors.orange,
+      },
+      {
+        'label': 'Backlogs',
+        'value': '${_studentData?['backlogs'] ?? '0'}',
+        'color': Colors.red,
+      },
+    ];
+
     return GridView.count(
       crossAxisCount: crossAxisCount,
       shrinkWrap: true,
@@ -724,34 +812,17 @@ class _StudentHomeState extends State<StudentHome> {
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
       childAspectRatio: childAspectRatio,
-      children: [
-        _buildAcademicsCard(
-          'Year-Semester',
-          yearSemester,
-          Colors.teal,
+      children: academicsItems.map((item) {
+        final String label = item['label'] as String;
+        final String value = item['value'] as String;
+        final Color color = item['color'] as Color;
+        return _buildAcademicsCard(
+          label,
+          value,
+          color,
           context,
-        ),
-        _buildAcademicsCard(
-          'Attendance %',
-          '${_studentData?['attendance'] ?? '0'}%',
-          Colors.green,
-          context,
-        ),
-        _buildAcademicsCard(
-          'CGPA',
-          _cgpaLoaded
-              ? _computedCgpa.toStringAsFixed(2)
-              : (_studentData?['cgpa']?.toString() ?? '...'),
-          Colors.orange,
-          context,
-        ),
-        _buildAcademicsCard(
-          'Backlogs',
-          '${_studentData?['backlogs'] ?? '0'}',
-          Colors.red,
-          context,
-        ),
-      ],
+        );
+      }).toList(),
     );
   }
 
@@ -780,16 +851,28 @@ class _StudentHomeState extends State<StudentHome> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isMobile ? 20 : 26,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          value.isNotEmpty
+              ? Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: isMobile ? 20 : 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
+              : Icon(
+                  label == 'Calendar'
+                      ? Icons.calendar_today
+                      : label == 'Handbook'
+                          ? Icons.menu_book
+                          : label == 'Syllabus'
+                              ? Icons.description
+                              : Icons.info,
+                  color: Colors.white,
+                  size: isMobile ? 24 : 32,
+                ),
           const SizedBox(height: 8),
           Text(
             label,
