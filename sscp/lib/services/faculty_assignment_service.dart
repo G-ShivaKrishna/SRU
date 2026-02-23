@@ -520,7 +520,7 @@ class FacultyAssignmentService {
 
   // ============ FACULTY MANAGEMENT ============
 
-  /// Get all faculty members
+  /// Get all faculty members with full details for Employee Directory
   Future<List<Map<String, dynamic>>> getAllFaculty() async {
     try {
       final snapshot = await _facultyCollection.get();
@@ -528,10 +528,18 @@ class FacultyAssignmentService {
         final data = doc.data() as Map<String, dynamic>;
         return {
           'facultyId': doc.id,
+          'employeeId': data['employeeId'] ?? doc.id,
           'name': data['name'] ?? '',
+          'title': data['title'] ?? '',
           'department': data['department'] ?? '',
           'designation': data['designation'] ?? '',
           'email': data['email'] ?? '',
+          'mobileNo1': data['mobileNo1'] ?? '',
+          'mobileNo2': data['mobileNo2'] ?? '',
+          'cabinNumber': data['cabinNumber'] ?? '',
+          'intercom': data['intercom'] ?? '',
+          'dateOfJoining': data['dateOfJoining'] ?? '',
+          'appointmentType': data['appointmentType'] ?? '',
           'status': data['status'] ?? 'active',
         };
       }).toList();

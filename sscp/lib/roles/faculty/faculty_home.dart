@@ -27,6 +27,7 @@ import 'screens/course_view_screen.dart';
 import 'screens/cie_format_screen.dart';
 import 'screens/cie_marks_screen.dart';
 import 'screens/consolidated_marks_screen.dart';
+import 'screens/employee_directory_screen.dart';
 
 class FacultyHome extends StatefulWidget {
   const FacultyHome({super.key});
@@ -908,6 +909,8 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const PreferenceReportScreen();
       case 'course_view':
         page = const CourseViewScreen();
+      case 'employee_directory':
+        page = const EmployeeDirectoryScreen();
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$route - Coming Soon')),
