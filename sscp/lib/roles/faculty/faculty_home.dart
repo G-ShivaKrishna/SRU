@@ -26,6 +26,8 @@ import 'screens/preference_report_screen.dart';
 import 'screens/course_view_screen.dart';
 import 'screens/cie_format_screen.dart';
 import 'screens/cie_marks_screen.dart';
+import 'screens/consolidated_marks_screen.dart';
+import 'screens/employee_directory_screen.dart';
 
 class FacultyHome extends StatefulWidget {
   const FacultyHome({super.key});
@@ -231,7 +233,6 @@ class _FacultyHomeState extends State<FacultyHome> {
               'Course Preference',
               'Preference Report',
               'Feedback',
-              'Bio-metric Log Records',
               'Employee Directory',
               'Download',
             ]),
@@ -278,7 +279,6 @@ class _FacultyHomeState extends State<FacultyHome> {
               'Course Preference',
               'Preference Report',
               'Feedback',
-              'Bio-metric Log Records',
               'Employee Directory',
               'Download',
             ]),
@@ -723,11 +723,9 @@ class _FacultyHomeState extends State<FacultyHome> {
               itemBuilder: (BuildContext context) {
                 return [
                   'Check & Define CIE Format (UG/PG)',
-                  'Check & Define CIE Format (PhD)',
-                  'CIE Marks',
+                  'Total Marks',
                   'Makeup Mid Marks',
                   'Consolidated Marks Report(New)',
-                  'End Term Marks',
                 ].map((String choice) {
                   return PopupMenuItem<String>(
                     value: choice,
@@ -819,11 +817,9 @@ class _FacultyHomeState extends State<FacultyHome> {
 
       // Regular Exams submenu items
       'Check & Define CIE Format (UG/PG)': 'cie_format_ug',
-      'Check & Define CIE Format (PhD)': 'cie_format_phd',
-      'CIE Marks': 'cie_marks',
+      'Total Marks': 'cie_marks',
       'Makeup Mid Marks': 'makeup_marks',
       'Consolidated Marks Report(New)': 'consolidated_marks',
-      'End Term Marks': 'endterm_marks',
 
       // Academics submenu
       'Regulations': 'regulations',
@@ -844,7 +840,6 @@ class _FacultyHomeState extends State<FacultyHome> {
       'Course Preference': 'course_preference',
       'Preference Report': 'preference_report',
       'Feedback': 'feedback',
-      'Bio-metric Log Records': 'biometric',
       'Employee Directory': 'employee_directory',
       'Download': 'download',
     };
@@ -896,9 +891,9 @@ class _FacultyHomeState extends State<FacultyHome> {
       case 'marks_regular':
       case 'marks_supply':
       case 'makeup_marks':
-      case 'consolidated_marks':
-      case 'endterm_marks':
         page = const FacultyResultsScreen();
+      case 'consolidated_marks':
+        page = const ConsolidatedMarksScreen();
       case 'cie_marks':
         page = const CieMarksScreen();
       case 'cie_format_ug':
@@ -914,6 +909,8 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const PreferenceReportScreen();
       case 'course_view':
         page = const CourseViewScreen();
+      case 'employee_directory':
+        page = const EmployeeDirectoryScreen();
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$route - Coming Soon')),

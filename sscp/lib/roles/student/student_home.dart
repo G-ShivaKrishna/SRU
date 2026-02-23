@@ -6,13 +6,13 @@ import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
 import 'screens/academics_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/course_registration_screen.dart';
 import 'screens/subject_registration_screen.dart';
 import 'screens/attendance_screen.dart';
 import 'screens/results_screen.dart';
+import 'screens/student_cie_marks_screen.dart';
+import 'screens/student_cie_memo_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
-import 'screens/university_clubs_screen.dart';
 import 'screens/central_library_screen.dart';
 
 class StudentHome extends StatefulWidget {
@@ -30,6 +30,8 @@ class _StudentHomeState extends State<StudentHome> {
   User? _currentUser;
   Map<String, dynamic>? _studentData;
   bool _isLoading = true;
+  double _computedCgpa = 0.0;
+  bool _cgpaLoaded = false;
 
   @override
   void initState() {
@@ -82,11 +84,146 @@ class _StudentHomeState extends State<StudentHome> {
           _studentData = doc.data();
           _isLoading = false;
         });
+        // Compute CGPA from marks in the background
+        _computeCgpa(rollNumber);
       } else {
         setState(() => _isLoading = false);
       }
     } catch (e) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  /// Computes CGPA from all studentMarks for this student.
+  /// Groups marks by (year, semester), computes SGPA per semester,
+  /// then averages: CGPA = sum(SGPAs) / numberOfSemesters.
+  Future<void> _computeCgpa(String rollNumber) async {
+    try {
+      final snap = await _firestore
+          .collection('studentMarks')
+          .where('studentId', isEqualTo: rollNumber)
+          .get();
+
+      if (snap.docs.isEmpty) {
+        if (mounted) setState(() => _cgpaLoaded = true);
+        return;
+      }
+
+      // ----- helpers (mirrors _SubjectEntry logic) -----
+      bool isEte(String name) {
+        final l = name.toLowerCase();
+        return l.contains('end term') ||
+            l.contains('ete') ||
+            l.contains('end-term') ||
+            l.contains('external');
+      }
+
+      int gradePointFor(double pct) {
+        if (pct >= 90) return 10;
+        if (pct >= 80) return 9;
+        if (pct >= 70) return 8;
+        if (pct >= 60) return 7;
+        if (pct >= 50) return 6;
+        if (pct >= 40) return 5;
+        return 0;
+      }
+
+      String normSem(String s) {
+        switch (s.trim().toUpperCase()) {
+          case 'I':
+          case '1':
+            return '1';
+          case 'II':
+          case '2':
+            return '2';
+          default:
+            return s.trim();
+        }
+      }
+
+      // ----- accumulate credit points per semester -----
+      // key: "year-sem"
+      final Map<String, double> semCreditPoints = {};
+      final Map<String, int> semTotalCredits = {};
+
+      for (final doc in snap.docs) {
+        final d = doc.data();
+
+        final rawYear = d['year']?.toString() ?? '';
+        final rawSem = d['semester']?.toString() ?? '';
+        final semKey = '$rawYear-${normSem(rawSem)}';
+
+        final rawMarks = d['componentMarks'] as Map<String, dynamic>? ?? {};
+        int cieSum = 0, eteSum = 0;
+        for (final e in rawMarks.entries) {
+          final v = e.value;
+          final val = (v is int)
+              ? v
+              : (v is num)
+                  ? v.floor()
+                  : int.tryParse(v.toString()) ?? 0;
+          if (isEte(e.key)) {
+            eteSum += val;
+          } else {
+            cieSum += val;
+          }
+        }
+        final grand = cieSum + eteSum;
+        final maxAll = d['maxMarks'] is int
+            ? d['maxMarks'] as int
+            : (d['maxMarks'] is num)
+                ? (d['maxMarks'] as num).floor()
+                : int.tryParse(d['maxMarks']?.toString() ?? '') ?? 0;
+        final rawCr = d['credits'];
+        final cr = (rawCr is int)
+            ? rawCr
+            : (rawCr is num)
+                ? rawCr.floor()
+                : int.tryParse(rawCr?.toString() ?? '') ?? 3;
+
+        if (maxAll <= 0) continue;
+        final pct = (grand / maxAll) * 100;
+        final gp = gradePointFor(pct);
+        final cp = gp * cr.toDouble();
+
+        semCreditPoints[semKey] = (semCreditPoints[semKey] ?? 0.0) + cp;
+        semTotalCredits[semKey] = (semTotalCredits[semKey] ?? 0) + cr;
+      }
+
+      if (semCreditPoints.isEmpty) {
+        if (mounted) setState(() => _cgpaLoaded = true);
+        return;
+      }
+
+      // SGPA per semester
+      double sgpaSum = 0.0;
+      int semCount = 0;
+      for (final key in semCreditPoints.keys) {
+        final tc = semTotalCredits[key] ?? 0;
+        if (tc > 0) {
+          sgpaSum += semCreditPoints[key]! / tc;
+          semCount++;
+        }
+      }
+
+      if (semCount == 0) {
+        if (mounted) setState(() => _cgpaLoaded = true);
+        return;
+      }
+      final cgpa = sgpaSum / semCount;
+
+      if (!mounted) return;
+      setState(() {
+        _computedCgpa = cgpa;
+        _cgpaLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('[CGPA] computation error: $e');
+      if (mounted)
+        setState(() {
+          _computedCgpa = 0.0;
+          _cgpaLoaded = true;
+        });
     }
   }
 
@@ -110,6 +247,12 @@ class _StudentHomeState extends State<StudentHome> {
         break;
       case 'Results':
         page = const ResultsScreen();
+        break;
+      case 'CIE Marks':
+        page = const StudentCieMarksScreen();
+        break;
+      case 'Semester Memo':
+        page = const StudentCieMemoScreen();
         break;
       case 'Feedback':
         page = const FeedbackScreen();
@@ -262,6 +405,10 @@ class _StudentHomeState extends State<StudentHome> {
   }
 
   Widget _buildMobileMenu(BuildContext context, List<String> menuItems) {
+    // Remove 'Results' from main items; add sub-items directly
+    final visibleItems =
+        menuItems.where((item) => item != 'Home' && item != 'Results').toList();
+
     return Container(
       color: const Color(0xFF1e3a5f),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -271,10 +418,7 @@ class _StudentHomeState extends State<StudentHome> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: menuItems
-                    .where((item) => item != 'Home')
-                    .take(4)
-                    .map((item) {
+                children: visibleItems.take(4).map((item) {
                   return GestureDetector(
                     onTap: () => _navigateToPage(context, item),
                     child: Padding(
@@ -299,20 +443,50 @@ class _StudentHomeState extends State<StudentHome> {
             color: const Color(0xFF1e3a5f),
             onSelected: (value) => _navigateToPage(context, value),
             itemBuilder: (BuildContext context) {
-              return menuItems
-                  .where((item) =>
-                      item != 'Home' &&
-                      !['Academics', 'Profile', 'Course Reg.', 'Attendance']
-                          .contains(item))
-                  .map((String choice) {
-                return PopupMenuItem<String>(
-                  value: choice,
+              final overflowItems = visibleItems
+                  .where((item) => ![
+                        'Academics',
+                        'Profile',
+                        'Course Reg.',
+                        'Attendance'
+                      ].contains(item))
+                  .toList();
+              return [
+                // Results group header + submenu items for Results
+                const PopupMenuItem<String>(
+                  enabled: false,
+                  height: 30,
                   child: Text(
-                    choice,
-                    style: const TextStyle(color: Colors.white),
+                    'Results',
+                    style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold),
                   ),
-                );
-              }).toList();
+                ),
+                const PopupMenuItem<String>(
+                  value: 'CIE Marks',
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Text('CIE Marks',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'Semester Memo',
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Text('Semester Memo',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+                const PopupMenuDivider(),
+                ...overflowItems.map((item) => PopupMenuItem<String>(
+                      value: item,
+                      child: Text(item,
+                          style: const TextStyle(color: Colors.white)),
+                    )),
+              ];
             },
           ),
         ],
@@ -327,6 +501,45 @@ class _StudentHomeState extends State<StudentHome> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: menuItems.map((item) {
+            if (item == 'Results') {
+              // ── Results dropdown ──────────────────────────────
+              return PopupMenuButton<String>(
+                offset: const Offset(0, 40),
+                color: const Color(0xFF1e3a5f),
+                onSelected: (value) => _navigateToPage(context, value),
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'CIE Marks',
+                    child: Text('CIE Marks',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'Semester Memo',
+                    child: Text('Semester Memo',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Row(
+                    children: const [
+                      Text(
+                        'Results',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(width: 3),
+                      Icon(Icons.arrow_drop_down,
+                          color: Colors.white70, size: 16),
+                    ],
+                  ),
+                ),
+              );
+            }
             return GestureDetector(
               onTap: () => _navigateToPage(context, item),
               child: Padding(
@@ -526,7 +739,9 @@ class _StudentHomeState extends State<StudentHome> {
         ),
         _buildAcademicsCard(
           'CGPA',
-          _studentData?['cgpa'] ?? '0.0',
+          _cgpaLoaded
+              ? _computedCgpa.toStringAsFixed(2)
+              : (_studentData?['cgpa']?.toString() ?? '...'),
           Colors.orange,
           context,
         ),

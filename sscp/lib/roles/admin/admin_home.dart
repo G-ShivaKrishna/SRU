@@ -9,7 +9,10 @@ import 'pages/academic_calendar_management_page.dart';
 import 'pages/faculty_assignment_page.dart';
 import 'pages/subject_management_page.dart';
 import 'pages/student_promotion_page.dart';
+import 'pages/feedback_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
+import 'screens/admin_cie_memo_release_screen.dart';
+import 'screens/admin_lookup_screen.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -58,7 +61,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const StudentNameEditPage();
     } else if (pageName == 'Edit Admission' || pageName == 'Admission') {
       page = const StudentAdmissionEditPage();
-    } else if (pageName == 'Year Management' || pageName == 'Student Promotion') {
+    } else if (pageName == 'Year Management' ||
+        pageName == 'Student Promotion') {
       page = const StudentPromotionPage();
     } else if (pageName == 'View Only') {
       page = const ViewOnlyPage();
@@ -66,10 +70,16 @@ class _AdminHomeState extends State<AdminHome> {
       page = const AcademicCalendarManagementPage();
     } else if (pageName == 'Course Management') {
       page = const AdminCourseManagementScreen();
+    } else if (pageName == 'CIE Memo Release') {
+      page = const AdminCieMemoReleaseScreen();
     } else if (pageName == 'Subject Management') {
       page = const SubjectManagementPage();
     } else if (pageName == 'Faculty Assignment') {
       page = const FacultyAssignmentPage();
+    } else if (pageName == 'Lookup') {
+      page = const AdminLookupScreen();
+    } else if (pageName == 'Feedback Management') {
+      page = const FeedbackManagementPage();
     } else {
       return;
     }
@@ -168,9 +178,11 @@ class _AdminHomeState extends State<AdminHome> {
     );
   }
 
+  // Width estimate: text chars + horizontal padding (20) + chevron icon+gap (20) + buffer (6)
+  double _itemWidth(String label) => label.length * 7.5 + 46;
+
   Widget _buildNavigationMenu(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final menuItems = [
+    const menuItems = [
       'Home',
       'Accounts',
       'Manage Access',
@@ -181,98 +193,104 @@ class _AdminHomeState extends State<AdminHome> {
       'Subject Management',
       'Faculty Assignment',
       'Course Management',
+      'CIE Memo Release',
+      'Feedback Management',
       'View Only',
+      'Lookup',
     ];
 
-    if (isMobile) {
-      return _buildMobileMenu(context, menuItems);
-    } else {
-      return _buildDesktopMenu(context, menuItems);
-    }
-  }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        const moreButtonWidth = 90.0;
+        // Safety margin to absorb font/DPI rendering differences
+        final budget = available - 8;
 
-  Widget _buildMobileMenu(BuildContext context, List<String> menuItems) {
-    return Container(
-      color: const Color(0xFF1e3a5f),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+        // Check if everything fits without a "More" button
+        final totalWidth =
+            menuItems.fold(0.0, (s, item) => s + _itemWidth(item));
+
+        List<String> visible;
+        List<String> overflow;
+
+        if (totalWidth <= budget) {
+          visible = List<String>.from(menuItems);
+          overflow = <String>[];
+        } else {
+          visible = <String>[];
+          overflow = <String>[];
+          double used = 0;
+          for (final item in menuItems) {
+            final w = _itemWidth(item);
+            // Reserve moreButtonWidth for the "More" button
+            if (used + w + moreButtonWidth <= budget) {
+              visible.add(item);
+              used += w;
+            } else {
+              overflow.add(item);
+            }
+          }
+        }
+
+        return SizedBox(
+          width: available,
+          child: Container(
+            color: const Color(0xFF1e3a5f),
+            height: 42,
+            // Clip so that any remaining sub-pixel rounding never causes a stripe
+            child: ClipRect(
               child: Row(
-                children: menuItems
-                    .where((item) => item != 'Home')
-                    .take(3)
-                    .map((item) {
-                  return GestureDetector(
-                    onTap: () => _navigateToPage(context, item),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 8),
-                      child: Text(
-                        item,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  ...visible.map((item) {
+                    final isHome = item == 'Home';
+                    final showChevron =
+                        item != visible.last || overflow.isNotEmpty;
+                    return InkWell(
+                      onTap: () => _navigateToPage(context, item),
+                      hoverColor: Colors.white.withOpacity(0.12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 10),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isHome)
+                              const Icon(Icons.home,
+                                  color: Colors.white70, size: 14),
+                            if (isHome) const SizedBox(width: 4),
+                            Text(
+                              item,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            if (showChevron)
+                              const Padding(
+                                padding: EdgeInsets.only(left: 6),
+                                child: Icon(Icons.chevron_right,
+                                    color: Colors.white38, size: 14),
+                              ),
+                          ],
                         ),
                       ),
+                    );
+                  }),
+                  if (overflow.isNotEmpty)
+                    _OverflowNavButton(
+                      items: overflow,
+                      onSelected: (item) => _navigateToPage(context, item),
                     ),
-                  );
-                }).toList(),
+                  // Spacer absorbs any leftover space (keeps Row from "min" overflow)
+                  const Spacer(),
+                ],
               ),
             ),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_horiz, color: Colors.white),
-            color: const Color(0xFF1e3a5f),
-            onSelected: (value) => _navigateToPage(context, value),
-            itemBuilder: (BuildContext context) {
-              return menuItems
-                  .where((item) =>
-                      item != 'Home')
-                  .map((String choice) {
-                return PopupMenuItem<String>(
-                  value: choice,
-                  child: Text(
-                    choice,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                );
-              }).toList();
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDesktopMenu(BuildContext context, List<String> menuItems) {
-    return Container(
-      color: const Color(0xFF1e3a5f),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: menuItems.map((item) {
-            return GestureDetector(
-              onTap: () => _navigateToPage(context, item),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                child: Text(
-                  item,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -637,6 +655,20 @@ class _AdminHomeState extends State<AdminHome> {
           context,
           () => _navigateToPage(context, 'Course Management'),
         ),
+        _buildActionCard(
+          'CIE Memo\nRelease',
+          Icons.assignment_turned_in,
+          Colors.indigo,
+          context,
+          () => _navigateToPage(context, 'CIE Memo Release'),
+        ),
+        _buildActionCard(
+          'Lookup',
+          Icons.manage_search,
+          const Color(0xFF1e3a5f),
+          context,
+          () => _navigateToPage(context, 'Lookup'),
+        ),
       ],
     );
   }
@@ -796,6 +828,53 @@ class _AdminHomeState extends State<AdminHome> {
             fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Overflow "More ▼" nav button — shows remaining items as a dropdown
+// ─────────────────────────────────────────────────────────────────────────────
+class _OverflowNavButton extends StatelessWidget {
+  final List<String> items;
+  final void Function(String) onSelected;
+
+  const _OverflowNavButton({required this.items, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      offset: const Offset(0, 42),
+      color: const Color(0xFF1e3a5f),
+      onSelected: onSelected,
+      itemBuilder: (_) => items
+          .map((item) => PopupMenuItem<String>(
+                value: item,
+                height: 40,
+                child: Text(
+                  item,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500),
+                ),
+              ))
+          .toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Text('More',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500)),
+            SizedBox(width: 4),
+            Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
+          ],
         ),
       ),
     );
