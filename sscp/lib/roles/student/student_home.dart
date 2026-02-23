@@ -16,6 +16,7 @@ import 'screens/student_cie_memo_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
 import 'screens/central_library_screen.dart';
+import 'screens/mentor_details_screen.dart';
 
 class StudentHome extends StatefulWidget {
   const StudentHome({super.key});
@@ -918,6 +919,21 @@ class _StudentHomeState extends State<StudentHome> {
                   fontWeight: FontWeight.bold,
                   color: Colors.amber.shade900,
                 ),
+              ),
+              const Spacer(),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => MentorDetailsScreen(
+                        mentorName: mentorName,
+                        mentorEmail: mentorEmail,
+                        mentorPhone: mentorPhone,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('View Mentor'),
               ),
             ],
           ),
