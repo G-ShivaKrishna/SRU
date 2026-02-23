@@ -15,12 +15,6 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
   List<String> faculties = [];
   bool isLoading = true;
 
-  // You can change these to match your Firestore structure
-  final String batchCollection = 'batch'; // or 'batches'
-  final String batchField = 'name'; // or 'batchNumber'
-  final String facultyCollection = 'faculty'; // not 'faculties'
-  final String facultyField = 'facultyName'; // or 'name'
-
   @override
   void initState() {
     super.initState();
@@ -29,17 +23,26 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
 
   Future<void> _fetchData() async {
     try {
-      final batchSnap = await FirebaseFirestore.instance.collection(batchCollection).get();
-      final facultySnap = await FirebaseFirestore.instance.collection(facultyCollection).get();
+      // Get unique batch numbers from students collection
+      final studentSnap = await FirebaseFirestore.instance.collection('students').get();
+      final batchSet = <String>{};
+      for (var doc in studentSnap.docs) {
+        final batchNum = doc.data()['batchNumber']?.toString();
+        if (batchNum != null && batchNum.isNotEmpty) {
+          batchSet.add(batchNum);
+        }
+      }
+
+      // Get faculty names from faculty collection (field is 'name', not 'facultyName')
+      final facultySnap = await FirebaseFirestore.instance.collection('faculty').get();
+      final facultyList = facultySnap.docs
+          .map((doc) => doc.data()['name']?.toString() ?? '')
+          .where((val) => val.isNotEmpty)
+          .toList();
+
       setState(() {
-        batches = batchSnap.docs
-            .map((doc) => doc.data()[batchField]?.toString() ?? '')
-            .where((val) => val.isNotEmpty)
-            .toList();
-        faculties = facultySnap.docs
-            .map((doc) => doc.data()[facultyField]?.toString() ?? '')
-            .where((val) => val.isNotEmpty)
-            .toList();
+        batches = batchSet.toList()..sort();
+        faculties = facultyList..sort();
         isLoading = false;
       });
     } catch (e) {
@@ -47,6 +50,53 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading data: $e')),
       );
+    }
+  }
+
+  Future<void> _saveAssignment(String batchNumber, String facultyName) async {
+    try {
+      // Check if assignment already exists for this batch
+      final existingSnap = await FirebaseFirestore.instance
+          .collection('mentorAssignments')
+          .where('batchNumber', isEqualTo: batchNumber)
+          .limit(1)
+          .get();
+
+      if (existingSnap.docs.isNotEmpty) {
+        // Update existing assignment
+        await existingSnap.docs.first.reference.update({
+          'facultyName': facultyName,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Create new assignment
+        await FirebaseFirestore.instance.collection('mentorAssignments').add({
+          'batchNumber': batchNumber,
+          'facultyName': facultyName,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Mentor "$facultyName" assigned to batch "$batchNumber" successfully!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        // Clear selections
+        setState(() {
+          selectedBatch = null;
+          selectedFaculty = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving assignment: $e')),
+        );
+      }
     }
   }
 
@@ -103,10 +153,7 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                   ElevatedButton(
                     onPressed: selectedBatch != null && selectedFaculty != null && batches.isNotEmpty && faculties.isNotEmpty
                         ? () {
-                            // TODO: Save assignment to backend
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Mentor assigned successfully!')),
-                            );
+                            _saveAssignment(selectedBatch!, selectedFaculty!);
                           }
                         : null,
                     child: const Text('Assign Mentor'),

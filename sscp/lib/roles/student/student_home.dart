@@ -83,8 +83,14 @@ class _StudentHomeState extends State<StudentHome> {
 
       final doc = await _firestore.collection('students').doc(rollNumber).get();
       if (doc.exists) {
+        final studentData = doc.data()!;
+        // Fetch mentor information based on batch
+        final batchNumber = studentData['batchNumber']?.toString();
+        if (batchNumber != null && batchNumber.isNotEmpty) {
+          await _fetchMentorData(studentData, batchNumber);
+        }
         setState(() {
-          _studentData = doc.data();
+          _studentData = studentData;
           _isLoading = false;
         });
         // Compute CGPA from marks in the background
@@ -94,6 +100,64 @@ class _StudentHomeState extends State<StudentHome> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  /// Fetch mentor information from backend based on batch assignment
+  Future<void> _fetchMentorData(
+      Map<String, dynamic> studentData, String batchNumber) async {
+    try {
+      // Look for mentor assignment for this batch
+      final assignmentSnap = await _firestore
+          .collection('mentorAssignments')
+          .where('batchNumber', isEqualTo: batchNumber)
+          .limit(1)
+          .get();
+
+      if (assignmentSnap.docs.isEmpty) {
+        // No mentor assigned for this batch
+        studentData['mentorName'] = 'Not Assigned';
+        studentData['mentorPhone'] = 'N/A';
+        studentData['mentorEmail'] = 'N/A';
+        return;
+      }
+
+      final assignmentData = assignmentSnap.docs.first.data();
+      final mentorFacultyName = assignmentData['facultyName']?.toString();
+
+      if (mentorFacultyName == null || mentorFacultyName.isEmpty) {
+        studentData['mentorName'] = 'Not Assigned';
+        studentData['mentorPhone'] = 'N/A';
+        studentData['mentorEmail'] = 'N/A';
+        return;
+      }
+
+      // Get mentor's details from faculty collection
+      final facultySnap = await _firestore
+          .collection('faculty')
+          .where('name', isEqualTo: mentorFacultyName)
+          .limit(1)
+          .get();
+
+      if (facultySnap.docs.isNotEmpty) {
+        final facultyData = facultySnap.docs.first.data();
+        studentData['mentorName'] =
+            facultyData['name']?.toString() ?? mentorFacultyName;
+        studentData['mentorPhone'] =
+            facultyData['phone']?.toString() ?? 'N/A';
+        studentData['mentorEmail'] =
+            facultyData['email']?.toString() ?? 'N/A';
+      } else {
+        // Faculty not found, use assignment name
+        studentData['mentorName'] = mentorFacultyName;
+        studentData['mentorPhone'] = 'N/A';
+        studentData['mentorEmail'] = 'N/A';
+      }
+    } catch (e) {
+      debugPrint('[Mentor] Error fetching mentor data: $e');
+      studentData['mentorName'] = 'Error Loading';
+      studentData['mentorPhone'] = 'N/A';
+      studentData['mentorEmail'] = 'N/A';
     }
   }
 
