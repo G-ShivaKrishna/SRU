@@ -9,6 +9,7 @@ import 'pages/academic_calendar_management_page.dart';
 import 'pages/faculty_assignment_page.dart';
 import 'pages/subject_management_page.dart';
 import 'pages/student_promotion_page.dart';
+import 'pages/feedback_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
 import 'screens/admin_cie_memo_release_screen.dart';
 import 'screens/admin_lookup_screen.dart';
@@ -77,6 +78,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const FacultyAssignmentPage();
     } else if (pageName == 'Lookup') {
       page = const AdminLookupScreen();
+    } else if (pageName == 'Feedback Management') {
+      page = const FeedbackManagementPage();
     } else {
       return;
     }
@@ -191,6 +194,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Faculty Assignment',
       'Course Management',
       'CIE Memo Release',
+      'Feedback Management',
       'View Only',
       'Lookup',
     ];
