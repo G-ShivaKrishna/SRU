@@ -23,10 +23,36 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   List<Map<String, dynamic>> _subjects = [];
   Map<String, dynamic>? _studentData;
 
+  // Current subject index for step-by-step flow
+  int _currentIndex = 0;
+
+  // Rating state for current subject
+  final Map<String, int> _ratings = {};
+  final TextEditingController _commentsController = TextEditingController();
+  bool _isSubmitting = false;
+
+  late final List<String> _categories;
+
   @override
   void initState() {
     super.initState();
+    _categories = _feedbackService.getFeedbackCategories();
+    _initializeRatings();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _commentsController.dispose();
+    super.dispose();
+  }
+
+  void _initializeRatings() {
+    _ratings.clear();
+    for (final category in _categories) {
+      _ratings[category] = 0;
+    }
+    _commentsController.clear();
   }
 
   Future<void> _loadData() async {
@@ -82,6 +108,27 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             );
             _subjects[i]['submitted'] = hasSubmitted;
           }
+        }
+
+        // Sort: assigned faculty subjects first (alphabetically), then unassigned
+        _subjects.sort((a, b) {
+          final aAssigned = (a['facultyName'] != null && a['facultyName'] != '' && a['facultyName'] != 'Not Assigned');
+          final bAssigned = (b['facultyName'] != null && b['facultyName'] != '' && b['facultyName'] != 'Not Assigned');
+          if (aAssigned && !bAssigned) return -1;
+          if (!aAssigned && bAssigned) return 1;
+          // Both assigned or both unassigned: sort by subjectName
+          return (a['subjectName'] ?? '').toString().compareTo((b['subjectName'] ?? '').toString());
+        });
+
+        // Only allow feedback for assigned faculty subjects
+        // Find the first unsubmitted and assigned subject
+        _currentIndex = _subjects.indexWhere((s) =>
+          s['submitted'] != true &&
+          s['facultyName'] != null &&
+          s['facultyName'] != '' &&
+          s['facultyName'] != 'Not Assigned');
+        if (_currentIndex == -1) {
+          _currentIndex = _subjects.length; // All completed or none assigned
         }
       }
 
@@ -144,8 +191,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   }
 
   Widget _buildContent() {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
     if (!_feedbackEnabled) {
       return Center(
         child: Padding(
@@ -198,286 +243,284 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       );
     }
 
-    return Padding(
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Faculty Feedback',
-            style: TextStyle(
-              fontSize: isMobile ? 20 : 24,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF1e3a5f),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Rate your faculty for each subject',
-            style: TextStyle(
-              fontSize: isMobile ? 12 : 14,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _subjects.length,
-              itemBuilder: (context, index) {
-                return _buildSubjectCard(_subjects[index], isMobile);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSubjectCard(Map<String, dynamic> subject, bool isMobile) {
-    final submitted = subject['submitted'] ?? false;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: submitted ? Colors.green : Colors.grey[300]!,
-          width: submitted ? 2 : 1,
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: submitted ? Colors.green : const Color(0xFF1e3a5f),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(7),
-                topRight: Radius.circular(7),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        subject['subjectCode'] ?? '',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subject['subjectName'] ?? '',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (submitted)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green, size: 14),
-                        SizedBox(width: 4),
-                        Text(
-                          'Submitted',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.person, size: 16, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Faculty: ${subject['facultyName'] ?? 'Not Assigned'}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          submitted ? Colors.grey : const Color(0xFF1e3a5f),
-                    ),
-                    onPressed: submitted
-                        ? null
-                        : () => _showFeedbackDialog(subject),
-                    child: Text(
-                      submitted ? 'Feedback Submitted' : 'Give Feedback',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showFeedbackDialog(Map<String, dynamic> subject) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => _FeedbackFormDialog(
-        subject: subject,
-        sessionId: _activeSession?['sessionId'] ?? '',
-        studentId: _studentData?['hallTicketNumber'] ??
-            _auth.currentUser?.email?.split('@')[0].toUpperCase() ??
-            '',
-        feedbackService: _feedbackService,
-      ),
-    ).then((submitted) {
-      if (submitted == true) {
-        _loadData();
-      }
-    });
-  }
-}
-
-class _FeedbackFormDialog extends StatefulWidget {
-  final Map<String, dynamic> subject;
-  final String sessionId;
-  final String studentId;
-  final FeedbackService feedbackService;
-
-  const _FeedbackFormDialog({
-    required this.subject,
-    required this.sessionId,
-    required this.studentId,
-    required this.feedbackService,
-  });
-
-  @override
-  State<_FeedbackFormDialog> createState() => _FeedbackFormDialogState();
-}
-
-class _FeedbackFormDialogState extends State<_FeedbackFormDialog> {
-  final _commentsController = TextEditingController();
-  final Map<String, int> _ratings = {};
-  bool _isSubmitting = false;
-
-  late final List<String> _categories;
-
-  @override
-  void initState() {
-    super.initState();
-    _categories = widget.feedbackService.getFeedbackCategories();
-    // Initialize all ratings to 0 (not rated)
-    for (final category in _categories) {
-      _ratings[category] = 0;
+    // All subjects completed
+    if (_currentIndex >= _subjects.length) {
+      return _buildCompletionView();
     }
+
+    return _buildFeedbackForm();
   }
 
-  @override
-  void dispose() {
-    _commentsController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Rate Faculty'),
-          const SizedBox(height: 4),
-          Text(
-            '${widget.subject['subjectCode']} - ${widget.subject['subjectName']}',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
-          ),
-        ],
+  Widget _buildCompletionView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check_circle,
+                size: 80,
+                color: Colors.green.shade600,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'All Feedback Submitted!',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1e3a5f),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Thank you for providing feedback for all ${_subjects.length} subjects.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 32),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Back to Home'),
+            ),
+          ],
+        ),
       ),
-      content: SizedBox(
-        width: MediaQuery.of(context).size.width * 0.85,
-        child: SingleChildScrollView(
+    );
+  }
+
+  Widget _buildFeedbackForm() {
+    // Guard: If index is out of range, show completion view or empty
+    if (_subjects.isEmpty || _currentIndex < 0 || _currentIndex >= _subjects.length) {
+      return const SizedBox.shrink();
+    }
+    final subject = _subjects[_currentIndex];
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    final assigned = subject['facultyName'] != null && subject['facultyName'] != '' && subject['facultyName'] != 'Not Assigned';
+
+    if (!assigned) {
+      // Show message if faculty not assigned
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Icon(Icons.info_outline, size: 64, color: Colors.orange[300]),
+              const SizedBox(height: 16),
               Text(
-                'Faculty: ${widget.subject['facultyName']}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey,
-                ),
+                subject['subjectName'] ?? '',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1e3a5f)),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Faculty not assigned for this subject.',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 16),
-              const Divider(),
-              ..._categories.map((category) => _buildRatingRow(category)),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _commentsController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Additional Comments (Optional)',
-                  border: OutlineInputBorder(),
-                  hintText: 'Share your thoughts...',
-                ),
+              OutlinedButton.icon(
+                onPressed: _skipSubject,
+                icon: const Icon(Icons.arrow_forward),
+                label: const Text('Next Subject'),
               ),
             ],
           ),
         ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Progress indicator
+          _buildProgressIndicator(),
+          const SizedBox(height: 20),
+
+          // Subject header
+          _buildSubjectHeader(subject),
+          const SizedBox(height: 24),
+
+          // Rating categories
+          ..._categories.map((category) => _buildRatingRow(category)),
+
+          const SizedBox(height: 20),
+
+          // Comments field
+          TextField(
+            controller: _commentsController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              labelText: 'Additional Comments (Optional)',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              hintText: 'Share your thoughts...',
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Submit button
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1e3a5f),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: _isSubmitting ? null : _submitFeedback,
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      _currentIndex < _subjects.length - 1
+                          ? 'Submit & Next'
+                          : 'Submit Feedback',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Skip button (optional)
+          if (_currentIndex < _subjects.length - 1)
+            Center(
+              child: TextButton(
+                onPressed: _skipSubject,
+                child: Text(
+                  'Skip this subject',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ),
+            ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    final totalPending =
+        _subjects.where((s) => s['submitted'] != true).length;
+    final completed = _subjects.length - totalPending;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Subject ${_currentIndex + 1} of ${_subjects.length}',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF1e3a5f),
+              ),
+            ),
+            Text(
+              '$completed completed',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
         ),
-        ElevatedButton(
-          onPressed: _isSubmitting ? null : _submitFeedback,
-          child: _isSubmitting
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Submit'),
+        const SizedBox(height: 8),
+        LinearProgressIndicator(
+          value: (_currentIndex + 1) / _subjects.length,
+          backgroundColor: Colors.grey[200],
+          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1e3a5f)),
+          minHeight: 6,
+          borderRadius: BorderRadius.circular(3),
         ),
       ],
     );
   }
 
+  Widget _buildSubjectHeader(Map<String, dynamic> subject) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1e3a5f),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            subject['subjectCode'] ?? '',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subject['subjectName'] ?? '',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.person, size: 16, color: Colors.white70),
+              const SizedBox(width: 8),
+              Text(
+                'Faculty: ${subject['facultyName'] ?? 'Not Assigned'}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRatingRow(String category) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -485,29 +528,29 @@ class _FeedbackFormDialogState extends State<_FeedbackFormDialog> {
             category,
             style: const TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 13,
+              fontSize: 14,
+              color: Color(0xFF1e3a5f),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Row(
+            mainAxisAlignment: MainAxisAlignment.start,
             children: List.generate(5, (index) {
               final rating = index + 1;
-              return IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () {
+              final isSelected = rating <= (_ratings[category] ?? 0);
+              return GestureDetector(
+                onTap: () {
                   setState(() {
                     _ratings[category] = rating;
                   });
                 },
-                icon: Icon(
-                  rating <= (_ratings[category] ?? 0)
-                      ? Icons.star
-                      : Icons.star_border,
-                  color: rating <= (_ratings[category] ?? 0)
-                      ? Colors.amber
-                      : Colors.grey,
-                  size: 28,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    isSelected ? Icons.star : Icons.star_border,
+                    color: isSelected ? Colors.amber : Colors.grey[400],
+                    size: 32,
+                  ),
                 ),
               );
             }),
@@ -517,13 +560,31 @@ class _FeedbackFormDialogState extends State<_FeedbackFormDialog> {
     );
   }
 
+  void _skipSubject() {
+    setState(() {
+      _initializeRatings();
+      // Find next unsubmitted subject
+      int nextIndex = _currentIndex + 1;
+      while (nextIndex < _subjects.length && _subjects[nextIndex]['submitted'] == true) {
+        nextIndex++;
+      }
+      // If all are submitted, set to _subjects.length to trigger completion view
+      if (nextIndex >= _subjects.length) {
+        _currentIndex = _subjects.length;
+      } else {
+        _currentIndex = nextIndex;
+      }
+    });
+  }
+
   Future<void> _submitFeedback() async {
     // Validate all ratings are provided
     final unrated = _ratings.entries.where((e) => e.value == 0).toList();
     if (unrated.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please rate all categories: ${unrated.first.key}'),
+          content: Text('Please rate: ${unrated.first.key}'),
+          backgroundColor: Colors.orange,
         ),
       );
       return;
@@ -532,22 +593,52 @@ class _FeedbackFormDialogState extends State<_FeedbackFormDialog> {
     setState(() => _isSubmitting = true);
 
     try {
-      await widget.feedbackService.submitFeedback(
-        studentId: widget.studentId,
-        sessionId: widget.sessionId,
-        subjectCode: widget.subject['subjectCode'],
-        subjectName: widget.subject['subjectName'],
-        facultyId: widget.subject['facultyId'],
+      if (_subjects.isEmpty || _currentIndex < 0 || _currentIndex >= _subjects.length) {
+        setState(() => _isSubmitting = false);
+        return;
+      }
+      final subject = _subjects[_currentIndex];
+      final rollNumber = _studentData?['hallTicketNumber'] ??
+          _auth.currentUser?.email?.split('@')[0].toUpperCase() ??
+          '';
+
+      await _feedbackService.submitFeedback(
+        studentId: rollNumber,
+        sessionId: _activeSession?['sessionId'] ?? '',
+        subjectCode: subject['subjectCode'],
+        subjectName: subject['subjectName'],
+        facultyId: subject['facultyId'],
         ratings: _ratings,
         comments: _commentsController.text.trim(),
       );
 
-      if (mounted) {
-        Navigator.pop(context, true);
+      // Mark as submitted
+      _subjects[_currentIndex]['submitted'] = true;
+
+      // Reset ratings for next subject
+      _initializeRatings();
+
+      // Move to next unsubmitted subject
+      int nextIndex = _currentIndex + 1;
+      while (nextIndex < _subjects.length && _subjects[nextIndex]['submitted'] == true) {
+        nextIndex++;
+      }
+      // If all are submitted, set to _subjects.length to trigger completion view
+      setState(() {
+        _isSubmitting = false;
+        if (nextIndex >= _subjects.length) {
+          _currentIndex = _subjects.length;
+        } else {
+          _currentIndex = nextIndex;
+        }
+      });
+
+      if (mounted && nextIndex < _subjects.length) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Feedback submitted successfully!'),
+            content: Text('Feedback submitted! Moving to next subject...'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
           ),
         );
       }
@@ -555,10 +646,12 @@ class _FeedbackFormDialogState extends State<_FeedbackFormDialog> {
       setState(() => _isSubmitting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 }
-
