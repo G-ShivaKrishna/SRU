@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
+import '../faculty/screens/student_handbook_screen.dart';
+import '../faculty/screens/syllabus_screen.dart';
 import 'screens/academics_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/subject_registration_screen.dart';
@@ -14,6 +16,7 @@ import 'screens/student_cie_memo_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
 import 'screens/central_library_screen.dart';
+import 'screens/mentor_details_screen.dart';
 
 class StudentHome extends StatefulWidget {
   const StudentHome({super.key});
@@ -80,8 +83,14 @@ class _StudentHomeState extends State<StudentHome> {
 
       final doc = await _firestore.collection('students').doc(rollNumber).get();
       if (doc.exists) {
+        final studentData = doc.data()!;
+        // Fetch mentor information based on batch
+        final batchNumber = studentData['batchNumber']?.toString();
+        if (batchNumber != null && batchNumber.isNotEmpty) {
+          await _fetchMentorData(studentData, batchNumber);
+        }
         setState(() {
-          _studentData = doc.data();
+          _studentData = studentData;
           _isLoading = false;
         });
         // Compute CGPA from marks in the background
@@ -91,6 +100,64 @@ class _StudentHomeState extends State<StudentHome> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  /// Fetch mentor information from backend based on batch assignment
+  Future<void> _fetchMentorData(
+      Map<String, dynamic> studentData, String batchNumber) async {
+    try {
+      // Look for mentor assignment for this batch
+      final assignmentSnap = await _firestore
+          .collection('mentorAssignments')
+          .where('batchNumber', isEqualTo: batchNumber)
+          .limit(1)
+          .get();
+
+      if (assignmentSnap.docs.isEmpty) {
+        // No mentor assigned for this batch
+        studentData['mentorName'] = 'Not Assigned';
+        studentData['mentorPhone'] = 'N/A';
+        studentData['mentorEmail'] = 'N/A';
+        return;
+      }
+
+      final assignmentData = assignmentSnap.docs.first.data();
+      final mentorFacultyName = assignmentData['facultyName']?.toString();
+
+      if (mentorFacultyName == null || mentorFacultyName.isEmpty) {
+        studentData['mentorName'] = 'Not Assigned';
+        studentData['mentorPhone'] = 'N/A';
+        studentData['mentorEmail'] = 'N/A';
+        return;
+      }
+
+      // Get mentor's details from faculty collection
+      final facultySnap = await _firestore
+          .collection('faculty')
+          .where('name', isEqualTo: mentorFacultyName)
+          .limit(1)
+          .get();
+
+      if (facultySnap.docs.isNotEmpty) {
+        final facultyData = facultySnap.docs.first.data();
+        studentData['mentorName'] =
+            facultyData['name']?.toString() ?? mentorFacultyName;
+        studentData['mentorPhone'] =
+            facultyData['phone']?.toString() ?? 'N/A';
+        studentData['mentorEmail'] =
+            facultyData['email']?.toString() ?? 'N/A';
+      } else {
+        // Faculty not found, use assignment name
+        studentData['mentorName'] = mentorFacultyName;
+        studentData['mentorPhone'] = 'N/A';
+        studentData['mentorEmail'] = 'N/A';
+      }
+    } catch (e) {
+      debugPrint('[Mentor] Error fetching mentor data: $e');
+      studentData['mentorName'] = 'Error Loading';
+      studentData['mentorPhone'] = 'N/A';
+      studentData['mentorEmail'] = 'N/A';
     }
   }
 
@@ -501,6 +568,66 @@ class _StudentHomeState extends State<StudentHome> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: menuItems.map((item) {
+            if (item == 'Academics') {
+              // ── Academics dropdown ──────────────────────────────
+              return PopupMenuButton<String>(
+                offset: const Offset(0, 40),
+                color: const Color(0xFF1e3a5f),
+                onSelected: (value) {
+                  if (value == 'Calendar') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => AcademicsScreen()),
+                    );
+                  } else if (value == 'Handbook') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => StudentHandbookScreen()),
+                    );
+                  } else if (value == 'Syllabus') {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => SyllabusScreen()),
+                    );
+                  } else {
+                    _navigateToPage(context, value);
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'Calendar',
+                    child: Text('Calendar',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'Handbook',
+                    child: Text('Handbook',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'Syllabus',
+                    child: Text('Syllabus',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Row(
+                    children: const [
+                      Text(
+                        'Academics',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(width: 3),
+                      Icon(Icons.arrow_drop_down,
+                          color: Colors.white70, size: 16),
+                    ],
+                  ),
+                ),
+              );
+            }
             if (item == 'Results') {
               // ── Results dropdown ──────────────────────────────
               return PopupMenuButton<String>(
@@ -717,6 +844,32 @@ class _StudentHomeState extends State<StudentHome> {
         ? '$year-$semester'
         : _studentData?['yearSemester']?.toString() ?? 'N/A';
 
+    // Only show core academic cards (no Calendar, Handbook, Syllabus)
+    final academicsItems = [
+      {
+        'label': 'Year-Semester',
+        'value': yearSemester,
+        'color': Colors.teal,
+      },
+      {
+        'label': 'Attendance %',
+        'value': '${_studentData?['attendance'] ?? '0'}%',
+        'color': Colors.green,
+      },
+      {
+        'label': 'CGPA',
+        'value': _cgpaLoaded
+            ? _computedCgpa.toStringAsFixed(2)
+            : (_studentData?['cgpa']?.toString() ?? '...'),
+        'color': Colors.orange,
+      },
+      {
+        'label': 'Backlogs',
+        'value': '${_studentData?['backlogs'] ?? '0'}',
+        'color': Colors.red,
+      },
+    ];
+
     return GridView.count(
       crossAxisCount: crossAxisCount,
       shrinkWrap: true,
@@ -724,34 +877,17 @@ class _StudentHomeState extends State<StudentHome> {
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
       childAspectRatio: childAspectRatio,
-      children: [
-        _buildAcademicsCard(
-          'Year-Semester',
-          yearSemester,
-          Colors.teal,
+      children: academicsItems.map((item) {
+        final String label = item['label'] as String;
+        final String value = item['value'] as String;
+        final Color color = item['color'] as Color;
+        return _buildAcademicsCard(
+          label,
+          value,
+          color,
           context,
-        ),
-        _buildAcademicsCard(
-          'Attendance %',
-          '${_studentData?['attendance'] ?? '0'}%',
-          Colors.green,
-          context,
-        ),
-        _buildAcademicsCard(
-          'CGPA',
-          _cgpaLoaded
-              ? _computedCgpa.toStringAsFixed(2)
-              : (_studentData?['cgpa']?.toString() ?? '...'),
-          Colors.orange,
-          context,
-        ),
-        _buildAcademicsCard(
-          'Backlogs',
-          '${_studentData?['backlogs'] ?? '0'}',
-          Colors.red,
-          context,
-        ),
-      ],
+        );
+      }).toList(),
     );
   }
 
@@ -780,16 +916,28 @@ class _StudentHomeState extends State<StudentHome> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isMobile ? 20 : 26,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          value.isNotEmpty
+              ? Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: isMobile ? 20 : 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
+              : Icon(
+                  label == 'Calendar'
+                      ? Icons.calendar_today
+                      : label == 'Handbook'
+                          ? Icons.menu_book
+                          : label == 'Syllabus'
+                              ? Icons.description
+                              : Icons.info,
+                  color: Colors.white,
+                  size: isMobile ? 24 : 32,
+                ),
           const SizedBox(height: 8),
           Text(
             label,
@@ -835,6 +983,21 @@ class _StudentHomeState extends State<StudentHome> {
                   fontWeight: FontWeight.bold,
                   color: Colors.amber.shade900,
                 ),
+              ),
+              const Spacer(),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => MentorDetailsScreen(
+                        mentorName: mentorName,
+                        mentorEmail: mentorEmail,
+                        mentorPhone: mentorPhone,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('View Mentor'),
               ),
             ],
           ),

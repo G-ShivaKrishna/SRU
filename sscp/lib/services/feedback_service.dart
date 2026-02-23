@@ -510,6 +510,40 @@ class FeedbackService {
     }
   }
 
+  /// Get overall average feedback rating for a faculty member
+  /// Formula: Sum of all feedback scores / Number of students who gave feedback
+  Future<double> getOverallAverageFeedback({
+    required String facultyId,
+  }) async {
+    try {
+      final snapshot = await _feedbackCollection
+          .where('facultyId', isEqualTo: facultyId)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        return 0.0;
+      }
+
+      double totalRating = 0.0;
+      int totalResponses = 0;
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final averageRating = (data['averageRating'] ?? 0.0);
+        totalRating += averageRating;
+        totalResponses += 1;
+      }
+
+      // Calculate overall average: total sum / number of students
+      final overallAverage =
+          totalResponses > 0 ? totalRating / totalResponses : 0.0;
+
+      return double.parse(overallAverage.toStringAsFixed(2));
+    } catch (e) {
+      throw Exception('Failed to get overall average feedback: $e');
+    }
+  }
+
   /// Get feedback categories (configurable)
   List<String> getFeedbackCategories() {
     return [
