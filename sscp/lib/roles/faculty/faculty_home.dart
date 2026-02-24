@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
+import '../../services/feedback_service.dart';
 import 'screens/profile_screen.dart';
 import 'screens/attendance_entry_screen.dart';
 import 'screens/multi_batch_attendance_screen.dart';
@@ -27,6 +28,7 @@ import 'screens/course_view_screen.dart';
 import 'screens/cie_format_screen.dart';
 import 'screens/cie_marks_screen.dart';
 import 'screens/consolidated_marks_screen.dart';
+import 'screens/employee_directory_screen.dart';
 
 class FacultyHome extends StatefulWidget {
   const FacultyHome({super.key});
@@ -40,6 +42,7 @@ class FacultyHome extends StatefulWidget {
 class _FacultyHomeState extends State<FacultyHome> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FeedbackService _feedbackService = FeedbackService();
   User? _currentUser;
   Map<String, dynamic>? _facultyData;
   bool _isLoading = true;
@@ -87,8 +90,20 @@ class _FacultyHomeState extends State<FacultyHome> {
 
       final doc = await _firestore.collection('faculty').doc(facultyId).get();
       if (doc.exists) {
+        _facultyData = doc.data();
+        
+        // Fetch average feedback from backend
+        try {
+          final avgFeedback = await _feedbackService.getOverallAverageFeedback(
+            facultyId: facultyId,
+          );
+          _facultyData?['avgFeedback'] = avgFeedback.toString();
+        } catch (e) {
+          // If feedback calculation fails, use default value
+          _facultyData?['avgFeedback'] = '0.0';
+        }
+        
         setState(() {
-          _facultyData = doc.data();
           _isLoading = false;
         });
       } else {
@@ -908,6 +923,8 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const PreferenceReportScreen();
       case 'course_view':
         page = const CourseViewScreen();
+      case 'employee_directory':
+        page = const EmployeeDirectoryScreen();
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$route - Coming Soon')),

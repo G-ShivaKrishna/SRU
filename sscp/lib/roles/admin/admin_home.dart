@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'pages/mentor_assignment_page.dart';
 import '../../screens/role_selection_screen.dart';
 import 'pages/view_only_page.dart';
 import 'pages/unified_permissions_page.dart';
@@ -9,6 +10,7 @@ import 'pages/academic_calendar_management_page.dart';
 import 'pages/faculty_assignment_page.dart';
 import 'pages/subject_management_page.dart';
 import 'pages/student_promotion_page.dart';
+import 'pages/feedback_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
 import 'screens/admin_cie_memo_release_screen.dart';
 import 'screens/admin_lookup_screen.dart';
@@ -75,8 +77,12 @@ class _AdminHomeState extends State<AdminHome> {
       page = const SubjectManagementPage();
     } else if (pageName == 'Faculty Assignment') {
       page = const FacultyAssignmentPage();
+    } else if (pageName == 'Mentor Assignment') {
+      page = const MentorAssignmentPage();
     } else if (pageName == 'Lookup') {
       page = const AdminLookupScreen();
+    } else if (pageName == 'Feedback Management') {
+      page = const FeedbackManagementPage();
     } else {
       return;
     }
@@ -189,8 +195,10 @@ class _AdminHomeState extends State<AdminHome> {
       'Academic Calendar',
       'Subject Management',
       'Faculty Assignment',
+      'Mentor Assignment',
       'Course Management',
       'CIE Memo Release',
+      'Feedback Management',
       'View Only',
       'Lookup',
     ];
