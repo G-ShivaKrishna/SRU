@@ -101,12 +101,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
         // Find this student in the doc's students list
         final students = List<Map<String, dynamic>>.from(
-          (d['students'] as List? ?? []).map((e) => Map<String, dynamic>.from(e as Map)),
+          (d['students'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e as Map)),
         );
         final studentRecord = students.cast<Map<String, dynamic>?>().firstWhere(
-          (s) => (s!['rollNo'] as String? ?? '').toUpperCase() == rollNo,
-          orElse: () => null,
-        );
+              (s) => (s!['rollNo'] as String? ?? '').toUpperCase() == rollNo,
+              orElse: () => null,
+            );
         if (studentRecord == null) continue; // student not in this doc
 
         final isPresent = studentRecord['present'] == true;
@@ -114,7 +115,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
         map.putIfAbsent(
           subjectCode,
-          () => _SubjectStats(subjectCode: subjectCode, subjectName: subjectName),
+          () =>
+              _SubjectStats(subjectCode: subjectCode, subjectName: subjectName),
         );
         map[subjectCode]!.held += classCount;
         if (isPresent) map[subjectCode]!.present += classCount;
@@ -214,8 +216,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           GestureDetector(
             onTap: onTap,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey[400]!),
                 borderRadius: BorderRadius.circular(4),
@@ -229,8 +230,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         fontSize: 13,
                         color: date != null ? Colors.black87 : Colors.grey),
                   ),
-                  Icon(Icons.calendar_today,
-                      size: 18, color: Colors.grey[600]),
+                  Icon(Icons.calendar_today, size: 18, color: Colors.grey[600]),
                 ],
               ),
             ),
@@ -350,9 +350,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               color: Color(0xFF1e3a5f)),
         ),
         const SizedBox(height: 10),
-        isMobile
-            ? _buildMobileSubjectList()
-            : _buildDesktopSubjectTable(),
+        isMobile ? _buildMobileSubjectList() : _buildDesktopSubjectTable(),
       ],
     );
   }
@@ -389,8 +387,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         color: color)),
                 const SizedBox(height: 2),
                 Text(label,
-                    style:
-                        TextStyle(fontSize: 11, color: Colors.grey[700])),
+                    style: TextStyle(fontSize: 11, color: Colors.grey[700])),
               ],
             ),
           ),
@@ -415,9 +412,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       final c = Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           child: Text(t, style: hStyle));
-      return exp
-          ? Expanded(child: c)
-          : SizedBox(width: w ?? 80, child: c);
+      return exp ? Expanded(child: c) : SizedBox(width: w ?? 80, child: c);
     }
 
     Widget dc(String t,
@@ -429,9 +424,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   fontSize: 13,
                   color: color ?? Colors.black87,
                   fontWeight: fw)));
-      return exp
-          ? Expanded(child: c)
-          : SizedBox(width: w ?? 80, child: c);
+      return exp ? Expanded(child: c) : SizedBox(width: w ?? 80, child: c);
     }
 
     return Container(
@@ -475,8 +468,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 SizedBox(
                   width: 100,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
@@ -547,8 +540,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: pctColor.withOpacity(0.12),
-                        border:
-                            Border.all(color: pctColor.withOpacity(0.4)),
+                        border: Border.all(color: pctColor.withOpacity(0.4)),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -569,20 +561,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     value: s.held == 0 ? 0 : s.present / s.held,
                     minHeight: 6,
                     backgroundColor: Colors.grey[200],
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(pctColor),
+                    valueColor: AlwaysStoppedAnimation<Color>(pctColor),
                   ),
                 ),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _mobileStat('Held', '${s.held}',
-                        const Color(0xFF1565C0)),
-                    _mobileStat('Present', '${s.present}',
-                        Colors.green[700]!),
-                    _mobileStat(
-                        'Absent', '${s.absent}', Colors.red[700]!),
+                    _mobileStat('Held', '${s.held}', const Color(0xFF1565C0)),
+                    _mobileStat('Present', '${s.present}', Colors.green[700]!),
+                    _mobileStat('Absent', '${s.absent}', Colors.red[700]!),
                   ],
                 ),
               ],
@@ -599,9 +587,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               style: TextStyle(
                   fontWeight: FontWeight.bold, fontSize: 16, color: color)),
           const SizedBox(height: 2),
-          Text(label,
-              style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
         ],
       );
 }
-

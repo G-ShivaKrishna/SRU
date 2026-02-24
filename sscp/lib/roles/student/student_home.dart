@@ -177,9 +177,10 @@ class _StudentHomeState extends State<StudentHome> {
         if (periods.isEmpty) continue;
         final students = List<dynamic>.from(d['students'] ?? []);
         final record = students.cast<Map?>().firstWhere(
-          (s) => (s?['rollNo'] as String? ?? '').toUpperCase() == rollNumber,
-          orElse: () => null,
-        );
+              (s) =>
+                  (s?['rollNo'] as String? ?? '').toUpperCase() == rollNumber,
+              orElse: () => null,
+            );
         if (record == null) continue;
         held += periods.length;
         if (record['present'] == true) present += periods.length;
