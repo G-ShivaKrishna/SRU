@@ -663,8 +663,7 @@ class _FacultyHomeState extends State<FacultyHome> {
           ...items.map((item) => PopupMenuItem<String>(
                 value: item,
                 child: Text(item,
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 13)),
+                    style: const TextStyle(color: Colors.white, fontSize: 13)),
               )),
           PopupMenuItem<String>(
             enabled: false,
@@ -674,8 +673,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               items: downloadItems,
               onSelected: (value) {
                 Navigator.of(ctx).pop();
-                _handleMenuSelection(
-                    context, 'Professional Outline', value);
+                _handleMenuSelection(context, 'Professional Outline', value);
               },
             ),
           ),
