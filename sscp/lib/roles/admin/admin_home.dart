@@ -11,6 +11,7 @@ import 'pages/faculty_assignment_page.dart';
 import 'pages/subject_management_page.dart';
 import 'pages/student_promotion_page.dart';
 import 'pages/feedback_management_page.dart';
+import 'pages/regulations_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
 import 'screens/admin_cie_memo_release_screen.dart';
 import 'screens/admin_lookup_screen.dart';
@@ -83,6 +84,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const AdminLookupScreen();
     } else if (pageName == 'Feedback Management') {
       page = const FeedbackManagementPage();
+    } else if (pageName == 'Regulations') {
+      page = const RegulationsManagementPage();
     } else {
       return;
     }
@@ -199,6 +202,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Course Management',
       'CIE Memo Release',
       'Feedback Management',
+      'Regulations',
       'View Only',
       'Lookup',
     ];
@@ -672,6 +676,13 @@ class _AdminHomeState extends State<AdminHome> {
           const Color(0xFF1e3a5f),
           context,
           () => _navigateToPage(context, 'Lookup'),
+        ),
+        _buildActionCard(
+          'Regulations',
+          Icons.menu_book,
+          Colors.deepPurple,
+          context,
+          () => _navigateToPage(context, 'Regulations'),
         ),
       ],
     );
