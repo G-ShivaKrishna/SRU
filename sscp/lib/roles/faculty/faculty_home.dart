@@ -1000,16 +1000,28 @@ class _FacultyHomeState extends State<FacultyHome> {
       case 'mentor':
         page = const MentorStudentAccessScreen();
       case 'download_mtech_internship':
-        launchUrl(Uri.parse('https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_INTERNSHIP.pptx'), mode: LaunchMode.externalApplication);
+        launchUrl(
+            Uri.parse(
+                'https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_INTERNSHIP.pptx'),
+            mode: LaunchMode.externalApplication);
         return;
       case 'download_mtech_project':
-        launchUrl(Uri.parse('https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_PROJECT.pptx'), mode: LaunchMode.externalApplication);
+        launchUrl(
+            Uri.parse(
+                'https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_PROJECT.pptx'),
+            mode: LaunchMode.externalApplication);
         return;
       case 'download_mba_internship':
-        launchUrl(Uri.parse('https://github.com/SumithReddy007/DOCS/raw/main/MBA_Internship.pptx'), mode: LaunchMode.externalApplication);
+        launchUrl(
+            Uri.parse(
+                'https://github.com/SumithReddy007/DOCS/raw/main/MBA_Internship.pptx'),
+            mode: LaunchMode.externalApplication);
         return;
       case 'download_mba_project':
-        launchUrl(Uri.parse('https://github.com/SumithReddy007/DOCS/raw/main/MBA_PROJECT.pptx'), mode: LaunchMode.externalApplication);
+        launchUrl(
+            Uri.parse(
+                'https://github.com/SumithReddy007/DOCS/raw/main/MBA_PROJECT.pptx'),
+            mode: LaunchMode.externalApplication);
         return;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
