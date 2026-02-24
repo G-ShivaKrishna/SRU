@@ -35,7 +35,9 @@ class _Assignment {
       subjectName: d['subjectName'] ?? '',
       assignedBatches: List<String>.from(d['assignedBatches'] ?? []),
       department: d['department'] ?? '',
-      year: (d['year'] is int) ? d['year'] : int.tryParse(d['year'].toString()) ?? 1,
+      year: (d['year'] is int)
+          ? d['year']
+          : int.tryParse(d['year'].toString()) ?? 1,
       semester: d['semester'] ?? '',
       subjectType: d['subjectType'] ?? 'Theory',
     );
@@ -117,7 +119,10 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
   // ──────────────────────────────────────────────────────────────────────────
 
   Future<void> _loadAssignments() async {
-    setState(() { _loadingAssignments = true; _assignmentError = null; });
+    setState(() {
+      _loadingAssignments = true;
+      _assignmentError = null;
+    });
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
@@ -134,9 +139,15 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           list.add(_Assignment.fromDoc(doc));
         }
       }
-      setState(() { _assignments = list; _loadingAssignments = false; });
+      setState(() {
+        _assignments = list;
+        _loadingAssignments = false;
+      });
     } catch (e) {
-      setState(() { _assignmentError = e.toString(); _loadingAssignments = false; });
+      setState(() {
+        _assignmentError = e.toString();
+        _loadingAssignments = false;
+      });
     }
   }
 
@@ -167,8 +178,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         }
       }
 
-      students.sort((a, b) =>
-          (a['hallTicketNumber'] as String).compareTo(b['hallTicketNumber'] as String));
+      students.sort((a, b) => (a['hallTicketNumber'] as String)
+          .compareTo(b['hallTicketNumber'] as String));
 
       setState(() {
         _students = students;
@@ -182,7 +193,9 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
       setState(() => _loadingStudents = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading students: $e'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Error loading students: $e'),
+              backgroundColor: Colors.red),
         );
       }
     }
@@ -246,7 +259,9 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     }
     if (periodsChosen.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one period.'), backgroundColor: Colors.orange),
+        const SnackBar(
+            content: Text('Select at least one period.'),
+            backgroundColor: Colors.orange),
       );
       return;
     }
@@ -259,17 +274,20 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           ? [_selectedBatch!]
           : assignment.assignedBatches;
 
-      final studentRecords = _students.map((s) => {
-        'rollNo': s['rollNo'],
-        'name': s['name'],
-        'hallTicketNumber': s['hallTicketNumber'],
-        'batchNumber': s['batchNumber'],
-        'present': _attendance[s['rollNo']] ?? true,
-      }).toList();
+      final studentRecords = _students
+          .map((s) => {
+                'rollNo': s['rollNo'],
+                'name': s['name'],
+                'hallTicketNumber': s['hallTicketNumber'],
+                'batchNumber': s['batchNumber'],
+                'present': _attendance[s['rollNo']] ?? true,
+              })
+          .toList();
 
       await _firestore.collection('attendance').add({
         'dateStr': dateStr,
-        'date': Timestamp.fromDate(DateTime(_today.year, _today.month, _today.day)),
+        'date':
+            Timestamp.fromDate(DateTime(_today.year, _today.month, _today.day)),
         'facultyId': facultyId,
         'subjectCode': assignment.subjectCode,
         'subjectName': assignment.subjectName,
@@ -283,14 +301,18 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         'periods': periodsChosen,
         'students': studentRecords,
         'totalStudents': _students.length,
-        'presentCount': studentRecords.where((s) => s['present'] == true).length,
-        'absentCount': studentRecords.where((s) => s['present'] == false).length,
+        'presentCount':
+            studentRecords.where((s) => s['present'] == true).length,
+        'absentCount':
+            studentRecords.where((s) => s['present'] == false).length,
         'submittedAt': FieldValue.serverTimestamp(),
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Attendance submitted successfully!'), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text('Attendance submitted successfully!'),
+              backgroundColor: Colors.green),
         );
         Navigator.pop(context);
       }
@@ -316,7 +338,9 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Center(
-                child: _formVisible ? _buildAttendanceForm() : _buildSelectionForm(),
+                child: _formVisible
+                    ? _buildAttendanceForm()
+                    : _buildSelectionForm(),
               ),
             ),
           ),
@@ -353,7 +377,10 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           const Text(
             'Student Attendance Entry',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1e3a5f)),
+            style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1e3a5f)),
           ),
           const SizedBox(height: 28),
           // Class & Course + Batch
@@ -371,12 +398,16 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                     isExpanded: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
-                    items: _assignments.map((a) => DropdownMenuItem(
-                      value: a,
-                      child: Text(a.displayLabel, overflow: TextOverflow.ellipsis),
-                    )).toList(),
+                    items: _assignments
+                        .map((a) => DropdownMenuItem(
+                              value: a,
+                              child: Text(a.displayLabel,
+                                  overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
                     onChanged: (v) => setState(() {
                       _selectedAssignment = v;
                       _selectedBatch = null;
@@ -397,13 +428,18 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                     isExpanded: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
                     items: [
-                      const DropdownMenuItem(value: null, child: Text('All Batches')),
-                      ...batches.map((b) => DropdownMenuItem(value: b, child: Text(b))),
+                      const DropdownMenuItem(
+                          value: null, child: Text('All Batches')),
+                      ...batches.map(
+                          (b) => DropdownMenuItem(value: b, child: Text(b))),
                     ],
-                    onChanged: batches.isEmpty ? null : (v) => setState(() => _selectedBatch = v),
+                    onChanged: batches.isEmpty
+                        ? null
+                        : (v) => setState(() => _selectedBatch = v),
                   ),
                   const SizedBox(height: 4),
                   const Text('(Batch 1 or 2.. Selection only for Labs)',
@@ -414,10 +450,18 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
               ),
             );
             return wide
-                ? Row(crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [courseField, const SizedBox(width: 24), batchField])
-                : Column(crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [courseField, const SizedBox(height: 16), batchField]);
+                ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    courseField,
+                    const SizedBox(width: 24),
+                    batchField
+                  ])
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                        courseField,
+                        const SizedBox(height: 16),
+                        batchField
+                      ]);
           }),
           const SizedBox(height: 20),
           // Date + Submit
@@ -432,7 +476,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
                       decoration: BoxDecoration(
                         color: Colors.grey[200],
                         border: Border.all(color: Colors.grey[400]!),
@@ -449,12 +494,18 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1565C0),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                 ),
-                onPressed: _selectedAssignment == null || _loadingStudents ? null : _loadStudents,
+                onPressed: _selectedAssignment == null || _loadingStudents
+                    ? null
+                    : _loadStudents,
                 child: _loadingStudents
-                    ? const SizedBox(width: 20, height: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
                     : const Text('Submit', style: TextStyle(fontSize: 15)),
               ),
             ],
@@ -468,7 +519,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
 
   Widget _buildAttendanceForm() {
     final a = _selectedAssignment!;
-    final batches = _selectedBatch != null ? [_selectedBatch!] : a.assignedBatches;
+    final batches =
+        _selectedBatch != null ? [_selectedBatch!] : a.assignedBatches;
     final dateStr = DateFormat('dd-MM-yyyy').format(_today);
     final batchDisplay = batches.join('/ ');
 
@@ -479,16 +531,24 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         children: [
           const Text('Student Attendance Entry',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1e3a5f))),
+              style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1e3a5f))),
           const SizedBox(height: 16),
 
           // Info box
-          Center(child: ConstrainedBox(
+          Center(
+              child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 540),
             child: Container(
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey[400]!)),
+              decoration:
+                  BoxDecoration(border: Border.all(color: Colors.grey[400]!)),
               child: Table(
-                columnWidths: const {0: IntrinsicColumnWidth(), 1: FlexColumnWidth()},
+                columnWidths: const {
+                  0: IntrinsicColumnWidth(),
+                  1: FlexColumnWidth()
+                },
                 children: [
                   _infoRow('Date of Entry :', dateStr),
                   _infoRow('Branch & Spl :', a.department),
@@ -503,7 +563,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           const SizedBox(height: 16),
 
           // L-T-P / Topic / Unit fields
-          Center(child: ConstrainedBox(
+          Center(
+              child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 700),
             child: _buildFormFields(a),
           )),
@@ -514,7 +575,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           const SizedBox(height: 12),
 
           // Note banner
-          Center(child: Container(
+          Center(
+              child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: const Color(0xFFFFC107),
@@ -532,7 +594,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1565C0), foregroundColor: Colors.white),
+                  backgroundColor: const Color(0xFF1565C0),
+                  foregroundColor: Colors.white),
               onPressed: () => setState(() {
                 for (final k in _attendance.keys) _attendance[k] = true;
               }),
@@ -558,7 +621,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           const SizedBox(height: 20),
 
           // Submit
-          Center(child: ElevatedButton(
+          Center(
+              child: ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1e3a5f),
               foregroundColor: Colors.white,
@@ -566,9 +630,13 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
             ),
             onPressed: _submitting ? null : _submitAttendance,
             child: _submitting
-                ? const SizedBox(width: 20, height: 20,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Submit Attendance', style: TextStyle(fontSize: 15)),
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2))
+                : const Text('Submit Attendance',
+                    style: TextStyle(fontSize: 15)),
           )),
           const SizedBox(height: 24),
         ],
@@ -583,12 +651,14 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          child: Text(label,
+              style: const TextStyle(fontSize: 12, color: Colors.black54)),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           child: Text(value,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              style:
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -602,15 +672,17 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         : List.generate(10, (i) => 'Unit ${i + 1}');
 
     Widget fieldRow(String label, Widget input) => Row(children: [
-      SizedBox(
-        width: 160,
-        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-      ),
-      Expanded(child: input),
-    ]);
+          SizedBox(
+            width: 160,
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+          ),
+          Expanded(child: input),
+        ]);
 
     return Column(children: [
-      fieldRow('L-T-P Type',
+      fieldRow(
+        'L-T-P Type',
         DropdownButtonFormField<String>(
           value: _ltpType,
           isExpanded: true,
@@ -628,7 +700,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         ),
       ),
       const SizedBox(height: 10),
-      fieldRow('Topic Covered',
+      fieldRow(
+        'Topic Covered',
         TextFormField(
           controller: _topicCtrl,
           decoration: const InputDecoration(
@@ -639,7 +712,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         ),
       ),
       const SizedBox(height: 10),
-      fieldRow(isLab ? 'Exp No' : 'Unit/Exp No',
+      fieldRow(
+        isLab ? 'Exp No' : 'Unit/Exp No',
         DropdownButtonFormField<String>(
           value: _unitExpNo,
           isExpanded: true,
@@ -658,27 +732,29 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
   }
 
   Widget _buildHoursSection() {
-    return Center(child: Column(children: [
+    return Center(
+        child: Column(children: [
       Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Text('Hours',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          if (_loadingLockedPeriods) ...
-            const [
-              SizedBox(width: 10),
-              SizedBox(
-                width: 14, height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ],
+          if (_loadingLockedPeriods) ...const [
+            SizedBox(width: 10),
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ],
         ],
       ),
       const SizedBox(height: 8),
       ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 850),
         child: Container(
-          decoration: BoxDecoration(border: Border.all(color: Colors.grey[400]!)),
+          decoration:
+              BoxDecoration(border: Border.all(color: Colors.grey[400]!)),
           child: Table(
             border: TableBorder.all(color: Colors.grey[300]!),
             children: [
@@ -688,7 +764,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                   final isLocked = _lockedPeriods.contains(i + 1);
                   return Container(
                     color: isLocked ? Colors.grey[200] : null,
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                     child: Text(
                       _kPeriodLabels[i],
                       textAlign: TextAlign.center,
@@ -707,7 +784,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                   final isLocked = _lockedPeriods.contains(periodNum);
                   if (isLocked) {
                     return Tooltip(
-                      message: 'Period $periodNum already marked by another faculty',
+                      message:
+                          'Period $periodNum already marked by another faculty',
                       child: Container(
                         color: Colors.grey[200],
                         child: Center(
@@ -724,7 +802,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                     child: Checkbox(
                       value: _periodsSelected[i],
                       activeColor: const Color(0xFF1565C0),
-                      onChanged: (v) => setState(() => _periodsSelected[i] = v ?? false),
+                      onChanged: (v) =>
+                          setState(() => _periodsSelected[i] = v ?? false),
                     ),
                   );
                 }),
@@ -757,7 +836,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           style: TextStyle(color: Colors.grey));
     }
 
-    const hStyle = TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white);
+    const hStyle = TextStyle(
+        fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white);
     const dStyle = TextStyle(fontSize: 12, color: Colors.black87);
 
     Widget hc(String t, {double? w, bool exp = false}) {
@@ -808,10 +888,12 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                 dc(s['hallTicketNumber'] ?? '', w: 115),
                 SizedBox(
                   width: 100,
-                  child: Center(child: Checkbox(
+                  child: Center(
+                      child: Checkbox(
                     value: present,
                     activeColor: const Color(0xFF1565C0),
-                    onChanged: (v) => setState(() => _attendance[roll] = v ?? true),
+                    onChanged: (v) =>
+                        setState(() => _attendance[roll] = v ?? true),
                   )),
                 ),
                 dc(s['name'] ?? '', exp: true),
