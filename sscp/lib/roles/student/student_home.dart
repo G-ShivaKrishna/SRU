@@ -144,10 +144,8 @@ class _StudentHomeState extends State<StudentHome> {
         final facultyData = facultySnap.docs.first.data();
         studentData['mentorName'] =
             facultyData['name']?.toString() ?? mentorFacultyName;
-        studentData['mentorPhone'] =
-            facultyData['phone']?.toString() ?? 'N/A';
-        studentData['mentorEmail'] =
-            facultyData['email']?.toString() ?? 'N/A';
+        studentData['mentorPhone'] = facultyData['phone']?.toString() ?? 'N/A';
+        studentData['mentorEmail'] = facultyData['email']?.toString() ?? 'N/A';
       } else {
         // Faculty not found, use assignment name
         studentData['mentorName'] = mentorFacultyName;
@@ -587,11 +585,13 @@ class _StudentHomeState extends State<StudentHome> {
                 onSelected: (value) {
                   if (value == 'Calendar') {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => AcademicsScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => AcademicsScreen()),
                     );
                   } else if (value == 'Handbook') {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => StudentHandbookScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => StudentHandbookScreen()),
                     );
                   } else if (value == 'Syllabus') {
                     Navigator.of(context).push(
@@ -604,18 +604,18 @@ class _StudentHomeState extends State<StudentHome> {
                 itemBuilder: (ctx) => [
                   const PopupMenuItem(
                     value: 'Calendar',
-                    child: Text('Calendar',
-                        style: TextStyle(color: Colors.white)),
+                    child:
+                        Text('Calendar', style: TextStyle(color: Colors.white)),
                   ),
                   const PopupMenuItem(
                     value: 'Handbook',
-                    child: Text('Handbook',
-                        style: TextStyle(color: Colors.white)),
+                    child:
+                        Text('Handbook', style: TextStyle(color: Colors.white)),
                   ),
                   const PopupMenuItem(
                     value: 'Syllabus',
-                    child: Text('Syllabus',
-                        style: TextStyle(color: Colors.white)),
+                    child:
+                        Text('Syllabus', style: TextStyle(color: Colors.white)),
                   ),
                 ],
                 child: Padding(
@@ -697,8 +697,8 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ],
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
                     children: const [
                       Text(

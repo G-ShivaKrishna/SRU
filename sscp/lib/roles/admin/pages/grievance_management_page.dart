@@ -53,8 +53,7 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
   Future<void> _showUpdateDialog(DocumentSnapshot doc) async {
     final d = doc.data() as Map<String, dynamic>;
     String selectedStatus = d['status'] ?? 'Pending';
-    final responseCtrl =
-        TextEditingController(text: d['adminResponse'] ?? '');
+    final responseCtrl = TextEditingController(text: d['adminResponse'] ?? '');
     bool saving = false;
 
     await showDialog(
@@ -76,15 +75,13 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                 // Student info
                 RichText(
                   text: TextSpan(
-                    style: const TextStyle(
-                        fontSize: 13, color: Colors.black87),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
                     children: [
                       const TextSpan(
                           text: 'Student: ',
                           style: TextStyle(fontWeight: FontWeight.bold)),
                       TextSpan(
-                          text:
-                              '${d['studentName']} (${d['rollNumber']})'),
+                          text: '${d['studentName']} (${d['rollNumber']})'),
                     ],
                   ),
                 ),
@@ -107,8 +104,8 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                 const SizedBox(height: 16),
                 // Status dropdown
                 const Text('Status',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 13)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   value: selectedStatus,
@@ -120,8 +117,7 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                   ),
                   items: _statuses
                       .where((s) => s != 'All')
-                      .map((s) =>
-                          DropdownMenuItem(value: s, child: Text(s)))
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
                   onChanged: (v) {
                     if (v != null) setDlg(() => selectedStatus = v);
@@ -130,8 +126,8 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                 const SizedBox(height: 16),
                 // Admin response
                 const Text('Response to Student (optional)',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 13)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: responseCtrl,
@@ -221,8 +217,9 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
   }
 
   Widget _buildBody() {
-    Query query =
-        _firestore.collection('grievances').orderBy('createdAt', descending: true);
+    Query query = _firestore
+        .collection('grievances')
+        .orderBy('createdAt', descending: true);
 
     return StreamBuilder<QuerySnapshot>(
       stream: query.snapshots(),
@@ -238,35 +235,30 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
         var docs = snapshot.data?.docs ?? [];
         if (_filterStatus != 'All') {
           docs = docs
-              .where((d) =>
-                  (d.data() as Map)['status'] == _filterStatus)
+              .where((d) => (d.data() as Map)['status'] == _filterStatus)
               .toList();
         }
         if (_filterType != 'All') {
           docs = docs
-              .where((d) =>
-                  (d.data() as Map)['grievanceType'] == _filterType)
+              .where((d) => (d.data() as Map)['grievanceType'] == _filterType)
               .toList();
         }
 
         // Status counts for header chips
         final all = snapshot.data?.docs ?? [];
-        int pending = all
-            .where((d) => (d.data() as Map)['status'] == 'Pending')
-            .length;
+        int pending =
+            all.where((d) => (d.data() as Map)['status'] == 'Pending').length;
         int underReview = all
             .where((d) => (d.data() as Map)['status'] == 'Under Review')
             .length;
-        int resolved = all
-            .where((d) => (d.data() as Map)['status'] == 'Resolved')
-            .length;
+        int resolved =
+            all.where((d) => (d.data() as Map)['status'] == 'Resolved').length;
 
         return Column(
           children: [
             // ── Header ──────────────────────────────────────────
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               color: Colors.white,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,7 +278,9 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                     runSpacing: 6,
                     children: [
                       _SummaryChip(
-                          label: 'Total', count: all.length, color: Colors.blue),
+                          label: 'Total',
+                          count: all.length,
+                          color: Colors.blue),
                       _SummaryChip(
                           label: 'Pending',
                           count: pending,
@@ -320,8 +314,8 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                                 horizontal: 10, vertical: 12),
                           ),
                           items: _statuses
-                              .map((s) => DropdownMenuItem(
-                                  value: s, child: Text(s)))
+                              .map((s) =>
+                                  DropdownMenuItem(value: s, child: Text(s)))
                               .toList(),
                           onChanged: (v) =>
                               setState(() => _filterStatus = v ?? 'All'),
@@ -340,8 +334,8 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                                 horizontal: 10, vertical: 12),
                           ),
                           items: _types
-                              .map((t) => DropdownMenuItem(
-                                  value: t, child: Text(t)))
+                              .map((t) =>
+                                  DropdownMenuItem(value: t, child: Text(t)))
                               .toList(),
                           onChanged: (v) =>
                               setState(() => _filterType = v ?? 'All'),
@@ -357,8 +351,7 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
               child: docs.isEmpty
                   ? const Center(
                       child: Text('No grievances found.',
-                          style:
-                              TextStyle(color: Colors.grey, fontSize: 14)),
+                          style: TextStyle(color: Colors.grey, fontSize: 14)),
                     )
                   : ListView.builder(
                       padding: const EdgeInsets.all(12),
@@ -367,93 +360,72 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                         final doc = docs[index];
                         final d = doc.data() as Map<String, dynamic>;
                         final status = d['status'] ?? 'Pending';
-                        final createdAt =
-                            d['createdAt'] as Timestamp?;
+                        final createdAt = d['createdAt'] as Timestamp?;
                         final dateStr = createdAt != null
                             ? '${createdAt.toDate().day}/${createdAt.toDate().month}/${createdAt.toDate().year}'
                             : '–';
 
                         return Card(
-                          margin:
-                              const EdgeInsets.only(bottom: 10),
+                          margin: const EdgeInsets.only(bottom: 10),
                           shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(8)),
                           elevation: 2,
                           child: Padding(
                             padding: const EdgeInsets.all(14),
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
                                     // Type badge
                                     Container(
-                                      padding: const EdgeInsets
-                                          .symmetric(
-                                          horizontal: 8,
-                                          vertical: 3),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: const Color(
-                                                0xFF1e3a5f)
+                                        color: const Color(0xFF1e3a5f)
                                             .withOpacity(0.12),
-                                        borderRadius:
-                                            BorderRadius.circular(
-                                                4),
+                                        borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
                                         d['grievanceType'] ?? '',
                                         style: const TextStyle(
                                           fontSize: 11,
-                                          fontWeight:
-                                              FontWeight.bold,
-                                          color:
-                                              Color(0xFF1e3a5f),
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1e3a5f),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(width: 8),
                                     // Status badge
                                     Container(
-                                      padding: const EdgeInsets
-                                          .symmetric(
-                                          horizontal: 8,
-                                          vertical: 3),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
                                         color: _statusColor(status)
                                             .withOpacity(0.15),
-                                        borderRadius:
-                                            BorderRadius.circular(
-                                                20),
+                                        borderRadius: BorderRadius.circular(20),
                                         border: Border.all(
-                                            color: _statusColor(
-                                                status)),
+                                            color: _statusColor(status)),
                                       ),
                                       child: Text(
                                         status,
                                         style: TextStyle(
                                           fontSize: 11,
-                                          fontWeight:
-                                              FontWeight.w600,
-                                          color:
-                                              _statusColor(status),
+                                          fontWeight: FontWeight.w600,
+                                          color: _statusColor(status),
                                         ),
                                       ),
                                     ),
                                     const Spacer(),
                                     // Update button
                                     TextButton.icon(
-                                      onPressed: () =>
-                                          _showUpdateDialog(doc),
-                                      icon: const Icon(Icons.edit,
-                                          size: 14),
+                                      onPressed: () => _showUpdateDialog(doc),
+                                      icon: const Icon(Icons.edit, size: 14),
                                       label: const Text('Update',
-                                          style: TextStyle(
-                                              fontSize: 12)),
+                                          style: TextStyle(fontSize: 12)),
                                       style: TextButton.styleFrom(
-                                        foregroundColor: const Color(
-                                            0xFF1e3a5f),
+                                        foregroundColor:
+                                            const Color(0xFF1e3a5f),
                                       ),
                                     ),
                                   ],
@@ -473,8 +445,7 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                                 Text(
                                   d['description'] ?? '',
                                   style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black87),
+                                      fontSize: 13, color: Colors.black87),
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -486,35 +457,28 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                                       color: Colors.grey.shade600),
                                 ),
                                 // Admin response
-                                if ((d['adminResponse'] ?? '')
-                                    .isNotEmpty) ...[
+                                if ((d['adminResponse'] ?? '').isNotEmpty) ...[
                                   const SizedBox(height: 8),
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
                                       color: Colors.blue.shade50,
-                                      borderRadius:
-                                          BorderRadius.circular(6),
+                                      borderRadius: BorderRadius.circular(6),
                                       border: Border.all(
-                                          color:
-                                              Colors.blue.shade200),
+                                          color: Colors.blue.shade200),
                                     ),
                                     child: Row(
                                       children: [
-                                        Icon(
-                                            Icons
-                                                .admin_panel_settings,
+                                        Icon(Icons.admin_panel_settings,
                                             size: 14,
-                                            color:
-                                                Colors.blue.shade700),
+                                            color: Colors.blue.shade700),
                                         const SizedBox(width: 6),
                                         Expanded(
                                           child: Text(
                                             d['adminResponse'],
                                             style: TextStyle(
                                                 fontSize: 12,
-                                                color: Colors
-                                                    .blue.shade900),
+                                                color: Colors.blue.shade900),
                                           ),
                                         ),
                                       ],

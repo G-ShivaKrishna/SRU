@@ -43,8 +43,8 @@ class _GrievanceScreenState extends State<GrievanceScreen>
               indicatorColor: Colors.yellow,
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white70,
-              labelStyle: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600),
+              labelStyle:
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               tabs: const [
                 Tab(text: 'Submit Grievance'),
                 Tab(text: 'Grievance Status'),
@@ -184,8 +184,7 @@ class _SubmitGrievanceTabState extends State<_SubmitGrievanceTab> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Grievance Type',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -212,8 +211,7 @@ class _SubmitGrievanceTabState extends State<_SubmitGrievanceTab> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Describe Your Grievance',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -391,8 +389,7 @@ class _GrievanceStatusTab extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color:
-                                _statusColor(status).withOpacity(0.15),
+                            color: _statusColor(status).withOpacity(0.15),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                                 color: _statusColor(status), width: 1),
@@ -411,14 +408,14 @@ class _GrievanceStatusTab extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       d['description'] ?? '',
-                      style: const TextStyle(
-                          fontSize: 13, color: Colors.black87),
+                      style:
+                          const TextStyle(fontSize: 13, color: Colors.black87),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Submitted: $dateStr',
-                      style: TextStyle(
-                          fontSize: 11, color: Colors.grey.shade600),
+                      style:
+                          TextStyle(fontSize: 11, color: Colors.grey.shade600),
                     ),
                     if ((d['adminResponse'] ?? '').isNotEmpty) ...[
                       const SizedBox(height: 8),
@@ -433,15 +430,13 @@ class _GrievanceStatusTab extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(Icons.admin_panel_settings,
-                                size: 16,
-                                color: Colors.blue.shade700),
+                                size: 16, color: Colors.blue.shade700),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 d['adminResponse'],
                                 style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue.shade900),
+                                    fontSize: 12, color: Colors.blue.shade900),
                               ),
                             ),
                           ],
@@ -458,4 +453,3 @@ class _GrievanceStatusTab extends StatelessWidget {
     );
   }
 }
-
