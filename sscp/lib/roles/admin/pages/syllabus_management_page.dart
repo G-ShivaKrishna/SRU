@@ -296,36 +296,6 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
                 ],
               ),
               const SizedBox(height: 8),
-              // Info box
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  border: Border.all(color: Colors.blue.shade200),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline,
-                        color: Colors.blue.shade700, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'How to add PDF links:\n'
-                        '• GitHub: Use RAW link — replace "github.com" → "raw.githubusercontent.com" and remove "/blob"\n'
-                        '  e.g. https://raw.githubusercontent.com/SumithReddy007/DOCS/main/file.pdf\n'
-                        '• Google Drive: Upload PDF → Share → "Anyone with link can view" → copy link\n'
-                        '• Direct URL: Any direct .pdf URL (e.g. from university website)\n'
-                        '• Firebase Storage: Upload PDF → copy download URL',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.blue.shade900),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               // Table
               if (docs.isEmpty)
                 const Center(
@@ -358,7 +328,6 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
                             _hCell('S.No', flex: 1),
                             _hCell('Class Info', flex: 3),
                             _hCell('Regulation', flex: 2),
-                            _hCell('PDF Link', flex: 5),
                             _hCell('Actions', flex: 2),
                           ],
                         ),
@@ -379,23 +348,6 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
                                   flex: 1),
                               _dCell(d['classInfo'] ?? '', flex: 3),
                               _dCell(d['regulation'] ?? '', flex: 2),
-                              Expanded(
-                                flex: 5,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 10),
-                                  child: Text(
-                                    d['pdfUrl'] ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF1976D2),
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 2,
-                                  ),
-                                ),
-                              ),
                               Expanded(
                                 flex: 2,
                                 child: Padding(
