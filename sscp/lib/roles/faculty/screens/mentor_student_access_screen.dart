@@ -337,6 +337,19 @@ class _StudentCardState extends State<_StudentCard> {
   List<Map<String, dynamic>> _marks = [];
   String? _computedCgpa;
 
+  // Attendance state
+  bool _attendanceLoading = false;
+  bool _attendanceLoaded = false;
+  bool _showAttendanceDetail = false;
+  List<Map<String, dynamic>> _subjectAttendance = [];
+
+  int get _totalHeld =>
+      _subjectAttendance.fold(0, (s, e) => s + (e['held'] as int));
+  int get _totalPresent =>
+      _subjectAttendance.fold(0, (s, e) => s + (e['present'] as int));
+  double get _overallPct =>
+      _totalHeld > 0 ? _totalPresent / _totalHeld * 100 : 0.0;
+
   String _str(String key) {
     final v = widget.student[key]?.toString().trim() ?? '';
     return v.isEmpty ? '—' : v;
@@ -348,12 +361,18 @@ class _StudentCardState extends State<_StudentCard> {
     if (widget.isExpanded && !_marksLoaded && !_marksLoading) {
       _loadMarks();
     }
+    if (widget.isExpanded && !_attendanceLoaded && !_attendanceLoading) {
+      _loadAttendance();
+    }
   }
 
   @override
   void initState() {
     super.initState();
-    if (widget.isExpanded) _loadMarks();
+    if (widget.isExpanded) {
+      _loadMarks();
+      _loadAttendance();
+    }
   }
 
   // ── helpers (mirrors student_home.dart _computeCgpa) ──────────────────────
@@ -478,13 +497,87 @@ class _StudentCardState extends State<_StudentCard> {
     }
   }
 
+  // ── attendance loader ──────────────────────────────────────────────────────
+
+  Future<void> _loadAttendance() async {
+    final roll = _str('rollNumber');
+    final batch = _str('batchNumber');
+    if (roll == '—' || batch == '—') return;
+    setState(() => _attendanceLoading = true);
+    try {
+      final snap = await _fs
+          .collection('attendance')
+          .where('batches', arrayContains: batch)
+          .get();
+
+      // Accumulate per-subject stats for this student
+      final Map<String, Map<String, dynamic>> subjectMap = {};
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final subjectCode = data['subjectCode'] as String? ?? '';
+        final subjectName = data['subjectName'] as String? ?? '';
+        final key = subjectCode.isNotEmpty ? subjectCode : subjectName;
+        if (key.isEmpty) continue;
+
+        final students = List<Map<String, dynamic>>.from(
+          (data['students'] as List? ?? [])
+              .map((s) => Map<String, dynamic>.from(s as Map)),
+        );
+
+        // Find this specific student in the document
+        Map<String, dynamic>? entry;
+        for (final s in students) {
+          if ((s['rollNo'] as String? ?? '') == roll) {
+            entry = s;
+            break;
+          }
+        }
+        if (entry == null) continue;
+
+        final present = entry['present'] as bool? ?? false;
+        subjectMap.putIfAbsent(key, () => {
+          'subjectCode': subjectCode,
+          'subjectName': subjectName,
+          'held': 0,
+          'present': 0,
+          'absent': 0,
+        });
+        subjectMap[key]!['held'] = (subjectMap[key]!['held'] as int) + 1;
+        if (present) {
+          subjectMap[key]!['present'] =
+              (subjectMap[key]!['present'] as int) + 1;
+        } else {
+          subjectMap[key]!['absent'] =
+              (subjectMap[key]!['absent'] as int) + 1;
+        }
+      }
+
+      final list = subjectMap.values.toList()
+        ..sort((a, b) => (a['subjectCode'] as String)
+            .compareTo(b['subjectCode'] as String));
+
+      if (!mounted) return;
+      setState(() {
+        _subjectAttendance = list;
+        _attendanceLoaded = true;
+        _attendanceLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _attendanceLoading = false;
+        _attendanceLoaded = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final roll = _str('rollNumber');
     final name = _str('name');
     final program = _str('program');
     final year = _str('year');
-    final section = _str('section');
+    final batch = _str('batchNumber');
     final cgpaDisplay = _computedCgpa ?? '—';
 
     return Card(
@@ -518,7 +611,7 @@ class _StudentCardState extends State<_StudentCard> {
                                 fontWeight: FontWeight.bold, fontSize: 15)),
                         const SizedBox(height: 2),
                         Text(
-                          'Roll: $roll  ·  $program  ·  Year $year  ·  Sec $section',
+                          'Roll: $roll  ·  $program  ·  Year $year  ·  Batch $batch',
                           style:
                               const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
@@ -562,12 +655,21 @@ class _StudentCardState extends State<_StudentCard> {
                       _tile(Icons.phone_outlined, 'Phone', _str('phone')),
                       _tile(Icons.calendar_today_outlined, 'Date of Birth',
                           _str('dob')),
-                      _tile(Icons.class_outlined, 'Batch / Section',
-                          '${_str('batchNumber')} / ${_str('section')}'),
+                      _tile(Icons.class_outlined, 'Batch',
+                          _str('batchNumber')),
                       _tile(Icons.layers_outlined, 'Year / Semester',
                           'Year ${_str('year')}  ·  Sem ${_str('semester')}'),
                       _tile(Icons.grade_outlined, 'CGPA',
                           _marksLoading ? '…' : cgpaDisplay),
+                      _tile(
+                        Icons.bar_chart_outlined,
+                        'Overall Attendance',
+                        _attendanceLoading
+                            ? '…'
+                            : _attendanceLoaded && _totalHeld > 0
+                                ? '${_overallPct.toStringAsFixed(1)}%  (${_totalPresent}/${_totalHeld})'
+                                : '—',
+                      ),
                       _tile(Icons.home_outlined, 'Address', _str('address')),
                     ],
                   ),
@@ -592,10 +694,268 @@ class _StudentCardState extends State<_StudentCard> {
                     )
                   else
                     _buildMarksSection(),
+                  const SizedBox(height: 14),
+                  // ── Attendance section ────────────────────────────────
+                  _buildAttendanceSection(),
                 ],
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section header with overall % and expand toggle
+        InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: () => setState(
+              () => _showAttendanceDetail = !_showAttendanceDetail),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                const Text(
+                  'Attendance',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Color(0xFF1e3a5f)),
+                ),
+                const SizedBox(width: 10),
+                if (_attendanceLoading)
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else if (_attendanceLoaded && _totalHeld > 0) ...
+                  [
+                    _pctChip(_overallPct),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_totalPresent}/${_totalHeld} classes',
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                const Spacer(),
+                Icon(
+                  _showAttendanceDetail
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  size: 18,
+                  color: Colors.grey,
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Overall progress bar (always visible)
+        if (_attendanceLoaded && _totalHeld > 0) ...
+          [
+            const SizedBox(height: 4),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: _overallPct / 100,
+                minHeight: 6,
+                backgroundColor: Colors.red.shade100,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    _overallPct >= 75 ? Colors.green : Colors.orange),
+              ),
+            ),
+          ],
+        // Subject-wise detail table
+        if (_showAttendanceDetail) ...
+          [
+            const SizedBox(height: 10),
+            if (_attendanceLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_subjectAttendance.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'No attendance records found.',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              )
+            else
+              _buildAttendanceTable(),
+          ],
+      ],
+    );
+  }
+
+  Widget _buildAttendanceTable() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          // Table header
+          Container(
+            width: double.infinity,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1e3a5f),
+              borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(7)),
+            ),
+            child: const Row(
+              children: [
+                Expanded(
+                    flex: 5,
+                    child: Text('Subject',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11))),
+                SizedBox(
+                    width: 36,
+                    child: Text('Held',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white70, fontSize: 11))),
+                SizedBox(
+                    width: 36,
+                    child: Text('P',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white70, fontSize: 11))),
+                SizedBox(
+                    width: 36,
+                    child: Text('A',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white70, fontSize: 11))),
+                SizedBox(
+                    width: 46,
+                    child: Text('%',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white70, fontSize: 11))),
+              ],
+            ),
+          ),
+          // Table rows
+          ..._subjectAttendance.map((s) {
+            final held = s['held'] as int;
+            final present = s['present'] as int;
+            final absent = s['absent'] as int;
+            final pct = held > 0 ? present / held * 100 : 0.0;
+            final code = s['subjectCode'] as String? ?? '';
+            final name = s['subjectName'] as String? ?? '';
+            final label = code.isNotEmpty ? code : name;
+            final subLabel = code.isNotEmpty && name.isNotEmpty ? name : null;
+            final isLast = s == _subjectAttendance.last;
+
+            return Container(
+              decoration: BoxDecoration(
+                border: isLast
+                    ? null
+                    : Border(
+                        bottom:
+                            BorderSide(color: Colors.grey.shade200)),
+              ),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(label,
+                            style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600)),
+                        if (subLabel != null)
+                          Text(subLabel,
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey.shade500)),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    width: 36,
+                    child: Text('$held',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 12)),
+                  ),
+                  SizedBox(
+                    width: 36,
+                    child: Text('$present',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.green)),
+                  ),
+                  SizedBox(
+                    width: 36,
+                    child: Text('$absent',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.red)),
+                  ),
+                  SizedBox(
+                    width: 46,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: (pct >= 75
+                                ? Colors.green
+                                : Colors.orange)
+                            .withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${pct.toStringAsFixed(0)}%',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: pct >= 75
+                                ? Colors.green.shade700
+                                : Colors.orange.shade800),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _pctChip(double pct) {
+    final color = pct >= 75 ? Colors.green : Colors.orange;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        border: Border.all(color: color.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '${pct.toStringAsFixed(1)}%',
+        style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: color.shade700),
       ),
     );
   }
