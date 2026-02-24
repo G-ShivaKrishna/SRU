@@ -142,7 +142,8 @@ class _RequestList extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.assignment_outlined, size: 64, color: Colors.grey.shade400),
+          Icon(Icons.assignment_outlined,
+              size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 12),
           Text(emptyMessage,
               style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
@@ -241,7 +242,8 @@ class _RequestCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             // ── date range ─────────────────────────────────────────────
-            _infoRow(Icons.date_range, 'Date range: $_fromDateStr  →  $_toDateStr'),
+            _infoRow(
+                Icons.date_range, 'Date range: $_fromDateStr  →  $_toDateStr'),
             _infoRow(Icons.access_time, 'Requested: $submittedAt'),
             const SizedBox(height: 8),
             // ── reason ─────────────────────────────────────────────────
@@ -265,8 +267,7 @@ class _RequestCard extends StatelessWidget {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: _statusColor.withOpacity(0.08),
-                  border:
-                      Border.all(color: _statusColor.withOpacity(0.3)),
+                  border: Border.all(color: _statusColor.withOpacity(0.3)),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -332,7 +333,8 @@ class _RequestCard extends StatelessWidget {
               controller: noteCtrl,
               maxLines: 2,
               decoration: InputDecoration(
-                labelText: approve ? 'Note (optional)' : 'Reason for rejection *',
+                labelText:
+                    approve ? 'Note (optional)' : 'Reason for rejection *',
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -345,8 +347,7 @@ class _RequestCard extends StatelessWidget {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    approve ? Colors.green : Colors.red),
+                backgroundColor: approve ? Colors.green : Colors.red),
             child: Text(approve ? 'Approve' : 'Reject',
                 style: const TextStyle(color: Colors.white)),
           ),
@@ -361,9 +362,7 @@ class _RequestCard extends StatelessWidget {
       );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(approve
-              ? 'Request approved.'
-              : 'Request rejected.'),
+          content: Text(approve ? 'Request approved.' : 'Request rejected.'),
           backgroundColor: approve ? Colors.green : Colors.red,
         ));
       }
@@ -391,9 +390,7 @@ class _RequestCard extends StatelessWidget {
       ),
       child: Text(label,
           style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.bold)),
+              color: color, fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -405,8 +402,7 @@ class _RequestCard extends StatelessWidget {
         const SizedBox(width: 6),
         Expanded(
             child: Text(text,
-                style: TextStyle(
-                    fontSize: 12, color: Colors.grey.shade700))),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700))),
       ]),
     );
   }

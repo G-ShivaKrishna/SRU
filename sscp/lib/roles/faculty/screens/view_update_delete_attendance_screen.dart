@@ -196,7 +196,8 @@ class _ViewUpdateDeleteAttendanceScreenState
       borderColor: Colors.green,
       icon: Icons.lock_open,
       iconColor: Colors.green,
-      text: 'Today\'s attendance can be edited until 6:00 PM  •  ${_timeLeftStr()}',
+      text:
+          'Today\'s attendance can be edited until 6:00 PM  •  ${_timeLeftStr()}',
     );
   }
 
@@ -206,7 +207,8 @@ class _ViewUpdateDeleteAttendanceScreenState
       borderColor: Colors.orange,
       icon: Icons.lock,
       iconColor: Colors.orange,
-      text: 'Edit window has closed for today (after 6:00 PM). You can view records only.',
+      text:
+          'Edit window has closed for today (after 6:00 PM). You can view records only.',
     );
   }
 
@@ -216,7 +218,8 @@ class _ViewUpdateDeleteAttendanceScreenState
       borderColor: Colors.blue,
       icon: Icons.info_outline,
       iconColor: Colors.blue,
-      text: 'Past date — view only. Use ✏ button in the app bar to request edit access from admin.',
+      text:
+          'Past date — view only. Use ✏ button in the app bar to request edit access from admin.',
     );
   }
 
@@ -238,9 +241,7 @@ class _ViewUpdateDeleteAttendanceScreenState
       child: Row(children: [
         Icon(icon, color: iconColor, size: 18),
         const SizedBox(width: 10),
-        Expanded(
-            child: Text(text,
-                style: const TextStyle(fontSize: 13))),
+        Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
       ]),
     );
   }
@@ -255,8 +256,7 @@ class _ViewUpdateDeleteAttendanceScreenState
                 size: 64, color: Colors.grey.shade400),
             const SizedBox(height: 12),
             Text('No attendance records found for this date.',
-                style:
-                    TextStyle(fontSize: 15, color: Colors.grey.shade600)),
+                style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
           ],
         ),
       ),
@@ -289,8 +289,8 @@ class _ViewUpdateDeleteAttendanceScreenState
           // ── header row ─────────────────────────────────────────────────
           InkWell(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-            onTap: () => setState(
-                () => _expandedDocId = isExpanded ? null : doc.id),
+            onTap: () =>
+                setState(() => _expandedDocId = isExpanded ? null : doc.id),
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -306,9 +306,7 @@ class _ViewUpdateDeleteAttendanceScreenState
                         ),
                       ),
                       Icon(
-                        isExpanded
-                            ? Icons.expand_less
-                            : Icons.expand_more,
+                        isExpanded ? Icons.expand_less : Icons.expand_more,
                         color: Colors.grey,
                       ),
                     ],
@@ -356,8 +354,7 @@ class _ViewUpdateDeleteAttendanceScreenState
           if (_isToday && _canEdit)
             Container(
               decoration: BoxDecoration(
-                border:
-                    Border(top: BorderSide(color: Colors.grey.shade200)),
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
               ),
               child: Row(
                 children: [
@@ -366,21 +363,17 @@ class _ViewUpdateDeleteAttendanceScreenState
                       onPressed: () => _startEdit(doc),
                       icon: const Icon(Icons.edit, size: 16),
                       label: const Text('Update'),
-                      style: TextButton.styleFrom(
-                          foregroundColor: Colors.orange),
+                      style:
+                          TextButton.styleFrom(foregroundColor: Colors.orange),
                     ),
                   ),
-                  Container(
-                      width: 1,
-                      height: 36,
-                      color: Colors.grey.shade200),
+                  Container(width: 1, height: 36, color: Colors.grey.shade200),
                   Expanded(
                     child: TextButton.icon(
                       onPressed: () => _showDeleteDialog(doc),
                       icon: const Icon(Icons.delete_outline, size: 16),
                       label: const Text('Delete'),
-                      style: TextButton.styleFrom(
-                          foregroundColor: Colors.red),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
                     ),
                   ),
                 ],
@@ -399,7 +392,8 @@ class _ViewUpdateDeleteAttendanceScreenState
   Widget _buildStudentList(QueryDocumentSnapshot doc, bool isEditing) {
     final data = doc.data() as Map<String, dynamic>;
     final rawStudents = List<Map<String, dynamic>>.from(
-        (data['students'] as List? ?? []).map((s) => Map<String, dynamic>.from(s as Map)));
+        (data['students'] as List? ?? [])
+            .map((s) => Map<String, dynamic>.from(s as Map)));
 
     // Build editable map if needed
     final editMap = _editedAttendance[doc.id];
@@ -409,18 +403,15 @@ class _ViewUpdateDeleteAttendanceScreenState
         Divider(height: 1, color: Colors.grey.shade200),
         if (isEditing)
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             child: Row(
               children: [
                 const Expanded(
                   child: Text('Editing — tap to toggle presence',
-                      style: TextStyle(
-                          fontSize: 12, color: Colors.orange)),
+                      style: TextStyle(fontSize: 12, color: Colors.orange)),
                 ),
                 TextButton(
-                    onPressed: () => _saveEdit(doc),
-                    child: const Text('Save')),
+                    onPressed: () => _saveEdit(doc), child: const Text('Save')),
                 TextButton(
                     onPressed: () =>
                         setState(() => _editedAttendance.remove(doc.id)),
@@ -449,8 +440,7 @@ class _ViewUpdateDeleteAttendanceScreenState
                 color: Colors.white,
               ),
             ),
-            title: Text(name,
-                style: const TextStyle(fontSize: 13)),
+            title: Text(name, style: const TextStyle(fontSize: 13)),
             subtitle: Text('$rollNo  •  $ht  •  Batch $batch',
                 style: const TextStyle(fontSize: 11)),
             trailing: isEditing
@@ -463,8 +453,8 @@ class _ViewUpdateDeleteAttendanceScreenState
                       });
                     },
                   )
-                : _chip(present ? 'P' : 'A',
-                    present ? Colors.green : Colors.red),
+                : _chip(
+                    present ? 'P' : 'A', present ? Colors.green : Colors.red),
           );
         }),
         const SizedBox(height: 8),
@@ -477,7 +467,8 @@ class _ViewUpdateDeleteAttendanceScreenState
   void _startEdit(QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     final students = List<Map<String, dynamic>>.from(
-        (data['students'] as List? ?? []).map((s) => Map<String, dynamic>.from(s as Map)));
+        (data['students'] as List? ?? [])
+            .map((s) => Map<String, dynamic>.from(s as Map)));
     final map = <String, bool>{};
     for (final s in students) {
       final rollNo = s['rollNo'] as String? ?? '';
@@ -495,7 +486,8 @@ class _ViewUpdateDeleteAttendanceScreenState
 
     final data = doc.data() as Map<String, dynamic>;
     final students = List<Map<String, dynamic>>.from(
-        (data['students'] as List? ?? []).map((s) => Map<String, dynamic>.from(s as Map)));
+        (data['students'] as List? ?? [])
+            .map((s) => Map<String, dynamic>.from(s as Map)));
 
     for (final s in students) {
       final rollNo = s['rollNo'] as String? ?? '';
@@ -542,7 +534,8 @@ class _ViewUpdateDeleteAttendanceScreenState
       // Single batch → confirm full delete
       final ok = await _confirmDialog(
         title: 'Delete Attendance',
-        content: 'Delete all attendance for $subjectCode / ${batches.first}?\nThis cannot be undone.',
+        content:
+            'Delete all attendance for $subjectCode / ${batches.first}?\nThis cannot be undone.',
       );
       if (ok == true) await _deleteDoc(doc);
       return;
@@ -571,11 +564,9 @@ class _ViewUpdateDeleteAttendanceScreenState
                 onPressed: () => Navigator.pop(ctx, false),
                 child: const Text('Cancel')),
             ElevatedButton(
-              onPressed: chosenBatch != null
-                  ? () => Navigator.pop(ctx, true)
-                  : null,
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed:
+                  chosenBatch != null ? () => Navigator.pop(ctx, true) : null,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text('Delete Batch'),
             ),
           ],
@@ -612,10 +603,10 @@ class _ViewUpdateDeleteAttendanceScreenState
     final batches = List<String>.from(data['batches'] as List? ?? [])
       ..remove(batch);
     final students = List<Map<String, dynamic>>.from(
-        (data['students'] as List? ?? []).map((s) => Map<String, dynamic>.from(s as Map)))
+        (data['students'] as List? ?? [])
+            .map((s) => Map<String, dynamic>.from(s as Map)))
       ..removeWhere((s) => s['batchNumber'] == batch);
-    final presentCount =
-        students.where((s) => s['present'] == true).length;
+    final presentCount = students.where((s) => s['present'] == true).length;
     final absentCount = students.length - presentCount;
 
     try {
@@ -655,8 +646,7 @@ class _ViewUpdateDeleteAttendanceScreenState
               child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style:
-                ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
@@ -709,8 +699,7 @@ class _ViewUpdateDeleteAttendanceScreenState
                     border: OutlineInputBorder(),
                   ),
                   items: subjects.map((s) {
-                    return DropdownMenuItem(
-                        value: s, child: Text(s));
+                    return DropdownMenuItem(value: s, child: Text(s));
                   }).toList(),
                   onChanged: (v) => setS(() => selectedSubject = v),
                 ),
@@ -721,12 +710,11 @@ class _ViewUpdateDeleteAttendanceScreenState
                     final p = await showDatePicker(
                       context: ctx,
                       initialDate: fromDate ??
-                          DateTime.now()
-                              .subtract(const Duration(days: 7)),
-                      firstDate: DateTime.now()
-                          .subtract(const Duration(days: 365)),
-                      lastDate: DateTime.now()
-                          .subtract(const Duration(days: 1)),
+                          DateTime.now().subtract(const Duration(days: 7)),
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate:
+                          DateTime.now().subtract(const Duration(days: 1)),
                     );
                     if (p != null) setS(() => fromDate = p);
                   },
@@ -741,13 +729,11 @@ class _ViewUpdateDeleteAttendanceScreenState
                   onPressed: () async {
                     final p = await showDatePicker(
                       context: ctx,
-                      initialDate: toDate ??
-                          (fromDate ?? DateTime.now()),
+                      initialDate: toDate ?? (fromDate ?? DateTime.now()),
                       firstDate: fromDate ??
-                          DateTime.now()
-                              .subtract(const Duration(days: 365)),
-                      lastDate: DateTime.now()
-                          .subtract(const Duration(days: 1)),
+                          DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate:
+                          DateTime.now().subtract(const Duration(days: 1)),
                     );
                     if (p != null) setS(() => toDate = p);
                   },
@@ -790,8 +776,8 @@ class _ViewUpdateDeleteAttendanceScreenState
                       );
                     }
                   : null,
-              child: const Text('Submit',
-                  style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('Submit', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -856,9 +842,7 @@ class _ViewUpdateDeleteAttendanceScreenState
       ),
       child: Text(label,
           style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w600)),
+              color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 
@@ -866,14 +850,11 @@ class _ViewUpdateDeleteAttendanceScreenState
     return Row(mainAxisSize: MainAxisSize.min, children: [
       Text(prefix,
           style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.bold)),
+              fontSize: 12, color: color, fontWeight: FontWeight.bold)),
       const SizedBox(width: 2),
       Text(value,
-          style:
-              TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+          style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.bold, color: color)),
     ]);
   }
 }
-
