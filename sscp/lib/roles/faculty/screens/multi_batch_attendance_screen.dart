@@ -249,8 +249,8 @@ class _MultiBatchAttendanceScreenState
 
       await _firestore.collection('attendance').add({
         'dateStr': dateStr,
-        'date': Timestamp.fromDate(
-            DateTime(_today.year, _today.month, _today.day)),
+        'date':
+            Timestamp.fromDate(DateTime(_today.year, _today.month, _today.day)),
         'facultyId': _facultyId,
         'subjectCode': assignment.subjectCode,
         'subjectName': assignment.subjectName,
@@ -282,8 +282,7 @@ class _MultiBatchAttendanceScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('Error: $e'), backgroundColor: Colors.red));
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -327,12 +326,10 @@ class _MultiBatchAttendanceScreenState
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
-            Text(_assignmentError!,
-                style: const TextStyle(color: Colors.red)),
+            Text(_assignmentError!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 12),
             ElevatedButton(
-                onPressed: _loadAssignments,
-                child: const Text('Retry')),
+                onPressed: _loadAssignments, child: const Text('Retry')),
           ],
         ),
       );
@@ -368,8 +365,7 @@ class _MultiBatchAttendanceScreenState
           const SizedBox(height: 20),
 
           // Subject
-          const Text('Subject',
-              style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Subject', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           DropdownButtonFormField<_Assign>(
             value: _selectedAssignment,
@@ -383,8 +379,8 @@ class _MultiBatchAttendanceScreenState
             items: _assignments
                 .map((a) => DropdownMenuItem(
                       value: a,
-                      child: Text(a.displayLabel,
-                          overflow: TextOverflow.ellipsis),
+                      child:
+                          Text(a.displayLabel, overflow: TextOverflow.ellipsis),
                     ))
                 .toList(),
             onChanged: (v) {
@@ -459,8 +455,7 @@ class _MultiBatchAttendanceScreenState
             return FilterChip(
               label: Text(b),
               selected: selected,
-              selectedColor:
-                  const Color(0xFF1e3a5f).withOpacity(0.18),
+              selectedColor: const Color(0xFF1e3a5f).withOpacity(0.18),
               checkmarkColor: const Color(0xFF1e3a5f),
               onSelected: (v) {
                 setState(() {
@@ -478,14 +473,12 @@ class _MultiBatchAttendanceScreenState
         Row(
           children: [
             TextButton.icon(
-              onPressed: () =>
-                  setState(() => _selectedBatches.addAll(batches)),
+              onPressed: () => setState(() => _selectedBatches.addAll(batches)),
               icon: const Icon(Icons.select_all, size: 16),
               label: const Text('Select All'),
             ),
             TextButton.icon(
-              onPressed: () =>
-                  setState(() => _selectedBatches.clear()),
+              onPressed: () => setState(() => _selectedBatches.clear()),
               icon: const Icon(Icons.clear, size: 16),
               label: const Text('Clear'),
             ),
@@ -544,8 +537,8 @@ class _MultiBatchAttendanceScreenState
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 560),
               child: Container(
-                decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[400]!)),
+                decoration:
+                    BoxDecoration(border: Border.all(color: Colors.grey[400]!)),
                 child: Table(
                   columnWidths: const {
                     0: IntrinsicColumnWidth(),
@@ -578,8 +571,7 @@ class _MultiBatchAttendanceScreenState
 
           Center(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFC107),
                 borderRadius: BorderRadius.circular(4),
@@ -587,8 +579,7 @@ class _MultiBatchAttendanceScreenState
               child: const Text(
                 'Note : Remove the checkmarks for absentee\'s numbers',
                 textAlign: TextAlign.center,
-                style:
-                    TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
               ),
             ),
           ),
@@ -622,8 +613,7 @@ class _MultiBatchAttendanceScreenState
                 icon: const Icon(Icons.cancel, size: 16),
                 label: const Text('All Absent'),
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white),
+                    backgroundColor: Colors.red, foregroundColor: Colors.white),
               ),
             ],
           ),
@@ -660,8 +650,7 @@ class _MultiBatchAttendanceScreenState
   Widget _buildFormFields() {
     const inputDec = InputDecoration(
         border: OutlineInputBorder(),
-        contentPadding:
-            EdgeInsets.symmetric(horizontal: 10, vertical: 10));
+        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10));
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,8 +667,7 @@ class _MultiBatchAttendanceScreenState
                 decoration: inputDec,
                 hint: const Text('Select'),
                 items: const ['L', 'T', 'P']
-                    .map((v) =>
-                        DropdownMenuItem(value: v, child: Text(v)))
+                    .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                     .toList(),
                 onChanged: (v) => setState(() => _ltpType = v),
               ),
@@ -697,8 +685,7 @@ class _MultiBatchAttendanceScreenState
               const SizedBox(height: 6),
               TextFormField(
                 controller: _topicCtrl,
-                decoration: inputDec.copyWith(
-                    hintText: 'Enter topic covered'),
+                decoration: inputDec.copyWith(hintText: 'Enter topic covered'),
               ),
             ],
           ),
@@ -716,10 +703,9 @@ class _MultiBatchAttendanceScreenState
                 decoration: inputDec,
                 hint: const Text('Select'),
                 items: List.generate(
-                        6,
-                        (i) => DropdownMenuItem(
-                            value: '${i + 1}', child: Text('${i + 1}')))
-                    .toList(),
+                    6,
+                    (i) => DropdownMenuItem(
+                        value: '${i + 1}', child: Text('${i + 1}'))).toList(),
                 onChanged: (v) => setState(() => _unitExpNo = v),
               ),
             ],
@@ -739,8 +725,7 @@ class _MultiBatchAttendanceScreenState
             const Padding(
               padding: EdgeInsets.only(left: 4, bottom: 8),
               child: Text('Hours / Periods',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14)),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             ),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -754,8 +739,7 @@ class _MultiBatchAttendanceScreenState
                       children: [
                         Container(
                           width: 82,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 6),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
                           decoration: BoxDecoration(
                             color: const Color(0xFF1e3a5f),
                             borderRadius: const BorderRadius.vertical(
@@ -777,19 +761,14 @@ class _MultiBatchAttendanceScreenState
                                     : Colors.grey.shade400),
                             borderRadius: const BorderRadius.vertical(
                                 bottom: Radius.circular(4)),
-                            color: isLocked
-                                ? Colors.grey.shade100
-                                : null,
+                            color: isLocked ? Colors.grey.shade100 : null,
                           ),
                           child: Checkbox(
-                            value: isLocked
-                                ? true
-                                : _periodsSelected[i],
+                            value: isLocked ? true : _periodsSelected[i],
                             onChanged: isLocked
                                 ? null
                                 : (v) => setState(
-                                    () => _periodsSelected[i] =
-                                        v ?? false),
+                                    () => _periodsSelected[i] = v ?? false),
                             activeColor: isLocked
                                 ? Colors.grey
                                 : const Color(0xFF1e3a5f),
@@ -808,25 +787,21 @@ class _MultiBatchAttendanceScreenState
                   SizedBox(
                       width: 12,
                       height: 12,
-                      child:
-                          CircularProgressIndicator(strokeWidth: 2)),
+                      child: CircularProgressIndicator(strokeWidth: 2)),
                   SizedBox(width: 6),
                   Text('Checking locked periods…',
-                      style:
-                          TextStyle(fontSize: 11, color: Colors.grey)),
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
                 ]),
               )
             else if (_lockedPeriods.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 6, left: 4),
                 child: Row(children: [
-                  const Icon(Icons.lock_outline,
-                      size: 13, color: Colors.grey),
+                  const Icon(Icons.lock_outline, size: 13, color: Colors.grey),
                   const SizedBox(width: 4),
                   Text(
                     'Periods ${_lockedPeriods.join(', ')} locked (marked by another faculty)',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                   ),
                 ]),
               ),
@@ -872,12 +847,8 @@ class _MultiBatchAttendanceScreenState
         children: [
           Text(value,
               style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: color)),
-          Text(label,
-              style:
-                  const TextStyle(fontSize: 11, color: Colors.grey)),
+                  fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
         ],
       ),
     );
@@ -899,8 +870,7 @@ class _MultiBatchAttendanceScreenState
 
     Widget hc(String t, {double? w, bool exp = false}) {
       final c = Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         child: Text(t, style: hStyle),
       );
       return exp ? Expanded(child: c) : SizedBox(width: w, child: c);
@@ -925,13 +895,12 @@ class _MultiBatchAttendanceScreenState
             children: [
               // Batch header
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color:
-                      const Color(0xFF1e3a5f).withOpacity(0.85),
-                  borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(7)),
+                  color: const Color(0xFF1e3a5f).withOpacity(0.85),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(7)),
                 ),
                 child: Text(
                   'Batch: $batch  •  ${batchStudents.length} students',
@@ -963,9 +932,7 @@ class _MultiBatchAttendanceScreenState
                 final isEven = idx % 2 == 0;
 
                 return Container(
-                  color: isEven
-                      ? Colors.white
-                      : Colors.grey.shade50,
+                  color: isEven ? Colors.white : Colors.grey.shade50,
                   child: Row(
                     children: [
                       SizedBox(
@@ -974,8 +941,7 @@ class _MultiBatchAttendanceScreenState
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 8),
                           child: Text('${idx + 1}',
-                              style: dStyle,
-                              textAlign: TextAlign.center),
+                              style: dStyle, textAlign: TextAlign.center),
                         ),
                       ),
                       SizedBox(
@@ -990,8 +956,7 @@ class _MultiBatchAttendanceScreenState
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 8),
-                          child: Text(s['name'] as String,
-                              style: dStyle),
+                          child: Text(s['name'] as String, style: dStyle),
                         ),
                       ),
                       SizedBox(
@@ -999,8 +964,7 @@ class _MultiBatchAttendanceScreenState
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 8),
-                          child: Text(
-                              s['hallTicketNumber'] as String,
+                          child: Text(s['hallTicketNumber'] as String,
                               style: dStyle),
                         ),
                       ),
@@ -1010,9 +974,8 @@ class _MultiBatchAttendanceScreenState
                           child: Checkbox(
                             value: isPresent,
                             activeColor: Colors.green,
-                            onChanged: (v) => setState(
-                                () => _attendance[roll] =
-                                    v ?? true),
+                            onChanged: (v) =>
+                                setState(() => _attendance[roll] = v ?? true),
                           ),
                         ),
                       ),
@@ -1032,21 +995,17 @@ class _MultiBatchAttendanceScreenState
   TableRow _infoRow(String label, String value) {
     return TableRow(
       decoration: const BoxDecoration(
-          border: Border(
-              bottom: BorderSide(color: Color(0xFFDDDDDD)))),
+          border: Border(bottom: BorderSide(color: Color(0xFFDDDDDD)))),
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 8, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           child: Text(label,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 12)),
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 8, vertical: 5),
-          child: Text(value,
-              style: const TextStyle(fontSize: 12)),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          child: Text(value, style: const TextStyle(fontSize: 12)),
         ),
       ],
     );
