@@ -38,6 +38,8 @@ class _StudentHomeState extends State<StudentHome> {
   bool _cgpaLoaded = false;
   double _attendancePct = 0.0;
   bool _attendanceLoaded = false;
+  List<Map<String, dynamic>> _courseWiseStats = []; // {code,name,held,present}
+  Map<String, List<int>> _dailyHeldPresent = {}; // key=dd-MM-yyyy, value=[held,present]
 
   @override
   void initState() {
@@ -164,31 +166,60 @@ class _StudentHomeState extends State<StudentHome> {
     }
   }
 
-  /// Computes overall attendance % from the `attendance` collection.
-  /// Each period slot in a document counts as one class.
+  /// Fetches all attendance docs for this student and computes:
+  ///  • Overall attendance %
+  ///  • Per-subject stats (for Course Wise chart)
+  ///  • Per-day stats (for Last Week chart)
   Future<void> _computeAttendancePct(String rollNumber) async {
     try {
       final snap = await _firestore.collection('attendance').get();
       int held = 0;
       int present = 0;
+      final Map<String, Map<String, dynamic>> cwMap = {};
+      final Map<String, List<int>> dayMap = {};
+
       for (final doc in snap.docs) {
         final d = doc.data();
         final periods = List<dynamic>.from(d['periods'] ?? []);
         if (periods.isEmpty) continue;
         final students = List<dynamic>.from(d['students'] ?? []);
         final record = students.cast<Map?>().firstWhere(
-              (s) =>
-                  (s?['rollNo'] as String? ?? '').toUpperCase() == rollNumber,
-              orElse: () => null,
-            );
+          (s) => (s?['rollNo'] as String? ?? '').toUpperCase() == rollNumber,
+          orElse: () => null,
+        );
         if (record == null) continue;
-        held += periods.length;
-        if (record['present'] == true) present += periods.length;
+
+        final count = periods.length;
+        final isPresent = record['present'] == true;
+        final code = (d['subjectCode'] as String? ?? '').trim();
+        final name = (d['subjectName'] as String? ?? code).trim();
+        final dateStr = (d['dateStr'] as String? ?? '');
+
+        held += count;
+        if (isPresent) present += count;
+
+        // Course-wise accumulation
+        cwMap.putIfAbsent(code, () => {'code': code, 'name': name, 'held': 0, 'present': 0});
+        cwMap[code]!['held'] = (cwMap[code]!['held'] as int) + count;
+        if (isPresent) cwMap[code]!['present'] = (cwMap[code]!['present'] as int) + count;
+
+        // Daily accumulation
+        if (dateStr.isNotEmpty) {
+          dayMap.putIfAbsent(dateStr, () => [0, 0]);
+          dayMap[dateStr]![0] += count;
+          if (isPresent) dayMap[dateStr]![1] += count;
+        }
       }
+
+      final courseList = cwMap.values.toList()
+        ..sort((a, b) => (a['code'] as String).compareTo(b['code'] as String));
+
       if (mounted) {
         setState(() {
           _attendancePct = held == 0 ? 0 : (present / held) * 100;
           _attendanceLoaded = true;
+          _courseWiseStats = courseList;
+          _dailyHeldPresent = dayMap;
         });
       }
     } catch (_) {
@@ -481,9 +512,9 @@ class _StudentHomeState extends State<StudentHome> {
                   const SizedBox(height: 24),
                   _buildMentorCard(context),
                   const SizedBox(height: 24),
-                  _buildChartSection('Last Week Attendance %', context),
+                  _buildLastWeekChartSection(context),
                   const SizedBox(height: 24),
-                  _buildChartSection('Course Wise Attendance %', context),
+                  _buildCourseWiseChartSection(context),
                 ],
               ),
             ),
@@ -1102,13 +1133,16 @@ class _StudentHomeState extends State<StudentHome> {
     );
   }
 
-  Widget _buildChartSection(String title, BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final chartHeight = isMobile ? 150.0 : 200.0;
+  // ── Shared chart container ────────────────────────────────────────────────
 
+  Widget _chartContainer({
+    required String title,
+    required bool isMobile,
+    required Widget child,
+  }) {
     return Container(
       color: const Color(0xFF2d3e4f),
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      padding: EdgeInsets.all(isMobile ? 12 : 20),
       width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1122,15 +1156,217 @@ class _StudentHomeState extends State<StudentHome> {
             ),
           ),
           const SizedBox(height: 16),
-          Container(
-            height: chartHeight,
-            color: Colors.grey[300],
-            child: const Center(
-              child: Text('Chart Placeholder'),
-            ),
-          ),
+          child,
         ],
       ),
+    );
+  }
+
+  // ── Last Week vertical bar chart ─────────────────────────────────────────
+
+  Widget _buildLastWeekChartSection(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final maxBarH = isMobile ? 110.0 : 150.0;
+
+    return _chartContainer(
+      title: 'Last Week Attendance %',
+      isMobile: isMobile,
+      child: !_attendanceLoaded
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: CircularProgressIndicator(color: Colors.white54),
+              ))
+          : Column(children: [
+              SizedBox(
+                height: maxBarH + 60,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: List.generate(7, (i) {
+                    final now = DateTime.now();
+                    final d = now.subtract(Duration(days: 6 - i));
+                    const labels = [
+                      'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'
+                    ];
+                    final key =
+                        '${d.day.toString().padLeft(2, '0')}-'
+                        '${d.month.toString().padLeft(2, '0')}-'
+                        '${d.year}';
+                    final hp = _dailyHeldPresent[key];
+                    final heldN = hp != null ? hp[0] : 0;
+                    final presentN = hp != null ? hp[1] : 0;
+                    final pct = heldN == 0
+                        ? 0.0
+                        : (presentN.toDouble() / heldN.toDouble()) * 100.0;
+                    final barColor = heldN == 0
+                        ? Colors.white12
+                        : pct >= 75
+                            ? const Color(0xFF4CAF50)
+                            : pct >= 60
+                                ? const Color(0xFFFFA726)
+                                : const Color(0xFFEF5350);
+                    final barH = heldN == 0
+                        ? 4.0
+                        : (maxBarH * pct / 100.0).clamp(4.0, maxBarH);
+
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (heldN > 0)
+                              Text(
+                                '${pct.toStringAsFixed(0)}%',
+                                style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold),
+                              )
+                            else
+                              const SizedBox(height: 14),
+                            const SizedBox(height: 3),
+                            Container(
+                              height: barH,
+                              decoration: BoxDecoration(
+                                color: barColor,
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(4),
+                                  topRight: Radius.circular(4),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              labels[d.weekday - 1],
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 10),
+                            ),
+                            Text(
+                              '${d.day}/${d.month}',
+                              style: const TextStyle(
+                                  color: Colors.white54, fontSize: 9),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                _legendDot(const Color(0xFF4CAF50), '≥75%'),
+                const SizedBox(width: 16),
+                _legendDot(const Color(0xFFFFA726), '60-74%'),
+                const SizedBox(width: 16),
+                _legendDot(const Color(0xFFEF5350), '<60%'),
+              ]),
+            ]),
+    );
+  }
+
+  Widget _legendDot(Color color, String label) => Row(children: [
+        Container(
+            width: 10,
+            height: 10,
+            decoration:
+                BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 4),
+        Text(label,
+            style: const TextStyle(color: Colors.white60, fontSize: 10)),
+      ]);
+
+  // ── Course Wise horizontal bar chart ──────────────────────────────────────
+
+  Widget _buildCourseWiseChartSection(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return _chartContainer(
+      title: 'Course Wise Attendance %',
+      isMobile: isMobile,
+      child: !_attendanceLoaded
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: CircularProgressIndicator(color: Colors.white54),
+              ))
+          : _courseWiseStats.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Text('No attendance data available',
+                        style: TextStyle(color: Colors.white54)),
+                  ))
+              : Column(
+                  children: _courseWiseStats.map((s) {
+                    final held = (s['held'] as num).toInt();
+                    final present = (s['present'] as num).toInt();
+                    final pct =
+                        held == 0 ? 0.0 : (present.toDouble() / held.toDouble()) * 100.0;
+                    final barColor = pct >= 75
+                        ? const Color(0xFF4CAF50)
+                        : pct >= 60
+                            ? const Color(0xFFFFA726)
+                            : const Color(0xFFEF5350);
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${s['code']}  •  ${s['name']}',
+                                  style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${pct.toStringAsFixed(1)}%',
+                                style: TextStyle(
+                                    color: barColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Stack(children: [
+                            Container(
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: Colors.white12,
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                            ),
+                            FractionallySizedBox(
+                              widthFactor: (pct / 100).clamp(0.0, 1.0),
+                              child: Container(
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  color: barColor,
+                                  borderRadius: BorderRadius.circular(7),
+                                ),
+                              ),
+                            ),
+                          ]),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$present / $held classes attended',
+                            style: const TextStyle(
+                                color: Colors.white38, fontSize: 9),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
     );
   }
 
