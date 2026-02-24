@@ -17,6 +17,7 @@ import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
 import 'screens/central_library_screen.dart';
 import 'screens/mentor_details_screen.dart';
+import 'screens/grievance_screen.dart';
 
 class StudentHome extends StatefulWidget {
   const StudentHome({super.key});
@@ -333,6 +334,15 @@ class _StudentHomeState extends State<StudentHome> {
       case 'University Clubs':
         _launchURL('https://www.sruclub.in/');
         return;
+      case 'Submit Grievance':
+        page = const GrievanceScreen(initialIndex: 0);
+        break;
+      case 'Grievance Status':
+        page = const GrievanceScreen(initialIndex: 1);
+        break;
+      case 'Grievance':
+        page = const GrievanceScreen();
+        break;
       default:
         return;
     }
@@ -460,6 +470,7 @@ class _StudentHomeState extends State<StudentHome> {
       'Results',
       'Feedback',
       'Exams',
+      'Grievance',
       'University Clubs',
       'Central Library',
     ];
@@ -653,6 +664,45 @@ class _StudentHomeState extends State<StudentHome> {
                     children: const [
                       Text(
                         'Results',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(width: 3),
+                      Icon(Icons.arrow_drop_down,
+                          color: Colors.white70, size: 16),
+                    ],
+                  ),
+                ),
+              );
+            }
+            if (item == 'Grievance') {
+              // ── Grievance dropdown ────────────────────────────
+              return PopupMenuButton<String>(
+                offset: const Offset(0, 40),
+                color: const Color(0xFF1e3a5f),
+                onSelected: (value) => _navigateToPage(context, value),
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'Submit Grievance',
+                    child: Text('Submit Grievance',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'Grievance Status',
+                    child: Text('Grievance Status',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 12),
+                  child: Row(
+                    children: const [
+                      Text(
+                        'Grievance',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 12,

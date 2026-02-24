@@ -13,6 +13,7 @@ import 'pages/student_promotion_page.dart';
 import 'pages/feedback_management_page.dart';
 import 'pages/regulations_management_page.dart';
 import 'pages/syllabus_management_page.dart';
+import 'pages/grievance_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
 import 'screens/admin_cie_memo_release_screen.dart';
 import 'screens/admin_lookup_screen.dart';
@@ -89,6 +90,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const RegulationsManagementPage();
     } else if (pageName == 'Syllabus') {
       page = const SyllabusManagementPage();
+    } else if (pageName == 'Grievances') {
+      page = const GrievanceManagementPage();
     } else {
       return;
     }
@@ -207,6 +210,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Feedback Management',
       'Regulations',
       'Syllabus',
+      'Grievances',
       'View Only',
       'Lookup',
     ];
@@ -694,6 +698,13 @@ class _AdminHomeState extends State<AdminHome> {
           Colors.teal,
           context,
           () => _navigateToPage(context, 'Syllabus'),
+        ),
+        _buildActionCard(
+          'Grievances',
+          Icons.report_problem,
+          Colors.deepOrange,
+          context,
+          () => _navigateToPage(context, 'Grievances'),
         ),
       ],
     );
