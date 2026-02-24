@@ -535,26 +535,27 @@ class _StudentCardState extends State<_StudentCard> {
         if (entry == null) continue;
 
         final present = entry['present'] as bool? ?? false;
-        subjectMap.putIfAbsent(key, () => {
-          'subjectCode': subjectCode,
-          'subjectName': subjectName,
-          'held': 0,
-          'present': 0,
-          'absent': 0,
-        });
+        subjectMap.putIfAbsent(
+            key,
+            () => {
+                  'subjectCode': subjectCode,
+                  'subjectName': subjectName,
+                  'held': 0,
+                  'present': 0,
+                  'absent': 0,
+                });
         subjectMap[key]!['held'] = (subjectMap[key]!['held'] as int) + 1;
         if (present) {
           subjectMap[key]!['present'] =
               (subjectMap[key]!['present'] as int) + 1;
         } else {
-          subjectMap[key]!['absent'] =
-              (subjectMap[key]!['absent'] as int) + 1;
+          subjectMap[key]!['absent'] = (subjectMap[key]!['absent'] as int) + 1;
         }
       }
 
       final list = subjectMap.values.toList()
-        ..sort((a, b) => (a['subjectCode'] as String)
-            .compareTo(b['subjectCode'] as String));
+        ..sort((a, b) =>
+            (a['subjectCode'] as String).compareTo(b['subjectCode'] as String));
 
       if (!mounted) return;
       setState(() {
@@ -655,8 +656,7 @@ class _StudentCardState extends State<_StudentCard> {
                       _tile(Icons.phone_outlined, 'Phone', _str('phone')),
                       _tile(Icons.calendar_today_outlined, 'Date of Birth',
                           _str('dob')),
-                      _tile(Icons.class_outlined, 'Batch',
-                          _str('batchNumber')),
+                      _tile(Icons.class_outlined, 'Batch', _str('batchNumber')),
                       _tile(Icons.layers_outlined, 'Year / Semester',
                           'Year ${_str('year')}  ·  Sem ${_str('semester')}'),
                       _tile(Icons.grade_outlined, 'CGPA',
@@ -712,8 +712,8 @@ class _StudentCardState extends State<_StudentCard> {
         // Section header with overall % and expand toggle
         InkWell(
           borderRadius: BorderRadius.circular(6),
-          onTap: () => setState(
-              () => _showAttendanceDetail = !_showAttendanceDetail),
+          onTap: () =>
+              setState(() => _showAttendanceDetail = !_showAttendanceDetail),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
@@ -732,16 +732,14 @@ class _StudentCardState extends State<_StudentCard> {
                     height: 14,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                else if (_attendanceLoaded && _totalHeld > 0) ...
-                  [
-                    _pctChip(_overallPct),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${_totalPresent}/${_totalHeld} classes',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
+                else if (_attendanceLoaded && _totalHeld > 0) ...[
+                  _pctChip(_overallPct),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_totalPresent}/${_totalHeld} classes',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
                 const Spacer(),
                 Icon(
                   _showAttendanceDetail
@@ -755,40 +753,38 @@ class _StudentCardState extends State<_StudentCard> {
           ),
         ),
         // Overall progress bar (always visible)
-        if (_attendanceLoaded && _totalHeld > 0) ...
-          [
-            const SizedBox(height: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: _overallPct / 100,
-                minHeight: 6,
-                backgroundColor: Colors.red.shade100,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                    _overallPct >= 75 ? Colors.green : Colors.orange),
-              ),
+        if (_attendanceLoaded && _totalHeld > 0) ...[
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: _overallPct / 100,
+              minHeight: 6,
+              backgroundColor: Colors.red.shade100,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                  _overallPct >= 75 ? Colors.green : Colors.orange),
             ),
-          ],
+          ),
+        ],
         // Subject-wise detail table
-        if (_showAttendanceDetail) ...
-          [
-            const SizedBox(height: 10),
-            if (_attendanceLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_subjectAttendance.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'No attendance records found.',
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              )
-            else
-              _buildAttendanceTable(),
-          ],
+        if (_showAttendanceDetail) ...[
+          const SizedBox(height: 10),
+          if (_attendanceLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_subjectAttendance.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'No attendance records found.',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            )
+          else
+            _buildAttendanceTable(),
+        ],
       ],
     );
   }
@@ -804,12 +800,10 @@ class _StudentCardState extends State<_StudentCard> {
           // Table header
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: const BoxDecoration(
               color: Color(0xFF1e3a5f),
-              borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(7)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
             ),
             child: const Row(
               children: [
@@ -824,26 +818,22 @@ class _StudentCardState extends State<_StudentCard> {
                     width: 36,
                     child: Text('Held',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white70, fontSize: 11))),
+                        style: TextStyle(color: Colors.white70, fontSize: 11))),
                 SizedBox(
                     width: 36,
                     child: Text('P',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white70, fontSize: 11))),
+                        style: TextStyle(color: Colors.white70, fontSize: 11))),
                 SizedBox(
                     width: 36,
                     child: Text('A',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white70, fontSize: 11))),
+                        style: TextStyle(color: Colors.white70, fontSize: 11))),
                 SizedBox(
                     width: 46,
                     child: Text('%',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white70, fontSize: 11))),
+                        style: TextStyle(color: Colors.white70, fontSize: 11))),
               ],
             ),
           ),
@@ -863,12 +853,9 @@ class _StudentCardState extends State<_StudentCard> {
               decoration: BoxDecoration(
                 border: isLast
                     ? null
-                    : Border(
-                        bottom:
-                            BorderSide(color: Colors.grey.shade200)),
+                    : Border(bottom: BorderSide(color: Colors.grey.shade200)),
               ),
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Row(
                 children: [
                   Expanded(
@@ -878,13 +865,11 @@ class _StudentCardState extends State<_StudentCard> {
                       children: [
                         Text(label,
                             style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600)),
+                                fontSize: 12, fontWeight: FontWeight.w600)),
                         if (subLabel != null)
                           Text(subLabel,
                               style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.grey.shade500)),
+                                  fontSize: 10, color: Colors.grey.shade500)),
                       ],
                     ),
                   ),
@@ -898,15 +883,15 @@ class _StudentCardState extends State<_StudentCard> {
                     width: 36,
                     child: Text('$present',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.green)),
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.green)),
                   ),
                   SizedBox(
                     width: 36,
                     child: Text('$absent',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.red)),
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.red)),
                   ),
                   SizedBox(
                     width: 46,
@@ -914,9 +899,7 @@ class _StudentCardState extends State<_StudentCard> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: (pct >= 75
-                                ? Colors.green
-                                : Colors.orange)
+                        color: (pct >= 75 ? Colors.green : Colors.orange)
                             .withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -953,9 +936,7 @@ class _StudentCardState extends State<_StudentCard> {
       child: Text(
         '${pct.toStringAsFixed(1)}%',
         style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: color.shade700),
+            fontSize: 12, fontWeight: FontWeight.bold, color: color.shade700),
       ),
     );
   }
