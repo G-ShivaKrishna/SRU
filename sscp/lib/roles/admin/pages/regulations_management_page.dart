@@ -271,61 +271,30 @@ class _RegulationsManagementPageState extends State<RegulationsManagementPage> {
             children: [
               // Title row
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Expanded(
-                    child: Text(
-                      'Academic Regulations Management',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1e3a5f),
-                      ),
+                  const Text(
+                    'Academic Regulations Management',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1e3a5f),
                     ),
                   ),
                   ElevatedButton.icon(
-                    onPressed: () => _showDialog(),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Regulation'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1e3a5f),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
                     ),
+                    onPressed: () => _showDialog(),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Add Regulation'),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              // Info box about how to provide links
-              Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  border: Border.all(color: Colors.blue.shade200),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline,
-                        color: Colors.blue.shade700, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'How to add PDF links:\n'
-                        '• GitHub: Use RAW link — replace "github.com" with "raw.githubusercontent.com" and remove "/blob"\n'
-                        '  e.g. https://raw.githubusercontent.com/SumithReddy007/DOCS/main/file.pdf\n'
-                        '• Google Drive: Upload PDF → Share → "Anyone with link can view" → copy link\n'
-                        '• Direct URL: Any direct .pdf URL (e.g. from university website)\n'
-                        '• Firebase Storage: Upload PDF → copy download URL',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.blue.shade900),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const SizedBox(height: 16),
               // Table
               if (docs.isEmpty)
                 const Center(
@@ -358,7 +327,6 @@ class _RegulationsManagementPageState extends State<RegulationsManagementPage> {
                             _hCell('S.No', flex: 1),
                             _hCell('Degree', flex: 2),
                             _hCell('Regulation', flex: 2),
-                            _hCell('PDF Link', flex: 5),
                             _hCell('Actions', flex: 2),
                           ],
                         ),
@@ -379,23 +347,6 @@ class _RegulationsManagementPageState extends State<RegulationsManagementPage> {
                                   flex: 1),
                               _dCell(d['degree'] ?? '', flex: 2),
                               _dCell(d['regulation'] ?? '', flex: 2),
-                              Expanded(
-                                flex: 5,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 10),
-                                  child: Text(
-                                    d['pdfUrl'] ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF1976D2),
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 2,
-                                  ),
-                                ),
-                              ),
                               // Actions
                               Expanded(
                                 flex: 2,
