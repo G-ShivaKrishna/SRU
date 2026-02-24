@@ -29,6 +29,7 @@ import 'screens/cie_format_screen.dart';
 import 'screens/cie_marks_screen.dart';
 import 'screens/consolidated_marks_screen.dart';
 import 'screens/employee_directory_screen.dart';
+import 'screens/mentor_student_access_screen.dart';
 
 class FacultyHome extends StatefulWidget {
   const FacultyHome({super.key});
@@ -259,6 +260,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               'SSM',
             ]),
             _buildMarksEntryMenu(context),
+            _buildMenuButton(context, 'Mentorship', 'mentor'),
           ],
         ),
       ),
@@ -305,6 +307,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               'SSM',
             ]),
             _buildMarksEntryMenu(context),
+            _buildMenuButton(context, 'Mentorship', 'mentor'),
           ],
         ),
       ),
@@ -855,6 +858,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       'Preference Report': 'preference_report',
       'Feedback': 'feedback',
       'Employee Directory': 'employee_directory',
+      'Mentorship': 'mentor',
       'Download': 'download',
     };
 
@@ -925,6 +929,8 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const CourseViewScreen();
       case 'employee_directory':
         page = const EmployeeDirectoryScreen();
+      case 'mentor':
+        page = const MentorStudentAccessScreen();
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$route - Coming Soon')),

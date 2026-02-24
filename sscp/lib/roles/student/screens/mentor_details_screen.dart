@@ -32,14 +32,9 @@ class MentorDetailsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
-                // Example student list, replace with real data
-                final students = [
-                  {'name': 'Student A', 'roll': '2203A51318', 'email': 'a@sru.edu.in'},
-                  {'name': 'Student B', 'roll': '2203A51319', 'email': 'b@sru.edu.in'},
-                ];
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => MentorStudentAccessScreen(students: students),
+                    builder: (context) => const MentorStudentAccessScreen(),
                   ),
                 );
               },
