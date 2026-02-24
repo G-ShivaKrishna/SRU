@@ -114,8 +114,8 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8E8E8),
                           border: Border(
-                            bottom: BorderSide(
-                                color: Colors.grey[300]!, width: 1),
+                            bottom:
+                                BorderSide(color: Colors.grey[300]!, width: 1),
                           ),
                         ),
                         child: Row(

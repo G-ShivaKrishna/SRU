@@ -6,8 +6,7 @@ class SyllabusManagementPage extends StatefulWidget {
   const SyllabusManagementPage({super.key});
 
   @override
-  State<SyllabusManagementPage> createState() =>
-      _SyllabusManagementPageState();
+  State<SyllabusManagementPage> createState() => _SyllabusManagementPageState();
 }
 
 class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
@@ -56,8 +55,7 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
                       decoration: _inputDecoration(
                         'Class Info',
                         'e.g. 1-1-BTECH-CSE(CSE)',
-                        hint2:
-                            'Format: Year-Sem-Degree-Branch(Branch)',
+                        hint2: 'Format: Year-Sem-Degree-Branch(Branch)',
                       ),
                       validator: (v) =>
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
@@ -66,8 +64,8 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
                     // Regulation
                     TextFormField(
                       controller: regulationCtrl,
-                      decoration: _inputDecoration(
-                          'Regulation Code', 'e.g. RA20, R25'),
+                      decoration:
+                          _inputDecoration('Regulation Code', 'e.g. RA20, R25'),
                       validator: (v) =>
                           (v == null || v.trim().isEmpty) ? 'Required' : null,
                       textCapitalization: TextCapitalization.characters,
@@ -208,8 +206,7 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child:
-                const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -228,16 +225,14 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
     }
   }
 
-  InputDecoration _inputDecoration(String label, String hint,
-      {String? hint2}) {
+  InputDecoration _inputDecoration(String label, String hint, {String? hint2}) {
     return InputDecoration(
       labelText: label,
       hintText: hint,
       helperText: hint2,
       helperMaxLines: 2,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
     );
   }
 
@@ -258,8 +253,7 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
 
   Widget _buildBody() {
     return StreamBuilder<QuerySnapshot>(
-      stream:
-          _firestore.collection(_collection).orderBy('sNo').snapshots(),
+      stream: _firestore.collection(_collection).orderBy('sNo').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -356,8 +350,8 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
                       Container(
                         decoration: const BoxDecoration(
                           color: Color(0xFF1e3a5f),
-                          borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(4)),
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(4)),
                         ),
                         child: Row(
                           children: [
@@ -377,13 +371,11 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
                         final isEven = index % 2 == 0;
 
                         return Container(
-                          color: isEven
-                              ? Colors.white
-                              : const Color(0xFFF5F8FF),
+                          color:
+                              isEven ? Colors.white : const Color(0xFFF5F8FF),
                           child: Row(
                             children: [
-                              _dCell(
-                                  (d['sNo'] ?? index + 1).toString(),
+                              _dCell((d['sNo'] ?? index + 1).toString(),
                                   flex: 1),
                               _dCell(d['classInfo'] ?? '', flex: 3),
                               _dCell(d['regulation'] ?? '', flex: 2),
@@ -397,8 +389,7 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Color(0xFF1976D2),
-                                      decoration:
-                                          TextDecoration.underline,
+                                      decoration: TextDecoration.underline,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 2,
@@ -408,18 +399,16 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
                               Expanded(
                                 flex: 2,
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8),
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
                                         icon: const Icon(Icons.edit,
-                                            size: 18,
-                                            color: Color(0xFF1e3a5f)),
+                                            size: 18, color: Color(0xFF1e3a5f)),
                                         tooltip: 'Edit',
-                                        onPressed: () =>
-                                            _showDialog(doc: doc),
+                                        onPressed: () => _showDialog(doc: doc),
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.delete,
@@ -466,8 +455,7 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
     return Expanded(
       flex: flex,
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Text(
           text,
           style: const TextStyle(fontSize: 13, color: Colors.black87),
