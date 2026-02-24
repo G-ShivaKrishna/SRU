@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
@@ -998,6 +999,18 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const EmployeeDirectoryScreen();
       case 'mentor':
         page = const MentorStudentAccessScreen();
+      case 'download_mtech_internship':
+        launchUrl(Uri.parse('https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_INTERNSHIP.pptx'), mode: LaunchMode.externalApplication);
+        return;
+      case 'download_mtech_project':
+        launchUrl(Uri.parse('https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_PROJECT.pptx'), mode: LaunchMode.externalApplication);
+        return;
+      case 'download_mba_internship':
+        launchUrl(Uri.parse('https://github.com/SumithReddy007/DOCS/raw/main/MBA_Internship.pptx'), mode: LaunchMode.externalApplication);
+        return;
+      case 'download_mba_project':
+        launchUrl(Uri.parse('https://github.com/SumithReddy007/DOCS/raw/main/MBA_PROJECT.pptx'), mode: LaunchMode.externalApplication);
+        return;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$route - Coming Soon')),
