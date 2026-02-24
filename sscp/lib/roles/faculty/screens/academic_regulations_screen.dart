@@ -38,8 +38,7 @@ class AcademicRegulationsScreen extends StatefulWidget {
       _AcademicRegulationsScreenState();
 }
 
-class _AcademicRegulationsScreenState
-    extends State<AcademicRegulationsScreen> {
+class _AcademicRegulationsScreenState extends State<AcademicRegulationsScreen> {
   bool _showingPdf = false;
   RegulationItem? _selectedRegulation;
 
