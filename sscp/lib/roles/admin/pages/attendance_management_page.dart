@@ -62,7 +62,6 @@ class _AttendanceManagementPageState extends State<AttendanceManagementPage>
   }
 }
 
-
 // ═══════════════════════════════════════════════════════════════════════════
 // TAB 1 — All Attendance Records  (view / edit / delete)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -116,13 +115,13 @@ class _RecordsTabState extends State<_RecordsTab> {
 
       if (_fromDate != null) {
         q = q.where('date',
-            isGreaterThanOrEqualTo:
-                Timestamp.fromDate(DateTime(_fromDate!.year, _fromDate!.month, _fromDate!.day)));
+            isGreaterThanOrEqualTo: Timestamp.fromDate(
+                DateTime(_fromDate!.year, _fromDate!.month, _fromDate!.day)));
       }
       if (_toDate != null) {
         q = q.where('date',
-            isLessThanOrEqualTo: Timestamp.fromDate(
-                DateTime(_toDate!.year, _toDate!.month, _toDate!.day, 23, 59, 59)));
+            isLessThanOrEqualTo: Timestamp.fromDate(DateTime(
+                _toDate!.year, _toDate!.month, _toDate!.day, 23, 59, 59)));
       }
 
       final snap = await q.get();
@@ -136,19 +135,22 @@ class _RecordsTabState extends State<_RecordsTab> {
 
       if (subCode.isNotEmpty) {
         docs = docs.where((d) {
-          final code = ((d.data() as Map)['subjectCode'] as String? ?? '').toUpperCase();
+          final code =
+              ((d.data() as Map)['subjectCode'] as String? ?? '').toUpperCase();
           return code.contains(subCode);
         }).toList();
       }
       if (fac.isNotEmpty) {
         docs = docs.where((d) {
-          final id = ((d.data() as Map)['facultyId'] as String? ?? '').toUpperCase();
+          final id =
+              ((d.data() as Map)['facultyId'] as String? ?? '').toUpperCase();
           return id.contains(fac);
         }).toList();
       }
       if (dept.isNotEmpty) {
         docs = docs.where((d) {
-          final dep = ((d.data() as Map)['department'] as String? ?? '').toUpperCase();
+          final dep =
+              ((d.data() as Map)['department'] as String? ?? '').toUpperCase();
           return dep.contains(dept);
         }).toList();
       }
@@ -209,13 +211,11 @@ class _RecordsTabState extends State<_RecordsTab> {
             children: [
               Row(children: [
                 Expanded(
-                    child: _dateTile(
-                        'From', _fromDate, () => _pickDate(true),
+                    child: _dateTile('From', _fromDate, () => _pickDate(true),
                         () => setState(() => _fromDate = null))),
                 const SizedBox(width: 8),
                 Expanded(
-                    child: _dateTile(
-                        'To', _toDate, () => _pickDate(false),
+                    child: _dateTile('To', _toDate, () => _pickDate(false),
                         () => setState(() => _toDate = null))),
               ]),
               const SizedBox(height: 8),
@@ -269,7 +269,9 @@ class _RecordsTabState extends State<_RecordsTab> {
           child: _loading
               ? const Center(child: CircularProgressIndicator())
               : _error != null
-                  ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
+                  ? Center(
+                      child: Text(_error!,
+                          style: const TextStyle(color: Colors.red)))
                   : _docs.isEmpty
                       ? _emptyState('No attendance records found.')
                       : ListView.builder(
@@ -286,8 +288,8 @@ class _RecordsTabState extends State<_RecordsTab> {
     );
   }
 
-  Widget _dateTile(String label, DateTime? dt, VoidCallback onTap,
-      VoidCallback onClear) {
+  Widget _dateTile(
+      String label, DateTime? dt, VoidCallback onTap, VoidCallback onClear) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(6),
@@ -295,9 +297,8 @@ class _RecordsTabState extends State<_RecordsTab> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           border: Border.all(
-              color: dt != null
-                  ? const Color(0xFF1e3a5f)
-                  : Colors.grey.shade400),
+              color:
+                  dt != null ? const Color(0xFF1e3a5f) : Colors.grey.shade400),
           borderRadius: BorderRadius.circular(6),
           color: Colors.white,
         ),
@@ -329,8 +330,7 @@ class _RecordsTabState extends State<_RecordsTab> {
   InputDecoration _fd(String h) => InputDecoration(
         hintText: h,
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         border: const OutlineInputBorder(),
         fillColor: Colors.white,
         filled: true,
@@ -387,8 +387,7 @@ class _RecordCardState extends State<_RecordCard> {
   void _initEditing() {
     _attendance = {};
     for (final s in List<Map>.from(_d['students'] ?? [])) {
-      _attendance[s['rollNo'] as String] =
-          (s['present'] as bool?) ?? true;
+      _attendance[s['rollNo'] as String] = (s['present'] as bool?) ?? true;
     }
     _ltpType = _d['ltpType'] as String?;
     _unitExpNo = _d['unitExpNo'] as String?;
@@ -438,15 +437,14 @@ class _RecordCardState extends State<_RecordCard> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Record updated.'),
-            backgroundColor: Colors.green));
+            content: Text('Record updated.'), backgroundColor: Colors.green));
         setState(() => _editing = false);
         widget.onRefresh();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -469,8 +467,8 @@ class _RecordCardState extends State<_RecordCard> {
           ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text('Delete',
-                  style: TextStyle(color: Colors.white))),
+              child:
+                  const Text('Delete', style: TextStyle(color: Colors.white))),
         ],
       ),
     );
@@ -522,8 +520,7 @@ class _RecordCardState extends State<_RecordCard> {
             ),
             title: Text(
               '$subCode${subName.isNotEmpty ? '  —  $subName' : ''}',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 13),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
             subtitle: Text(
               '$dateStr  •  $dept  •  Y$year / S$sem  •  ${batches.join(', ')}\n'
@@ -583,8 +580,7 @@ class _RecordCardState extends State<_RecordCard> {
                                   width: 14,
                                   height: 14,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white))
+                                      strokeWidth: 2, color: Colors.white))
                               : const Icon(Icons.save, size: 15),
                           label: const Text('Save'),
                           style: ElevatedButton.styleFrom(
@@ -633,10 +629,8 @@ class _RecordCardState extends State<_RecordCard> {
                       _chip('L/T/P', _d['ltpType'] as String? ?? '—'),
                       _chip('Topic', _d['topicCovered'] as String? ?? '—'),
                       _chip('Unit', _d['unitExpNo'] as String? ?? '—'),
-                      _chip(
-                          'Periods',
-                          List<int>.from(_d['periods'] ?? [])
-                              .join(', ')),
+                      _chip('Periods',
+                          List<int>.from(_d['periods'] ?? []).join(', ')),
                     ]),
                     const SizedBox(height: 12),
                   ],
@@ -673,8 +667,10 @@ class _RecordCardState extends State<_RecordCard> {
           : null,
       decoration: const InputDecoration(
           labelText: 'Unit/Exp', border: OutlineInputBorder(), isDense: true),
-      items: List.generate(6,
-              (i) => DropdownMenuItem(value: '${i + 1}', child: Text('${i + 1}')))
+      items: List.generate(
+              6,
+              (i) =>
+                  DropdownMenuItem(value: '${i + 1}', child: Text('${i + 1}')))
           .toList(),
       onChanged: (v) => setState(() => _unitExpNo = v),
     );
@@ -682,8 +678,15 @@ class _RecordCardState extends State<_RecordCard> {
 
   Widget _periodSelector() {
     const labels = [
-      '09-10', '10-11', '11-12', '12-01', '01-02',
-      '02-03', '03-04', '04-05', '05-06'
+      '09-10',
+      '10-11',
+      '11-12',
+      '12-01',
+      '01-02',
+      '02-03',
+      '03-04',
+      '04-05',
+      '05-06'
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,13 +698,10 @@ class _RecordCardState extends State<_RecordCard> {
           spacing: 6,
           children: List.generate(9, (i) {
             return FilterChip(
-              label: Text(labels[i],
-                  style: const TextStyle(fontSize: 11)),
+              label: Text(labels[i], style: const TextStyle(fontSize: 11)),
               selected: _periodsSelected[i],
-              onSelected: (v) =>
-                  setState(() => _periodsSelected[i] = v),
-              selectedColor:
-                  const Color(0xFF1e3a5f).withOpacity(0.2),
+              onSelected: (v) => setState(() => _periodsSelected[i] = v),
+              selectedColor: const Color(0xFF1e3a5f).withOpacity(0.2),
               checkmarkColor: const Color(0xFF1e3a5f),
             );
           }),
@@ -732,10 +732,9 @@ class _RecordCardState extends State<_RecordCard> {
                   _attendance[s['rollNo'] as String] = true;
                 }
               }),
-              icon: const Icon(Icons.check_circle,
-                  size: 14, color: Colors.green),
-              label: const Text('All Present',
-                  style: TextStyle(fontSize: 12)),
+              icon:
+                  const Icon(Icons.check_circle, size: 14, color: Colors.green),
+              label: const Text('All Present', style: TextStyle(fontSize: 12)),
             ),
             TextButton.icon(
               onPressed: () => setState(() {
@@ -744,8 +743,7 @@ class _RecordCardState extends State<_RecordCard> {
                 }
               }),
               icon: const Icon(Icons.cancel, size: 14, color: Colors.red),
-              label: const Text('All Absent',
-                  style: TextStyle(fontSize: 12)),
+              label: const Text('All Absent', style: TextStyle(fontSize: 12)),
             ),
           ]),
           const SizedBox(height: 4),
@@ -777,8 +775,8 @@ class _RecordCardState extends State<_RecordCard> {
                 width: 70,
                 child: Padding(
                     padding: const EdgeInsets.all(6),
-                    child: Text(_editing ? 'Present' : 'Status',
-                        style: hStyle))),
+                    child:
+                        Text(_editing ? 'Present' : 'Status', style: hStyle))),
           ]),
         ),
         // rows
@@ -803,8 +801,7 @@ class _RecordCardState extends State<_RecordCard> {
                   width: 100,
                   child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Text(roll,
-                          style: const TextStyle(fontSize: 11)))),
+                      child: Text(roll, style: const TextStyle(fontSize: 11)))),
               Expanded(
                   child: Padding(
                       padding: const EdgeInsets.all(6),
@@ -814,8 +811,7 @@ class _RecordCardState extends State<_RecordCard> {
                   width: 110,
                   child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Text(
-                          s['hallTicketNumber'] as String? ?? '',
+                      child: Text(s['hallTicketNumber'] as String? ?? '',
                           style: const TextStyle(fontSize: 11)))),
               SizedBox(
                 width: 70,
@@ -843,9 +839,7 @@ class _RecordCardState extends State<_RecordCard> {
                             style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: isPresent
-                                    ? Colors.green
-                                    : Colors.red),
+                                color: isPresent ? Colors.green : Colors.red),
                           ),
                         ),
                       ),
@@ -859,12 +853,10 @@ class _RecordCardState extends State<_RecordCard> {
 
   Widget _chip(String label, String value) {
     return Chip(
-      label: Text('$label: $value',
-          style: const TextStyle(fontSize: 11)),
+      label: Text('$label: $value', style: const TextStyle(fontSize: 11)),
       backgroundColor: Colors.blueGrey.withOpacity(0.1),
       padding: EdgeInsets.zero,
-      labelPadding:
-          const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
     );
   }
 }
@@ -914,7 +906,8 @@ class _StudentTabState extends State<_StudentTab> {
     });
     try {
       // Get student info
-      final sDoc = await widget.firestore.collection('students').doc(roll).get();
+      final sDoc =
+          await widget.firestore.collection('students').doc(roll).get();
       if (!sDoc.exists) {
         setState(() => _error = 'Student "$roll" not found.');
         return;
@@ -937,8 +930,9 @@ class _StudentTabState extends State<_StudentTab> {
       for (final doc in snap.docs) {
         final d = doc.data();
         final students = List<Map>.from(d['students'] ?? []);
-        final match = students.cast<Map<dynamic, dynamic>>().where(
-            (s) => (s['rollNo'] as String?)?.toUpperCase() == roll);
+        final match = students
+            .cast<Map<dynamic, dynamic>>()
+            .where((s) => (s['rollNo'] as String?)?.toUpperCase() == roll);
         if (match.isEmpty) continue;
 
         final subCode = d['subjectCode'] as String? ?? '—';
@@ -949,8 +943,7 @@ class _StudentTabState extends State<_StudentTab> {
             subCode, () => {'held': 0, 'present': 0, 'subName': 0});
         stats[subCode]!['held'] = (stats[subCode]!['held'] ?? 0) + 1;
         if (isPresent) {
-          stats[subCode]!['present'] =
-              (stats[subCode]!['present'] ?? 0) + 1;
+          stats[subCode]!['present'] = (stats[subCode]!['present'] ?? 0) + 1;
         }
 
         records.add({
@@ -1024,8 +1017,8 @@ class _StudentTabState extends State<_StudentTab> {
         else if (_error != null)
           Expanded(
               child: Center(
-                  child: Text(_error!,
-                      style: const TextStyle(color: Colors.red))))
+                  child:
+                      Text(_error!, style: const TextStyle(color: Colors.red))))
         else if (_studentName != null)
           Expanded(
             child: SingleChildScrollView(
@@ -1042,18 +1035,19 @@ class _StudentTabState extends State<_StudentTab> {
                         const Icon(Icons.person,
                             size: 40, color: Color(0xFF1e3a5f)),
                         const SizedBox(width: 14),
-                        Column(crossAxisAlignment: CrossAxisAlignment.start,
+                        Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                          Text(_studentName!,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16)),
-                          Text(
-                              'Roll: ${_rollCtrl.text.trim().toUpperCase()}  •  Batch: $_batchNumber',
-                              style: const TextStyle(fontSize: 13)),
-                          Text('Hall Ticket: $_hallTicket',
-                              style: const TextStyle(fontSize: 13)),
-                        ]),
+                              Text(_studentName!,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16)),
+                              Text(
+                                  'Roll: ${_rollCtrl.text.trim().toUpperCase()}  •  Batch: $_batchNumber',
+                                  style: const TextStyle(fontSize: 13)),
+                              Text('Hall Ticket: $_hallTicket',
+                                  style: const TextStyle(fontSize: 13)),
+                            ]),
                       ]),
                     ),
                   ),
@@ -1061,8 +1055,8 @@ class _StudentTabState extends State<_StudentTab> {
 
                   // subject-wise stats
                   const Text('Subject-wise Attendance',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                   const SizedBox(height: 8),
                   if (_subjectStats.isEmpty)
                     const Text('No records found.',
@@ -1072,8 +1066,7 @@ class _StudentTabState extends State<_StudentTab> {
                       final sub = e.key;
                       final held = e.value['held'] ?? 0;
                       final present = e.value['present'] ?? 0;
-                      final pct =
-                          held > 0 ? (present / held * 100) : 0.0;
+                      final pct = held > 0 ? (present / held * 100) : 0.0;
                       final color = pct >= 75
                           ? Colors.green
                           : pct >= 60
@@ -1088,28 +1081,24 @@ class _StudentTabState extends State<_StudentTab> {
                           child: Row(children: [
                             Expanded(
                               child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                Text(sub,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13)),
-                                const SizedBox(height: 4),
-                                LinearProgressIndicator(
-                                  value: held > 0 ? present / held : 0,
-                                  backgroundColor:
-                                      color.withOpacity(0.2),
-                                  color: color,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                    '$present / $held classes attended',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color:
-                                            Colors.grey.shade700)),
-                              ]),
+                                    Text(sub,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13)),
+                                    const SizedBox(height: 4),
+                                    LinearProgressIndicator(
+                                      value: held > 0 ? present / held : 0,
+                                      backgroundColor: color.withOpacity(0.2),
+                                      color: color,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text('$present / $held classes attended',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade700)),
+                                  ]),
                             ),
                             const SizedBox(width: 14),
                             Column(children: [
@@ -1137,13 +1126,12 @@ class _StudentTabState extends State<_StudentTab> {
                               fontWeight: FontWeight.bold, fontSize: 15)),
                       OutlinedButton.icon(
                         onPressed: _editByDate,
-                        icon: const Icon(Icons.edit_calendar, size: 16,
-                            color: Color(0xFF1e3a5f)),
+                        icon: const Icon(Icons.edit_calendar,
+                            size: 16, color: Color(0xFF1e3a5f)),
                         label: const Text('Edit by Date',
                             style: TextStyle(color: Color(0xFF1e3a5f))),
                         style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                                color: Color(0xFF1e3a5f)),
+                            side: const BorderSide(color: Color(0xFF1e3a5f)),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8)),
                       ),
@@ -1165,8 +1153,8 @@ class _StudentTabState extends State<_StudentTab> {
                     size: 64, color: Colors.grey.shade300),
                 const SizedBox(height: 12),
                 Text('Enter a roll number to view attendance.',
-                    style: TextStyle(
-                        fontSize: 15, color: Colors.grey.shade500)),
+                    style:
+                        TextStyle(fontSize: 15, color: Colors.grey.shade500)),
               ]),
             ),
           ),
@@ -1267,8 +1255,8 @@ class _StudentTabState extends State<_StudentTab> {
                 child: Padding(
                   padding: const EdgeInsets.all(6),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: isPresent
                           ? Colors.green.withOpacity(0.15)
@@ -1281,9 +1269,7 @@ class _StudentTabState extends State<_StudentTab> {
                       style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: isPresent
-                              ? Colors.green
-                              : Colors.red),
+                          color: isPresent ? Colors.green : Colors.red),
                     ),
                   ),
                 ),
@@ -1291,8 +1277,8 @@ class _StudentTabState extends State<_StudentTab> {
               SizedBox(
                 width: 44,
                 child: IconButton(
-                  icon: const Icon(Icons.edit, size: 15,
-                      color: Color(0xFF1e3a5f)),
+                  icon: const Icon(Icons.edit,
+                      size: 15, color: Color(0xFF1e3a5f)),
                   tooltip: 'Edit attendance',
                   onPressed: () => _editStudentAttendance(r),
                 ),
@@ -1329,8 +1315,7 @@ class _StudentTabState extends State<_StudentTab> {
     if (dayRecords.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              'No attendance records found for $roll on $pickedStr.'),
+          content: Text('No attendance records found for $roll on $pickedStr.'),
           backgroundColor: Colors.orange,
         ));
       }
@@ -1339,8 +1324,7 @@ class _StudentTabState extends State<_StudentTab> {
 
     // 3 ── build mutable present-map  docId → isPresent ─────────────────
     final Map<String, bool> presentMap = {
-      for (final r in dayRecords)
-        r['docId'] as String: r['present'] as bool,
+      for (final r in dayRecords) r['docId'] as String: r['present'] as bool,
     };
 
     // 4 ── show edit dialog ──────────────────────────────────────────────
@@ -1379,8 +1363,7 @@ class _StudentTabState extends State<_StudentTab> {
                             children: [
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       '$subCode${subName.isNotEmpty ? '  —  $subName' : ''}',
@@ -1403,19 +1386,17 @@ class _StudentTabState extends State<_StudentTab> {
                                 ChoiceChip(
                                   label: const Text('Present'),
                                   selected: isPresent,
-                                  selectedColor:
-                                      Colors.green.withOpacity(0.2),
-                                  onSelected: (_) => setDlg(
-                                      () => presentMap[docId] = true),
+                                  selectedColor: Colors.green.withOpacity(0.2),
+                                  onSelected: (_) =>
+                                      setDlg(() => presentMap[docId] = true),
                                 ),
                                 const SizedBox(width: 6),
                                 ChoiceChip(
                                   label: const Text('Absent'),
                                   selected: !isPresent,
-                                  selectedColor:
-                                      Colors.red.withOpacity(0.2),
-                                  onSelected: (_) => setDlg(
-                                      () => presentMap[docId] = false),
+                                  selectedColor: Colors.red.withOpacity(0.2),
+                                  onSelected: (_) =>
+                                      setDlg(() => presentMap[docId] = false),
                                 ),
                               ]),
                             ],
@@ -1438,8 +1419,8 @@ class _StudentTabState extends State<_StudentTab> {
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1e3a5f)),
-              child: const Text('Save All',
-                  style: TextStyle(color: Colors.white)),
+              child:
+                  const Text('Save All', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -1455,10 +1436,8 @@ class _StudentTabState extends State<_StudentTab> {
         final newPresent = presentMap[docId]!;
         if (newPresent == (r['present'] as bool)) continue; // no change
 
-        final docSnap = await widget.firestore
-            .collection('attendance')
-            .doc(docId)
-            .get();
+        final docSnap =
+            await widget.firestore.collection('attendance').doc(docId).get();
         if (!docSnap.exists) continue;
 
         final data = docSnap.data()!;
@@ -1473,14 +1452,10 @@ class _StudentTabState extends State<_StudentTab> {
           }
         }
 
-        final presentCount =
-            students.where((s) => s['present'] == true).length;
+        final presentCount = students.where((s) => s['present'] == true).length;
         final absentCount = students.length - presentCount;
 
-        await widget.firestore
-            .collection('attendance')
-            .doc(docId)
-            .update({
+        await widget.firestore.collection('attendance').doc(docId).update({
           'students': students,
           'presentCount': presentCount,
           'absentCount': absentCount,
@@ -1498,17 +1473,15 @@ class _StudentTabState extends State<_StudentTab> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
       }
     }
   }
 
   /// Show a dialog to flip present/absent for this student in one record
   /// and persist the change to Firestore.
-  Future<void> _editStudentAttendance(
-      Map<String, dynamic> record) async {
+  Future<void> _editStudentAttendance(Map<String, dynamic> record) async {
     final roll = _rollCtrl.text.trim().toUpperCase();
     final docId = record['docId'] as String;
     bool isPresent = record['present'] as bool;
@@ -1518,8 +1491,8 @@ class _StudentTabState extends State<_StudentTab> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setDlg) => AlertDialog(
-            title: Text(
-                'Edit: ${record['subjectCode']}  •  ${record['dateStr']}'),
+            title:
+                Text('Edit: ${record['subjectCode']}  •  ${record['dateStr']}'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1556,8 +1529,8 @@ class _StudentTabState extends State<_StudentTab> {
                 onPressed: () => Navigator.pop(ctx, true),
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1e3a5f)),
-                child: const Text('Save',
-                    style: TextStyle(color: Colors.white)),
+                child:
+                    const Text('Save', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -1569,14 +1542,13 @@ class _StudentTabState extends State<_StudentTab> {
 
     try {
       // Fetch the full attendance doc, flip this student's present flag
-      final docSnap = await widget.firestore
-          .collection('attendance')
-          .doc(docId)
-          .get();
+      final docSnap =
+          await widget.firestore.collection('attendance').doc(docId).get();
       if (!docSnap.exists) return;
       final data = docSnap.data()!;
       final students = List<Map<String, dynamic>>.from(
-          (data['students'] as List).map((s) => Map<String, dynamic>.from(s as Map)));
+          (data['students'] as List)
+              .map((s) => Map<String, dynamic>.from(s as Map)));
 
       for (final s in students) {
         if ((s['rollNo'] as String?)?.toUpperCase() == roll) {
@@ -1585,14 +1557,10 @@ class _StudentTabState extends State<_StudentTab> {
         }
       }
 
-      final presentCount =
-          students.where((s) => s['present'] == true).length;
+      final presentCount = students.where((s) => s['present'] == true).length;
       final absentCount = students.length - presentCount;
 
-      await widget.firestore
-          .collection('attendance')
-          .doc(docId)
-          .update({
+      await widget.firestore.collection('attendance').doc(docId).update({
         'students': students,
         'presentCount': presentCount,
         'absentCount': absentCount,
@@ -1603,17 +1571,15 @@ class _StudentTabState extends State<_StudentTab> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
               '${record['subjectCode']} ${record['dateStr']}: marked ${isPresent ? 'Present' : 'Absent'}'),
-          backgroundColor:
-              isPresent ? Colors.green : Colors.red,
+          backgroundColor: isPresent ? Colors.green : Colors.red,
         ));
         // Refresh the entire student search to reflect updated stats
         _search();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
       }
     }
   }
@@ -1707,8 +1673,7 @@ class _RequestList extends StatelessWidget {
     if (statusFilter != null) {
       return col.where('status', isEqualTo: statusFilter).snapshots();
     }
-    return col
-        .where('status', whereIn: ['approved', 'rejected']).snapshots();
+    return col.where('status', whereIn: ['approved', 'rejected']).snapshots();
   }
 
   @override
@@ -1722,13 +1687,10 @@ class _RequestList extends StatelessWidget {
         if (snap.hasError) {
           return Center(child: Text('Error: ${snap.error}'));
         }
-        final docs =
-            List<QueryDocumentSnapshot>.from(snap.data?.docs ?? []);
+        final docs = List<QueryDocumentSnapshot>.from(snap.data?.docs ?? []);
         docs.sort((a, b) {
-          final aTs =
-              (a.data() as Map<String, dynamic>)['requestedAt'];
-          final bTs =
-              (b.data() as Map<String, dynamic>)['requestedAt'];
+          final aTs = (a.data() as Map<String, dynamic>)['requestedAt'];
+          final bTs = (b.data() as Map<String, dynamic>)['requestedAt'];
           if (aTs == null && bTs == null) return 0;
           if (aTs == null) return 1;
           if (bTs == null) return -1;
@@ -1741,8 +1703,7 @@ class _RequestList extends StatelessWidget {
                   size: 64, color: Colors.grey.shade400),
               const SizedBox(height: 12),
               Text(emptyMessage,
-                  style: TextStyle(
-                      fontSize: 15, color: Colors.grey.shade600)),
+                  style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
             ]),
           );
         }
@@ -1818,8 +1779,7 @@ class _RequestCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       elevation: 2,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1828,22 +1788,22 @@ class _RequestCard extends StatelessWidget {
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Text(
-                  '$_subjectCode${_subjectName.isNotEmpty ? ' — $_subjectName' : ''}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                const SizedBox(height: 2),
-                Text('Faculty: $_facultyId',
-                    style: TextStyle(
-                        fontSize: 12, color: Colors.grey.shade700)),
-              ]),
+                    Text(
+                      '$_subjectCode${_subjectName.isNotEmpty ? ' — $_subjectName' : ''}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 2),
+                    Text('Faculty: $_facultyId',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade700)),
+                  ]),
             ),
             _statusChip(_statusLabel, _statusColor),
           ]),
           const SizedBox(height: 10),
-          _infoRow(Icons.date_range,
-              'Date range: $_fromDateStr  →  $_toDateStr'),
+          _infoRow(
+              Icons.date_range, 'Date range: $_fromDateStr  →  $_toDateStr'),
           _infoRow(Icons.access_time, 'Requested: $submittedAt'),
           const SizedBox(height: 8),
           Container(
@@ -1853,8 +1813,8 @@ class _RequestCard extends StatelessWidget {
               color: Colors.grey.shade100,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text('Reason: $_reason',
-                style: const TextStyle(fontSize: 13)),
+            child:
+                Text('Reason: $_reason', style: const TextStyle(fontSize: 13)),
           ),
           if (_adminNote.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -1863,14 +1823,12 @@ class _RequestCard extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: _statusColor.withOpacity(0.08),
-                border:
-                    Border.all(color: _statusColor.withOpacity(0.3)),
+                border: Border.all(color: _statusColor.withOpacity(0.3)),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text('Admin note: $_adminNote',
                   style: TextStyle(
-                      fontSize: 13,
-                      color: _statusColor.withOpacity(0.9))),
+                      fontSize: 13, color: _statusColor.withOpacity(0.9))),
             ),
           ],
           if (showActions) ...[
@@ -1902,8 +1860,7 @@ class _RequestCard extends StatelessWidget {
     );
   }
 
-  Future<void> _showActionDialog(
-      BuildContext context, bool approve) async {
+  Future<void> _showActionDialog(BuildContext context, bool approve) async {
     final noteCtrl = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1921,9 +1878,7 @@ class _RequestCard extends StatelessWidget {
             controller: noteCtrl,
             maxLines: 2,
             decoration: InputDecoration(
-              labelText: approve
-                  ? 'Note (optional)'
-                  : 'Reason for rejection *',
+              labelText: approve ? 'Note (optional)' : 'Reason for rejection *',
               border: const OutlineInputBorder(),
             ),
           ),
@@ -1935,8 +1890,7 @@ class _RequestCard extends StatelessWidget {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    approve ? Colors.green : Colors.red),
+                backgroundColor: approve ? Colors.green : Colors.red),
             child: Text(approve ? 'Approve' : 'Reject',
                 style: const TextStyle(color: Colors.white)),
           ),
@@ -1945,18 +1899,14 @@ class _RequestCard extends StatelessWidget {
     );
 
     if (confirmed == true) {
-      await firestore
-          .collection('attendanceEditRequests')
-          .doc(doc.id)
-          .update({
+      await firestore.collection('attendanceEditRequests').doc(doc.id).update({
         'status': approve ? 'approved' : 'rejected',
         'adminNote': noteCtrl.text.trim(),
         'resolvedAt': FieldValue.serverTimestamp(),
       });
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:
-              Text(approve ? 'Request approved.' : 'Request rejected.'),
+          content: Text(approve ? 'Request approved.' : 'Request rejected.'),
           backgroundColor: approve ? Colors.green : Colors.red,
         ));
       }
@@ -1965,8 +1915,7 @@ class _RequestCard extends StatelessWidget {
 
   Widget _statusChip(String label, Color color) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.15),
         border: Border.all(color: color.withOpacity(0.5)),
@@ -1974,9 +1923,7 @@ class _RequestCard extends StatelessWidget {
       ),
       child: Text(label,
           style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.bold)),
+              color: color, fontSize: 12, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -1988,10 +1935,8 @@ class _RequestCard extends StatelessWidget {
         const SizedBox(width: 6),
         Expanded(
             child: Text(text,
-                style: TextStyle(
-                    fontSize: 12, color: Colors.grey.shade700))),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade700))),
       ]),
     );
   }
 }
-
