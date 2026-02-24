@@ -39,7 +39,8 @@ class _StudentHomeState extends State<StudentHome> {
   double _attendancePct = 0.0;
   bool _attendanceLoaded = false;
   List<Map<String, dynamic>> _courseWiseStats = []; // {code,name,held,present}
-  Map<String, List<int>> _dailyHeldPresent = {}; // key=dd-MM-yyyy, value=[held,present]
+  Map<String, List<int>> _dailyHeldPresent =
+      {}; // key=dd-MM-yyyy, value=[held,present]
 
   @override
   void initState() {
@@ -184,9 +185,10 @@ class _StudentHomeState extends State<StudentHome> {
         if (periods.isEmpty) continue;
         final students = List<dynamic>.from(d['students'] ?? []);
         final record = students.cast<Map?>().firstWhere(
-          (s) => (s?['rollNo'] as String? ?? '').toUpperCase() == rollNumber,
-          orElse: () => null,
-        );
+              (s) =>
+                  (s?['rollNo'] as String? ?? '').toUpperCase() == rollNumber,
+              orElse: () => null,
+            );
         if (record == null) continue;
 
         final count = periods.length;
@@ -199,9 +201,11 @@ class _StudentHomeState extends State<StudentHome> {
         if (isPresent) present += count;
 
         // Course-wise accumulation
-        cwMap.putIfAbsent(code, () => {'code': code, 'name': name, 'held': 0, 'present': 0});
+        cwMap.putIfAbsent(
+            code, () => {'code': code, 'name': name, 'held': 0, 'present': 0});
         cwMap[code]!['held'] = (cwMap[code]!['held'] as int) + count;
-        if (isPresent) cwMap[code]!['present'] = (cwMap[code]!['present'] as int) + count;
+        if (isPresent)
+          cwMap[code]!['present'] = (cwMap[code]!['present'] as int) + count;
 
         // Daily accumulation
         if (dateStr.isNotEmpty) {
@@ -1174,9 +1178,9 @@ class _StudentHomeState extends State<StudentHome> {
       child: !_attendanceLoaded
           ? const Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: CircularProgressIndicator(color: Colors.white54),
-              ))
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: CircularProgressIndicator(color: Colors.white54),
+            ))
           : Column(children: [
               SizedBox(
                 height: maxBarH + 60,
@@ -1186,10 +1190,15 @@ class _StudentHomeState extends State<StudentHome> {
                     final now = DateTime.now();
                     final d = now.subtract(Duration(days: 6 - i));
                     const labels = [
-                      'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'
+                      'Mon',
+                      'Tue',
+                      'Wed',
+                      'Thu',
+                      'Fri',
+                      'Sat',
+                      'Sun'
                     ];
-                    final key =
-                        '${d.day.toString().padLeft(2, '0')}-'
+                    final key = '${d.day.toString().padLeft(2, '0')}-'
                         '${d.month.toString().padLeft(2, '0')}-'
                         '${d.year}';
                     final hp = _dailyHeldPresent[key];
@@ -1270,8 +1279,7 @@ class _StudentHomeState extends State<StudentHome> {
         Container(
             width: 10,
             height: 10,
-            decoration:
-                BoxDecoration(color: color, shape: BoxShape.circle)),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 4),
         Text(label,
             style: const TextStyle(color: Colors.white60, fontSize: 10)),
@@ -1288,22 +1296,23 @@ class _StudentHomeState extends State<StudentHome> {
       child: !_attendanceLoaded
           ? const Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: CircularProgressIndicator(color: Colors.white54),
-              ))
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: CircularProgressIndicator(color: Colors.white54),
+            ))
           : _courseWiseStats.isEmpty
               ? const Center(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Text('No attendance data available',
-                        style: TextStyle(color: Colors.white54)),
-                  ))
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Text('No attendance data available',
+                      style: TextStyle(color: Colors.white54)),
+                ))
               : Column(
                   children: _courseWiseStats.map((s) {
                     final held = (s['held'] as num).toInt();
                     final present = (s['present'] as num).toInt();
-                    final pct =
-                        held == 0 ? 0.0 : (present.toDouble() / held.toDouble()) * 100.0;
+                    final pct = held == 0
+                        ? 0.0
+                        : (present.toDouble() / held.toDouble()) * 100.0;
                     final barColor = pct >= 75
                         ? const Color(0xFF4CAF50)
                         : pct >= 60
