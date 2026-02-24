@@ -36,6 +36,8 @@ class _StudentHomeState extends State<StudentHome> {
   bool _isLoading = true;
   double _computedCgpa = 0.0;
   bool _cgpaLoaded = false;
+  double _attendancePct = 0.0;
+  bool _attendanceLoaded = false;
 
   @override
   void initState() {
@@ -96,6 +98,8 @@ class _StudentHomeState extends State<StudentHome> {
         });
         // Compute CGPA from marks in the background
         _computeCgpa(rollNumber);
+        // Compute live attendance % from the attendance collection
+        _computeAttendancePct(rollNumber);
       } else {
         setState(() => _isLoading = false);
       }
@@ -157,6 +161,37 @@ class _StudentHomeState extends State<StudentHome> {
       studentData['mentorName'] = 'Error Loading';
       studentData['mentorPhone'] = 'N/A';
       studentData['mentorEmail'] = 'N/A';
+    }
+  }
+
+  /// Computes overall attendance % from the `attendance` collection.
+  /// Each period slot in a document counts as one class.
+  Future<void> _computeAttendancePct(String rollNumber) async {
+    try {
+      final snap = await _firestore.collection('attendance').get();
+      int held = 0;
+      int present = 0;
+      for (final doc in snap.docs) {
+        final d = doc.data();
+        final periods = List<dynamic>.from(d['periods'] ?? []);
+        if (periods.isEmpty) continue;
+        final students = List<dynamic>.from(d['students'] ?? []);
+        final record = students.cast<Map?>().firstWhere(
+          (s) => (s?['rollNo'] as String? ?? '').toUpperCase() == rollNumber,
+          orElse: () => null,
+        );
+        if (record == null) continue;
+        held += periods.length;
+        if (record['present'] == true) present += periods.length;
+      }
+      if (mounted) {
+        setState(() {
+          _attendancePct = held == 0 ? 0 : (present / held) * 100;
+          _attendanceLoaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _attendanceLoaded = true);
     }
   }
 
@@ -903,7 +938,11 @@ class _StudentHomeState extends State<StudentHome> {
       },
       {
         'label': 'Attendance %',
-        'value': '${_studentData?['attendance'] ?? '0'}%',
+        'value': _attendanceLoaded
+            ? '${_attendancePct.toStringAsFixed(1)}%'
+            : (_studentData?['attendance'] != null
+                ? '${_studentData!['attendance']}%'
+                : '...'),
         'color': Colors.green,
       },
       {
