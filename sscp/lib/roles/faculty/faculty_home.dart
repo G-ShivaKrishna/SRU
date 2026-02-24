@@ -92,7 +92,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       final doc = await _firestore.collection('faculty').doc(facultyId).get();
       if (doc.exists) {
         _facultyData = doc.data();
-        
+
         // Fetch average feedback from backend
         try {
           final avgFeedback = await _feedbackService.getOverallAverageFeedback(
@@ -103,7 +103,7 @@ class _FacultyHomeState extends State<FacultyHome> {
           // If feedback calculation fails, use default value
           _facultyData?['avgFeedback'] = '0.0';
         }
-        
+
         setState(() {
           _isLoading = false;
         });

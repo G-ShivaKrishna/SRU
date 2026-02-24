@@ -10,8 +10,7 @@ class MentorStudentAccessScreen extends StatefulWidget {
       _MentorStudentAccessScreenState();
 }
 
-class _MentorStudentAccessScreenState
-    extends State<MentorStudentAccessScreen> {
+class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -86,8 +85,7 @@ class _MentorStudentAccessScreenState
         });
         return;
       }
-      final facultyName =
-          (facultyDoc.data()?['name'] ?? '').toString().trim();
+      final facultyName = (facultyDoc.data()?['name'] ?? '').toString().trim();
       if (facultyName.isEmpty) {
         setState(() {
           _errorMessage = 'Faculty name not set in profile.';
@@ -129,8 +127,8 @@ class _MentorStudentAccessScreenState
       }).toList();
 
       // Sort by roll number
-      studentsList.sort((a, b) =>
-          (a['rollNumber'] ?? '').compareTo(b['rollNumber'] ?? ''));
+      studentsList.sort(
+          (a, b) => (a['rollNumber'] ?? '').compareTo(b['rollNumber'] ?? ''));
 
       setState(() {
         _facultyName = facultyName;
@@ -274,8 +272,7 @@ class _MentorStudentAccessScreenState
                 ),
                 Text(
                   'Assigned Batch: $_assignedBatch  ·  ${_students.length} students',
-                  style:
-                      const TextStyle(color: Colors.white70, fontSize: 13),
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
             ),
@@ -462,9 +459,8 @@ class _StudentCardState extends State<_StudentCard> {
         }
       }
 
-      final cgpaStr = semCount > 0
-          ? (sgpaSum / semCount).toStringAsFixed(2)
-          : null;
+      final cgpaStr =
+          semCount > 0 ? (sgpaSum / semCount).toStringAsFixed(2) : null;
 
       if (!mounted) return;
       setState(() {
@@ -523,8 +519,8 @@ class _StudentCardState extends State<_StudentCard> {
                         const SizedBox(height: 2),
                         Text(
                           'Roll: $roll  ·  $program  ·  Year $year  ·  Sec $section',
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.grey),
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -544,8 +540,8 @@ class _StudentCardState extends State<_StudentCard> {
             Container(
               decoration: BoxDecoration(
                 color: Colors.grey.shade50,
-                borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(10)),
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(10)),
               ),
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
               child: Column(
@@ -592,8 +588,7 @@ class _StudentCardState extends State<_StudentCard> {
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
                       child: Text('No marks records found.',
-                          style:
-                              TextStyle(color: Colors.grey, fontSize: 13)),
+                          style: TextStyle(color: Colors.grey, fontSize: 13)),
                     )
                   else
                     _buildMarksSection(),
@@ -627,12 +622,11 @@ class _StudentCardState extends State<_StudentCard> {
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: const BoxDecoration(
                   color: Color(0xFF1e3a5f),
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(7)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
                 ),
                 child: Text(entry.key,
                     style: const TextStyle(
@@ -668,8 +662,7 @@ class _StudentCardState extends State<_StudentCard> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1e3a5f)
-                                    .withOpacity(0.1),
+                                color: const Color(0xFF1e3a5f).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
