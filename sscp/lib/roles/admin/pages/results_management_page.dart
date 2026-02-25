@@ -22,8 +22,8 @@ class _ResultsManagementPageState extends State<ResultsManagementPage>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(
-        length: 3, vsync: this, initialIndex: widget.initialTab);
+    _tab =
+        TabController(length: 3, vsync: this, initialIndex: widget.initialTab);
   }
 
   @override
@@ -219,7 +219,8 @@ class _BacklogCard extends StatelessWidget {
           ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('Clear', style: TextStyle(color: Colors.white))),
+              child:
+                  const Text('Clear', style: TextStyle(color: Colors.white))),
         ],
       ),
     );
@@ -309,8 +310,7 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
       {QueryDocumentSnapshot? existing}) async {
     final data = existing?.data() as Map<String, dynamic>?;
     final titleCtrl = TextEditingController(text: data?['title'] ?? '');
-    final sessionCtrl =
-        TextEditingController(text: data?['examSession'] ?? '');
+    final sessionCtrl = TextEditingController(text: data?['examSession'] ?? '');
     DateTime? startDate = (data?['startDate'] as Timestamp?)?.toDate();
     DateTime? endDate = (data?['endDate'] as Timestamp?)?.toDate();
     bool isActive = data?['isActive'] ?? false;
@@ -319,8 +319,8 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: Text(
-              existing == null ? 'Create Supply Window' : 'Edit Window'),
+          title:
+              Text(existing == null ? 'Create Supply Window' : 'Edit Window'),
           scrollable: true,
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -346,8 +346,7 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
                     context: ctx,
                     initialDate: startDate ?? DateTime.now(),
                     firstDate: DateTime.now(),
-                    lastDate:
-                        DateTime.now().add(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (p != null) setS(() => startDate = p);
                 },
@@ -363,8 +362,7 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
                     context: ctx,
                     initialDate: endDate ?? (startDate ?? DateTime.now()),
                     firstDate: startDate ?? DateTime.now(),
-                    lastDate:
-                        DateTime.now().add(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (p != null) setS(() => endDate = p);
                 },
@@ -393,12 +391,10 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
                 final winData = {
                   'title': titleCtrl.text.trim(),
                   'examSession': sessionCtrl.text.trim().toUpperCase(),
-                  'startDate': startDate != null
-                      ? Timestamp.fromDate(startDate!)
-                      : null,
-                  'endDate': endDate != null
-                      ? Timestamp.fromDate(endDate!)
-                      : null,
+                  'startDate':
+                      startDate != null ? Timestamp.fromDate(startDate!) : null,
+                  'endDate':
+                      endDate != null ? Timestamp.fromDate(endDate!) : null,
                   'isActive': isActive,
                   'createdAt': FieldValue.serverTimestamp(),
                 };
@@ -499,8 +495,7 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                  'Assign a faculty member to each supply exam subject.',
+              const Text('Assign a faculty member to each supply exam subject.',
                   style: TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 12),
               ...subjectMap.entries.map((entry) {
@@ -527,13 +522,11 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
                               value: null, child: Text('— Not Assigned —')),
                           ...facultyList.map((f) => DropdownMenuItem(
                                 value: f['id'],
-                                child: Text(
-                                    '${f['name']} (${f['id']})',
+                                child: Text('${f['name']} (${f['id']})',
                                     overflow: TextOverflow.ellipsis),
                               )),
                         ],
-                        onChanged: (v) =>
-                            setS(() => selections[entry.key] = v),
+                        onChanged: (v) => setS(() => selections[entry.key] = v),
                       ),
                     ],
                   ),
@@ -691,8 +684,8 @@ class _SupplyWindowCard extends StatelessWidget {
                   onPressed: onAssignFaculty,
                   icon: const Icon(Icons.person_add, size: 14),
                   label: const Text('Assign Faculty'),
-                  style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.indigo),
+                  style:
+                      OutlinedButton.styleFrom(foregroundColor: Colors.indigo),
                 ),
                 ElevatedButton.icon(
                   onPressed: () async {
@@ -701,8 +694,7 @@ class _SupplyWindowCard extends StatelessWidget {
                         .doc(doc.id)
                         .update({'isActive': !isActive});
                   },
-                  icon: Icon(
-                      isActive ? Icons.lock : Icons.lock_open, size: 14),
+                  icon: Icon(isActive ? Icons.lock : Icons.lock_open, size: 14),
                   label: Text(isActive ? 'Disable' : 'Enable'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isActive ? Colors.red : Colors.green,
@@ -753,8 +745,7 @@ class _SupplyWindowCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: active ? Colors.green.shade50 : Colors.grey.shade100,
-        border: Border.all(
-            color: active ? Colors.green : Colors.grey.shade400),
+        border: Border.all(color: active ? Colors.green : Colors.grey.shade400),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -859,8 +850,7 @@ class _RegistrationsTabState extends State<_RegistrationsTab> {
                   }).toList();
                 }
                 if (docs.isEmpty) {
-                  return _emptyHint(
-                      'No registrations yet for this window.');
+                  return _emptyHint('No registrations yet for this window.');
                 }
                 return ListView.builder(
                   padding: const EdgeInsets.all(12),
@@ -869,8 +859,7 @@ class _RegistrationsTabState extends State<_RegistrationsTab> {
                     final data = docs[i].data() as Map<String, dynamic>;
                     final subjects = List<Map<String, dynamic>>.from(
                         (data['subjects'] as List? ?? [])
-                            .map((s) =>
-                                Map<String, dynamic>.from(s as Map)));
+                            .map((s) => Map<String, dynamic>.from(s as Map)));
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
