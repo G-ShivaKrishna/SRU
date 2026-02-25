@@ -637,8 +637,8 @@ class _StudentHomeState extends State<StudentHome> {
                   value: 'Backlogs',
                   child: Padding(
                     padding: EdgeInsets.only(left: 12),
-                    child: Text('Backlogs',
-                        style: TextStyle(color: Colors.white)),
+                    child:
+                        Text('Backlogs', style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 const PopupMenuItem<String>(
@@ -751,8 +751,8 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                   const PopupMenuItem(
                     value: 'Backlogs',
-                    child: Text('Backlogs',
-                        style: TextStyle(color: Colors.white)),
+                    child:
+                        Text('Backlogs', style: TextStyle(color: Colors.white)),
                   ),
                   const PopupMenuItem(
                     value: 'Supply Exam',

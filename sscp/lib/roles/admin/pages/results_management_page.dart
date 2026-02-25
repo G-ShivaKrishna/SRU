@@ -128,7 +128,8 @@ class _UploadResultsTabState extends State<_UploadResultsTab> {
         for (final sub in _subjects) {
           marks[sub['code']] = {'internal': '', 'external': ''};
         }
-        _marksData.add({'rollNo': doc.id, 'name': d['name'] ?? '', 'marks': marks});
+        _marksData
+            .add({'rollNo': doc.id, 'name': d['name'] ?? '', 'marks': marks});
       }
     } catch (e) {
       if (mounted) {
@@ -161,7 +162,8 @@ class _UploadResultsTabState extends State<_UploadResultsTab> {
         final internal = int.tryParse('${subMarks['internal']}') ?? 0;
         final external = int.tryParse('${subMarks['external']}') ?? 0;
         final total = internal + external;
-        final passed = external >= 28 && total >= 45; // typical R20 pass criteria
+        final passed =
+            external >= 28 && total >= 45; // typical R20 pass criteria
         final grade = _computeGrade(total);
 
         subjectResults.add({
@@ -228,18 +230,21 @@ class _UploadResultsTabState extends State<_UploadResultsTab> {
       final resultRef = widget.firestore
           .collection('semResults')
           .doc('${rollNo}_${session}_${_examType}');
-      batch.set(resultRef, {
-        'rollNo': rollNo,
-        'studentName': name,
-        'year': int.tryParse(_year!) ?? 0,
-        'semester': _semester ?? '',
-        'department': _department ?? '',
-        'examSession': session,
-        'examType': _examType,
-        'subjects': subjectResults,
-        'allPassed': allPassed,
-        'uploadedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      batch.set(
+          resultRef,
+          {
+            'rollNo': rollNo,
+            'studentName': name,
+            'year': int.tryParse(_year!) ?? 0,
+            'semester': _semester ?? '',
+            'department': _department ?? '',
+            'examSession': session,
+            'examType': _examType,
+            'subjects': subjectResults,
+            'allPassed': allPassed,
+            'uploadedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true));
     }
 
     try {
@@ -321,7 +326,8 @@ class _UploadResultsTabState extends State<_UploadResultsTab> {
               decoration: const InputDecoration(
                   labelText: 'Year', border: OutlineInputBorder()),
               items: _years
-                  .map((e) => DropdownMenuItem(value: e, child: Text('Year $e')))
+                  .map(
+                      (e) => DropdownMenuItem(value: e, child: Text('Year $e')))
                   .toList(),
               onChanged: (v) => setState(() => _year = v),
             ),
@@ -434,7 +440,8 @@ class _UploadResultsTabState extends State<_UploadResultsTab> {
               ),
               title: Text('${s['code']} — ${s['name']}'),
               trailing: IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                icon: const Icon(Icons.delete_outline,
+                    color: Colors.red, size: 18),
                 onPressed: () => setState(() => _subjects.removeAt(i)),
               ),
             );
@@ -498,8 +505,8 @@ class _UploadResultsTabState extends State<_UploadResultsTab> {
                   final code = sub['code'] as String;
                   final subMarks = marks[code] as Map<String, dynamic>;
                   return Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     child: Row(children: [
                       Expanded(
                         flex: 2,
@@ -511,8 +518,8 @@ class _UploadResultsTabState extends State<_UploadResultsTab> {
                         child: _marksField(
                           label: 'Internal (/30)',
                           value: '${subMarks['internal']}',
-                          onChanged: (v) => setState(
-                              () => subMarks['internal'] = v),
+                          onChanged: (v) =>
+                              setState(() => subMarks['internal'] = v),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -520,8 +527,8 @@ class _UploadResultsTabState extends State<_UploadResultsTab> {
                         child: _marksField(
                           label: 'External (/70)',
                           value: '${subMarks['external']}',
-                          onChanged: (v) => setState(
-                              () => subMarks['external'] = v),
+                          onChanged: (v) =>
+                              setState(() => subMarks['external'] = v),
                         ),
                       ),
                     ]),
@@ -562,8 +569,7 @@ class _UploadResultsTabState extends State<_UploadResultsTab> {
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         isDense: true,
       ),
       onChanged: onChanged,
@@ -580,8 +586,7 @@ class _UploadResultsTabState extends State<_UploadResultsTab> {
             const Icon(Icons.check_circle, color: Colors.green, size: 72),
             const SizedBox(height: 16),
             const Text('Results Uploaded Successfully!',
-                style:
-                    TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
               '${_sessionCtrl.text.trim()} results for Year $_year Sem $_semester ($_department) saved.',
@@ -630,7 +635,9 @@ class _BacklogsTabState extends State<_BacklogsTab> {
   final _searchCtrl = TextEditingController();
 
   Stream<QuerySnapshot> get _stream {
-    var q = widget.firestore.collection('backlogs').orderBy('createdAt', descending: true);
+    var q = widget.firestore
+        .collection('backlogs')
+        .orderBy('createdAt', descending: true);
     if (_filter != 'all') {
       return q.where('status', isEqualTo: _filter).snapshots();
     }
@@ -732,7 +739,8 @@ class _BacklogCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isActive ? Colors.red.shade100 : Colors.green.shade100,
+          backgroundColor:
+              isActive ? Colors.red.shade100 : Colors.green.shade100,
           child: Icon(
             isActive ? Icons.warning_amber : Icons.check_circle,
             color: isActive ? Colors.red : Colors.green,
@@ -778,10 +786,9 @@ class _BacklogCard extends StatelessWidget {
               child: const Text('Cancel')),
           ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('Clear',
-                  style: TextStyle(color: Colors.white))),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child:
+                  const Text('Clear', style: TextStyle(color: Colors.white))),
         ],
       ),
     );
@@ -817,8 +824,7 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
           child: Row(
             children: [
               const Text('Supply Exam Windows',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const Spacer(),
               ElevatedButton.icon(
                 onPressed: () => _showCreateDialog(context),
@@ -869,23 +875,19 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
   Future<void> _showCreateDialog(BuildContext context,
       {QueryDocumentSnapshot? existing}) async {
     final data = existing?.data() as Map<String, dynamic>?;
-    final titleCtrl =
-        TextEditingController(text: data?['title'] ?? '');
-    final sessionCtrl =
-        TextEditingController(text: data?['examSession'] ?? '');
-    final feeCtrl =
-        TextEditingController(text: '${data?['fee'] ?? ''}');
-    DateTime? startDate =
-        (data?['startDate'] as Timestamp?)?.toDate();
-    DateTime? endDate =
-        (data?['endDate'] as Timestamp?)?.toDate();
+    final titleCtrl = TextEditingController(text: data?['title'] ?? '');
+    final sessionCtrl = TextEditingController(text: data?['examSession'] ?? '');
+    final feeCtrl = TextEditingController(text: '${data?['fee'] ?? ''}');
+    DateTime? startDate = (data?['startDate'] as Timestamp?)?.toDate();
+    DateTime? endDate = (data?['endDate'] as Timestamp?)?.toDate();
     bool isActive = data?['isActive'] ?? false;
 
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: Text(existing == null ? 'Create Supply Window' : 'Edit Window'),
+          title:
+              Text(existing == null ? 'Create Supply Window' : 'Edit Window'),
           scrollable: true,
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1080,8 +1082,8 @@ class _SupplyWindowCard extends StatelessWidget {
                       context: context,
                       builder: (_) => AlertDialog(
                         title: const Text('Delete Supply Window'),
-                        content:
-                            const Text('Delete this supply window? Registrations will remain.'),
+                        content: const Text(
+                            'Delete this supply window? Registrations will remain.'),
                         actions: [
                           TextButton(
                               onPressed: () => Navigator.pop(context, false),
@@ -1089,7 +1091,7 @@ class _SupplyWindowCard extends StatelessWidget {
                           ElevatedButton(
                               onPressed: () => Navigator.pop(context, true),
                               style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red),
+                                  backgroundColor: Colors.red),
                               child: const Text('Delete',
                                   style: TextStyle(color: Colors.white))),
                         ],
@@ -1116,8 +1118,7 @@ class _SupplyWindowCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: active ? Colors.green.shade50 : Colors.grey.shade100,
-        border: Border.all(
-            color: active ? Colors.green : Colors.grey.shade400),
+        border: Border.all(color: active ? Colors.green : Colors.grey.shade400),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -1197,7 +1198,8 @@ class _RegistrationsTabState extends State<_RegistrationsTab> {
         if (_selectedWindowId == null)
           const Expanded(
               child: Center(
-                  child: Text('Select a supply window above to view registrations.')))
+                  child: Text(
+                      'Select a supply window above to view registrations.')))
         else
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
@@ -1247,7 +1249,8 @@ class _RegistrationsTabState extends State<_RegistrationsTab> {
                         ),
                         isThreeLine: true,
                         trailing: payStatus == 'paid'
-                            ? const Icon(Icons.check_circle, color: Colors.green)
+                            ? const Icon(Icons.check_circle,
+                                color: Colors.green)
                             : OutlinedButton(
                                 onPressed: () async {
                                   await widget.firestore
@@ -1273,8 +1276,8 @@ class _RegistrationsTabState extends State<_RegistrationsTab> {
 // Shared helpers
 // ═══════════════════════════════════════════════════════════════════════════
 
-Widget _sectionTitle(String t) => Text(t,
-    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold));
+Widget _sectionTitle(String t) =>
+    Text(t, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold));
 
 Widget _emptyHint(String msg) => Padding(
       padding: const EdgeInsets.all(32),

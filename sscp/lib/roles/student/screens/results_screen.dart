@@ -23,9 +23,9 @@ class _ResultsScreenState extends State<ResultsScreen>
   @override
   void initState() {
     super.initState();
-    _tab = TabController(length: 3, vsync: this, initialIndex: widget.initialTab);
-    final email =
-        FirebaseAuth.instance.currentUser?.email ?? '';
+    _tab =
+        TabController(length: 3, vsync: this, initialIndex: widget.initialTab);
+    final email = FirebaseAuth.instance.currentUser?.email ?? '';
     _rollNo = email.split('@')[0].toUpperCase();
   }
 
@@ -115,30 +115,26 @@ class _ResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = doc.data() as Map<String, dynamic>;
-    final subjects =
-        List<Map<String, dynamic>>.from(data['subjects'] ?? []);
+    final subjects = List<Map<String, dynamic>>.from(data['subjects'] ?? []);
     final allPassed = data['allPassed'] ?? false;
 
-    final passed =
-        subjects.where((s) => s['result'] == 'PASS').length;
+    final passed = subjects.where((s) => s['result'] == 'PASS').length;
     final failed = subjects.length - passed;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       elevation: 2,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: const Color(0xFF1e3a5f),
-              borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(8)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(8)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -149,8 +145,8 @@ class _ResultCard extends StatelessWidget {
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: allPassed ? Colors.green : Colors.red,
                     borderRadius: BorderRadius.circular(12),
@@ -168,20 +164,17 @@ class _ResultCard extends StatelessWidget {
           ),
           // Sub-header
           Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             child: Text(
               'Year ${data['year']}  •  Sem ${data['semester']}  •  ${data['department']}',
-              style: const TextStyle(
-                  fontSize: 12, color: Colors.black54),
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
             ),
           ),
           // Subjects table
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: WidgetStateProperty.all(
-                  Colors.grey[100]),
+              headingRowColor: WidgetStateProperty.all(Colors.grey[100]),
               columnSpacing: 16,
               columns: const [
                 DataColumn(label: Text('Subject')),
@@ -197,25 +190,19 @@ class _ResultCard extends StatelessWidget {
                   DataCell(
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(s['subjectCode'] ?? '',
                             style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold)),
+                                fontSize: 11, fontWeight: FontWeight.bold)),
                         Text(s['subjectName'] ?? '',
-                            style: const TextStyle(
-                                fontSize: 11)),
+                            style: const TextStyle(fontSize: 11)),
                       ],
                     ),
                   ),
-                  DataCell(
-                      Text('${s['internalMarks'] ?? '-'}')),
-                  DataCell(
-                      Text('${s['externalMarks'] ?? '-'}')),
-                  DataCell(
-                      Text('${s['totalMarks'] ?? '-'}')),
+                  DataCell(Text('${s['internalMarks'] ?? '-'}')),
+                  DataCell(Text('${s['externalMarks'] ?? '-'}')),
+                  DataCell(Text('${s['totalMarks'] ?? '-'}')),
                   DataCell(Text(s['grade'] ?? '-')),
                   DataCell(Text(
                     s['result'] ?? '-',
@@ -239,8 +226,7 @@ class _ResultCard extends StatelessWidget {
                   style: const TextStyle(fontSize: 12),
                 ),
                 OutlinedButton.icon(
-                  onPressed: () =>
-                      _showMemo(context, data, subjects),
+                  onPressed: () => _showMemo(context, data, subjects),
                   icon: const Icon(Icons.print, size: 16),
                   label: const Text('Print Memo'),
                 ),
@@ -257,16 +243,14 @@ class _ResultCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(
-            '${data['examSession']} — ${data['examType']} Memo'),
+        title: Text('${data['examSession']} — ${data['examType']} Memo'),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                  'Student: ${data['studentName']}  (${data['rollNo']})'),
+              Text('Student: ${data['studentName']}  (${data['rollNo']})'),
               Text(
                   'Year ${data['year']}  •  Sem ${data['semester']}  •  ${data['department']}'),
               const Divider(),
@@ -285,18 +269,12 @@ class _ResultCard extends StatelessWidget {
                   ],
                   rows: subjects
                       .map((s) => DataRow(cells: [
-                            DataCell(
-                                Text(s['subjectCode'] ?? '')),
-                            DataCell(
-                                Text(s['subjectName'] ?? '')),
-                            DataCell(Text(
-                                '${s['internalMarks'] ?? '-'}')),
-                            DataCell(Text(
-                                '${s['externalMarks'] ?? '-'}')),
-                            DataCell(Text(
-                                '${s['totalMarks'] ?? '-'}')),
-                            DataCell(
-                                Text(s['grade'] ?? '-')),
+                            DataCell(Text(s['subjectCode'] ?? '')),
+                            DataCell(Text(s['subjectName'] ?? '')),
+                            DataCell(Text('${s['internalMarks'] ?? '-'}')),
+                            DataCell(Text('${s['externalMarks'] ?? '-'}')),
+                            DataCell(Text('${s['totalMarks'] ?? '-'}')),
+                            DataCell(Text(s['grade'] ?? '-')),
                             DataCell(Text(
                               s['result'] ?? '-',
                               style: TextStyle(
@@ -437,8 +415,8 @@ Future<List<_BacklogItem>> _deriveBacklogs(String rollNo) async {
           }
         }
         // Avoid duplicate entries for the same fail session
-        final alreadyAdded = items.any((x) =>
-            x.subjectCode == code && x.failedExamSession == examSession);
+        final alreadyAdded = items.any(
+            (x) => x.subjectCode == code && x.failedExamSession == examSession);
         if (!alreadyAdded) {
           items.add(_BacklogItem(
             subjectCode: code,
@@ -582,8 +560,7 @@ class _BacklogCard extends StatelessWidget {
           ],
         ),
         trailing: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: cleared ? Colors.green : Colors.red,
             borderRadius: BorderRadius.circular(12),
@@ -591,9 +568,7 @@ class _BacklogCard extends StatelessWidget {
           child: Text(
             cleared ? 'CLEARED' : 'BACKLOG',
             style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.bold),
+                color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
           ),
         ),
         isThreeLine: true,
@@ -625,10 +600,8 @@ class _SupplyExamTab extends StatelessWidget {
         final now = DateTime.now();
         final windows = (snap.data?.docs ?? []).where((doc) {
           final d = doc.data() as Map<String, dynamic>;
-          final start =
-              (d['startDate'] as Timestamp?)?.toDate();
-          final end =
-              (d['endDate'] as Timestamp?)?.toDate();
+          final start = (d['startDate'] as Timestamp?)?.toDate();
+          final end = (d['endDate'] as Timestamp?)?.toDate();
           if (start == null || end == null) return false;
           return now.isAfter(start) && now.isBefore(end);
         }).toList();
@@ -652,18 +625,15 @@ class _SupplyExamTab extends StatelessWidget {
 }
 
 class _SupplyWindowWidget extends StatefulWidget {
-  const _SupplyWindowWidget(
-      {required this.windowDoc, required this.rollNo});
+  const _SupplyWindowWidget({required this.windowDoc, required this.rollNo});
   final QueryDocumentSnapshot windowDoc;
   final String rollNo;
 
   @override
-  State<_SupplyWindowWidget> createState() =>
-      _SupplyWindowWidgetState();
+  State<_SupplyWindowWidget> createState() => _SupplyWindowWidgetState();
 }
 
-class _SupplyWindowWidgetState
-    extends State<_SupplyWindowWidget> {
+class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
   List<Map<String, dynamic>> _backlogs = [];
   Map<String, dynamic>? _existing;
   bool _loading = true;
@@ -697,8 +667,7 @@ class _SupplyWindowWidgetState
               'semester': b.semester,
             })
         .toList();
-    final regDocs =
-        (results[1] as QuerySnapshot).docs;
+    final regDocs = (results[1] as QuerySnapshot).docs;
     setState(() {
       _backlogs = activeBacklogs;
       _existing = regDocs.isNotEmpty
@@ -710,8 +679,7 @@ class _SupplyWindowWidgetState
 
   Future<void> _register() async {
     if (_selected.isEmpty) return;
-    final winData =
-        widget.windowDoc.data() as Map<String, dynamic>;
+    final winData = widget.windowDoc.data() as Map<String, dynamic>;
     final fee = (winData['fee'] as num?)?.toInt() ?? 0;
     final subjects = _selected
         .map((i) => {
@@ -731,13 +699,12 @@ class _SupplyWindowWidgetState
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ...subjects.map((s) => Text(
-                '• ${s['subjectCode']} — ${s['subjectName']}')),
+            ...subjects.map(
+                (s) => Text('• ${s['subjectCode']} — ${s['subjectName']}')),
             const SizedBox(height: 8),
             Text('Total fee: ₹$total'),
             const SizedBox(height: 8),
-            const Text(
-                'Payment will be marked as pending until cleared.',
+            const Text('Payment will be marked as pending until cleared.',
                 style: TextStyle(fontSize: 12)),
           ],
         ),
@@ -755,13 +722,10 @@ class _SupplyWindowWidgetState
 
     setState(() => _saving = true);
     try {
-      await FirebaseFirestore.instance
-          .collection('supplyRegistrations')
-          .add({
+      await FirebaseFirestore.instance.collection('supplyRegistrations').add({
         'rollNo': widget.rollNo,
-        'studentName': _backlogs.isNotEmpty
-            ? _backlogs[0]['studentName'] ?? ''
-            : '',
+        'studentName':
+            _backlogs.isNotEmpty ? _backlogs[0]['studentName'] ?? '' : '',
         'supplyWindowId': widget.windowDoc.id,
         'examSession': winData['examSession'],
         'subjects': subjects,
@@ -775,8 +739,8 @@ class _SupplyWindowWidgetState
       await _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
     if (mounted) setState(() => _saving = false);
@@ -784,28 +748,23 @@ class _SupplyWindowWidgetState
 
   @override
   Widget build(BuildContext context) {
-    final winData =
-        widget.windowDoc.data() as Map<String, dynamic>;
+    final winData = widget.windowDoc.data() as Map<String, dynamic>;
     final fee = (winData['fee'] as num?)?.toInt() ?? 0;
-    final end =
-        (winData['endDate'] as Timestamp?)?.toDate();
+    final end = (winData['endDate'] as Timestamp?)?.toDate();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       elevation: 2,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Window header
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: const BoxDecoration(
               color: Color(0xFF1e3a5f),
-              borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(8)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -815,21 +774,16 @@ class _SupplyWindowWidgetState
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 15)),
-                Text(
-                    winData['examSession'] ?? '',
-                    style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12)),
+                Text(winData['examSession'] ?? '',
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 12)),
                 if (end != null)
-                  Text(
-                      'Closes: ${end.day}/${end.month}/${end.year}',
-                      style: const TextStyle(
-                          color: Colors.yellow,
-                          fontSize: 12)),
+                  Text('Closes: ${end.day}/${end.month}/${end.year}',
+                      style:
+                          const TextStyle(color: Colors.yellow, fontSize: 12)),
                 Text('Fee: ₹$fee per subject',
-                    style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12)),
+                    style:
+                        const TextStyle(color: Colors.white70, fontSize: 12)),
               ],
             ),
           ),
@@ -848,53 +802,42 @@ class _SupplyWindowWidgetState
                 decoration: BoxDecoration(
                   color: Colors.blue[50],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                      color: Colors.blue, width: 1),
+                  border: Border.all(color: Colors.blue, width: 1),
                 ),
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Already Registered',
                         style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue)),
+                            fontWeight: FontWeight.bold, color: Colors.blue)),
                     const SizedBox(height: 6),
                     ...List<Map<String, dynamic>>.from(
                             _existing!['subjects'] ?? [])
                         .map((s) => Text(
                             '• ${s['subjectCode']} — ${s['subjectName']}',
-                            style: const TextStyle(
-                                fontSize: 12))),
+                            style: const TextStyle(fontSize: 12))),
                     const SizedBox(height: 6),
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                            'Total: ₹${_existing!['totalFee']}'),
+                        Text('Total: ₹${_existing!['totalFee']}'),
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _existing![
-                                        'paymentStatus'] ==
-                                    'paid'
+                            color: _existing!['paymentStatus'] == 'paid'
                                 ? Colors.green
                                 : Colors.orange,
-                            borderRadius:
-                                BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            (_existing!['paymentStatus'] ==
-                                    'paid'
+                            (_existing!['paymentStatus'] == 'paid'
                                 ? 'PAID'
                                 : 'PAYMENT PENDING'),
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
-                                fontWeight:
-                                    FontWeight.bold),
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -921,14 +864,10 @@ class _SupplyWindowWidgetState
                   final i = e.key;
                   final b = e.value;
                   return CheckboxListTile(
-                    title: Text(
-                        '${b['subjectCode']} — ${b['subjectName']}',
-                        style: const TextStyle(
-                            fontSize: 13)),
-                    subtitle: Text(
-                        'Year ${b['year']}  Sem ${b['semester']}',
-                        style: const TextStyle(
-                            fontSize: 11)),
+                    title: Text('${b['subjectCode']} — ${b['subjectName']}',
+                        style: const TextStyle(fontSize: 13)),
+                    subtitle: Text('Year ${b['year']}  Sem ${b['semester']}',
+                        style: const TextStyle(fontSize: 11)),
                     value: _selected.contains(i),
                     onChanged: (v) => setState(() {
                       if (v == true) {
@@ -941,37 +880,28 @@ class _SupplyWindowWidgetState
                 }),
                 if (_selected.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 2),
-                    child: Text(
-                        'Fee: ₹${fee * _selected.length}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                    child: Text('Fee: ₹${fee * _selected.length}',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                      14, 8, 14, 14),
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: (_selected.isEmpty ||
-                              _saving)
-                          ? null
-                          : _register,
+                      onPressed:
+                          (_selected.isEmpty || _saving) ? null : _register,
                       style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(0xFF1e3a5f)),
+                          backgroundColor: const Color(0xFF1e3a5f)),
                       child: _saving
                           ? const SizedBox(
                               height: 18,
                               width: 18,
-                              child:
-                                  CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2))
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
                           : const Text('Register',
-                              style: TextStyle(
-                                  color: Colors.white)),
+                              style: TextStyle(color: Colors.white)),
                     ),
                   ),
                 ),
@@ -982,4 +912,3 @@ class _SupplyWindowWidgetState
     );
   }
 }
-
