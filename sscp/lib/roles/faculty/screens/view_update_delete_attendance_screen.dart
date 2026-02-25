@@ -73,8 +73,7 @@ class _ViewUpdateDeleteAttendanceScreenState
           _docs = results[0].docs;
           _expandedDocId = null;
           _editedAttendance.clear();
-          _approvedRequests =
-              results[1].docs.map((d) => d.data()).toList();
+          _approvedRequests = results[1].docs.map((d) => d.data()).toList();
         });
       }
     } catch (e) {
@@ -90,8 +89,8 @@ class _ViewUpdateDeleteAttendanceScreenState
   /// Returns true if admin has approved edit access for [subjectCode]
   /// on the currently selected date.
   bool _hasApprovedAccess(String subjectCode) {
-    final sel = DateTime(
-        _selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final sel =
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
     for (final req in _approvedRequests) {
       final reqCode = (req['subjectCode'] as String? ?? '').trim();
       // Subject must match (or request has no subject restriction)
@@ -109,8 +108,8 @@ class _ViewUpdateDeleteAttendanceScreenState
   /// Returns true if ANY approved request covers the selected date.
   bool _hasAnyApprovedForDate() {
     if (_isToday) return false;
-    final sel = DateTime(
-        _selectedDate.year, _selectedDate.month, _selectedDate.day);
+    final sel =
+        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
     for (final req in _approvedRequests) {
       final from = (req['fromDate'] as Timestamp?)?.toDate();
       final to = (req['toDate'] as Timestamp?)?.toDate();

@@ -20,9 +20,9 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
   bool _done = false;
   bool _cancelled = false;
 
-  int _totalJobs = 0;   // assignments × working-days
+  int _totalJobs = 0; // assignments × working-days
   int _completed = 0;
-  int _skipped = 0;     // already-existing docs skipped
+  int _skipped = 0; // already-existing docs skipped
   int _errors = 0;
   final List<String> _log = [];
 
@@ -84,8 +84,8 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1e3a5f)),
-            child: const Text('Seed Now',
-                style: TextStyle(color: Colors.white)),
+            child:
+                const Text('Seed Now', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -132,8 +132,7 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
           'batchNumber': batch,
         });
       }
-      _addLog(
-          'Found ${studentSnap.docs.length} students across '
+      _addLog('Found ${studentSnap.docs.length} students across '
           '${studentsByBatch.length} batch(es).');
 
       // ── 3. Preload existing dateStr+subjectCode combos to skip dupes ──
@@ -149,8 +148,8 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
       final existingKeys = <String>{};
       for (final doc in existingSnap.docs) {
         final d = doc.data();
-        existingKeys.add(
-            '${d['dateStr']}_${(d['subjectCode'] as String? ?? '')}');
+        existingKeys
+            .add('${d['dateStr']}_${(d['subjectCode'] as String? ?? '')}');
       }
       _addLog(
           'Found ${existingKeys.length} existing Feb-2026 record(s) — will skip duplicates.');
@@ -158,8 +157,7 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
       // ── 4. Build job list ─────────────────────────────────────────────
       _totalJobs = assignments.length * _workingDays.length;
       setState(() {});
-      _addLog(
-          'Total jobs: ${assignments.length} assignments × '
+      _addLog('Total jobs: ${assignments.length} assignments × '
           '${_workingDays.length} working days = $_totalJobs records.');
 
       // ── 5. Iterate and write ──────────────────────────────────────────
@@ -174,11 +172,11 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
         final subjectCode = (ad['subjectCode'] as String? ?? '').trim();
         final subjectName = (ad['subjectName'] as String? ?? '').trim();
         final department = (ad['department'] as String? ?? '').trim();
-        final year =
-            ad['year'] is int ? ad['year'] as int : int.tryParse('${ad['year']}') ?? 0;
+        final year = ad['year'] is int
+            ? ad['year'] as int
+            : int.tryParse('${ad['year']}') ?? 0;
         final semester = ad['semester'] as String? ?? '';
-        final batches =
-            List<String>.from(ad['batches'] ?? []);
+        final batches = List<String>.from(ad['batches'] ?? []);
 
         if (subjectCode.isEmpty || batches.isEmpty) {
           for (var _ in _workingDays) {
@@ -239,8 +237,7 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
           final newRef = _firestore.collection('attendance').doc();
           batchWrite.set(newRef, {
             'dateStr': dateStr,
-            'date': Timestamp.fromDate(
-                DateTime(day.year, day.month, day.day)),
+            'date': Timestamp.fromDate(DateTime(day.year, day.month, day.day)),
             'facultyId': facultyId,
             'subjectCode': subjectCode,
             'subjectName': subjectName,
@@ -279,8 +276,7 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
           setState(() => _completed++);
         }
 
-        _addLog(
-            '✓  $subjectCode (${batches.join(', ')}): '
+        _addLog('✓  $subjectCode (${batches.join(', ')}): '
             '${students.length} students seeded.');
       }
 
@@ -340,11 +336,9 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
                     _bullet(
                         'For each assignment × each working day (Mon–Sat) in '
                         'February 2026, creates one attendance document.'),
-                    _bullet(
-                        '~75 % of students are randomly marked Present; '
+                    _bullet('~75 % of students are randomly marked Present; '
                         'rest Absent.'),
-                    _bullet(
-                        'Skips dates/subjects that already have a record.'),
+                    _bullet('Skips dates/subjects that already have a record.'),
                     _bullet(
                         'All seeded docs are tagged  seeded: true  for easy cleanup.'),
                   ],
@@ -365,8 +359,7 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _stat('Processed', '$_completed',
-                      const Color(0xFF1e3a5f)),
+                  _stat('Processed', '$_completed', const Color(0xFF1e3a5f)),
                   _stat('Skipped', '$_skipped', Colors.orange),
                   _stat('Errors', '$_errors', Colors.red),
                   if (_totalJobs > 0)
@@ -417,8 +410,7 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
             // ── log ──────────────────────────────────────────────────────
             if (_log.isNotEmpty) ...[
               const Text('Log',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 13)),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 6),
               Expanded(
                 child: Container(
@@ -459,8 +451,7 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
         padding: const EdgeInsets.only(bottom: 4),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('• ', style: TextStyle(fontSize: 13)),
-          Expanded(
-              child: Text(text, style: const TextStyle(fontSize: 13))),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
         ]),
       );
 
@@ -468,9 +459,7 @@ class _SeedAttendancePageState extends State<SeedAttendancePage> {
         children: [
           Text(value,
               style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: color)),
+                  fontSize: 20, fontWeight: FontWeight.bold, color: color)),
           Text(label,
               style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
         ],

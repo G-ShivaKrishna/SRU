@@ -1132,8 +1132,7 @@ class _StudentTabState extends State<_StudentTab> {
                           label: const Text('Edit by Date',
                               style: TextStyle(color: Color(0xFF1e3a5f))),
                           style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                  color: Color(0xFF1e3a5f)),
+                              side: const BorderSide(color: Color(0xFF1e3a5f)),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 8)),
                         ),
@@ -1332,7 +1331,8 @@ class _StudentTabState extends State<_StudentTab> {
               ? d['year'] as int
               : int.tryParse('${d['year']}') ?? 0,
           'semester': d['semester'] as String? ?? '',
-          'batches': List<String>.from(d['assignedBatches'] ?? [_batchNumber ?? '']),
+          'batches':
+              List<String>.from(d['assignedBatches'] ?? [_batchNumber ?? '']),
         });
       }
       // Sort alphabetically by subject code
@@ -1353,8 +1353,15 @@ class _StudentTabState extends State<_StudentTab> {
     final List<bool> periodsSelected = List.filled(9, false);
 
     const periodLabels = [
-      '09-10', '10-11', '11-12', '12-01', '01-02',
-      '02-03', '03-04', '04-05', '05-06',
+      '09-10',
+      '10-11',
+      '11-12',
+      '12-01',
+      '01-02',
+      '02-03',
+      '03-04',
+      '04-05',
+      '05-06',
     ];
 
     // Manual-entry controllers (used when no assignments found)
@@ -1416,8 +1423,8 @@ class _StudentTabState extends State<_StudentTab> {
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 10),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                       ),
                       items: assignments.map((a) {
                         final code = a['subjectCode'] as String;
@@ -1430,8 +1437,7 @@ class _StudentTabState extends State<_StudentTab> {
                           ),
                         );
                       }).toList(),
-                      onChanged: (v) =>
-                          setDlg(() => selectedAssignment = v),
+                      onChanged: (v) => setDlg(() => selectedAssignment = v),
                     ),
                     // Show auto-filled meta below dropdown
                     if (selectedAssignment != null) ...[
@@ -1448,10 +1454,9 @@ class _StudentTabState extends State<_StudentTab> {
                               selectedAssignment!['facultyId'] as String),
                           _metaChip('Dept',
                               selectedAssignment!['department'] as String),
-                          _metaChip('Year',
-                              'Y${selectedAssignment!['year']}'),
-                          _metaChip('Sem',
-                              selectedAssignment!['semester'] as String),
+                          _metaChip('Year', 'Y${selectedAssignment!['year']}'),
+                          _metaChip(
+                              'Sem', selectedAssignment!['semester'] as String),
                         ]),
                       ),
                     ],
@@ -1511,8 +1516,7 @@ class _StudentTabState extends State<_StudentTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text('L / T / P',
-                              style:
-                                  TextStyle(fontWeight: FontWeight.bold)),
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
                             value: ltpType,
@@ -1524,8 +1528,8 @@ class _StudentTabState extends State<_StudentTab> {
                             ),
                             hint: const Text('Select'),
                             items: const ['L', 'T', 'P']
-                                .map((v) => DropdownMenuItem(
-                                    value: v, child: Text(v)))
+                                .map((v) =>
+                                    DropdownMenuItem(value: v, child: Text(v)))
                                 .toList(),
                             onChanged: (v) => setDlg(() => ltpType = v),
                           ),
@@ -1538,8 +1542,7 @@ class _StudentTabState extends State<_StudentTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text('Unit / Exp No.',
-                              style:
-                                  TextStyle(fontWeight: FontWeight.bold)),
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
                             value: unitExpNo,
@@ -1551,11 +1554,10 @@ class _StudentTabState extends State<_StudentTab> {
                             ),
                             hint: const Text('Select'),
                             items: List.generate(
-                                    6,
-                                    (i) => DropdownMenuItem(
-                                        value: '${i + 1}',
-                                        child: Text('${i + 1}')))
-                                .toList(),
+                                6,
+                                (i) => DropdownMenuItem(
+                                    value: '${i + 1}',
+                                    child: Text('${i + 1}'))).toList(),
                             onChanged: (v) => setDlg(() => unitExpNo = v),
                           ),
                         ],
@@ -1574,8 +1576,8 @@ class _StudentTabState extends State<_StudentTab> {
                       hintText: 'Optional',
                       border: OutlineInputBorder(),
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 10),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1595,8 +1597,7 @@ class _StudentTabState extends State<_StudentTab> {
                         selectedColor:
                             const Color(0xFF1e3a5f).withOpacity(0.18),
                         checkmarkColor: const Color(0xFF1e3a5f),
-                        onSelected: (v) =>
-                            setDlg(() => periodsSelected[i] = v),
+                        onSelected: (v) => setDlg(() => periodsSelected[i] = v),
                       );
                     }),
                   ),
@@ -1652,8 +1653,7 @@ class _StudentTabState extends State<_StudentTab> {
               },
               style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1e3a5f)),
-              child: const Text('Save',
-                  style: TextStyle(color: Colors.white)),
+              child: const Text('Save', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -1729,8 +1729,7 @@ class _StudentTabState extends State<_StudentTab> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              'Attendance added: $subCode  $dateStr  —  '
+          content: Text('Attendance added: $subCode  $dateStr  —  '
               '${isPresent ? 'Present' : 'Absent'}'),
           backgroundColor: Colors.green,
         ));
@@ -1738,8 +1737,8 @@ class _StudentTabState extends State<_StudentTab> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
       }
     }
   }
