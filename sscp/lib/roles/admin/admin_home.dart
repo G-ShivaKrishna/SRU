@@ -16,6 +16,7 @@ import 'pages/syllabus_management_page.dart';
 import 'pages/grievance_management_page.dart';
 import 'pages/attendance_management_page.dart';
 import 'pages/seed_attendance_page.dart';
+import 'pages/results_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
 import 'screens/admin_cie_memo_release_screen.dart';
 import 'screens/admin_lookup_screen.dart';
@@ -98,6 +99,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const AttendanceManagementPage();
     } else if (pageName == 'Seed Attendance') {
       page = const SeedAttendancePage();
+    } else if (pageName == 'Results Management') {
+      page = const ResultsManagementPage();
     } else {
       return;
     }
@@ -726,6 +729,13 @@ class _AdminHomeState extends State<AdminHome> {
           Colors.teal,
           context,
           () => _navigateToPage(context, 'Seed Attendance'),
+        ),
+        _buildActionCard(
+          'Results &\nBacklogs',
+          Icons.school,
+          Colors.indigo,
+          context,
+          () => _navigateToPage(context, 'Results Management'),
         ),
       ],
     );

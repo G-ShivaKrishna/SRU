@@ -391,6 +391,12 @@ class _StudentHomeState extends State<StudentHome> {
       case 'Semester Memo':
         page = const StudentCieMemoScreen();
         break;
+      case 'Backlogs':
+        page = const ResultsScreen(initialTab: 1);
+        break;
+      case 'Supply Exam':
+        page = const ResultsScreen(initialTab: 2);
+        break;
       case 'Feedback':
         page = const FeedbackScreen();
         break;
@@ -627,6 +633,22 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                 ),
+                const PopupMenuItem<String>(
+                  value: 'Backlogs',
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Text('Backlogs',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'Supply Exam',
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Text('Supply Exam',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
                 const PopupMenuDivider(),
                 ...overflowItems.map((item) => PopupMenuItem<String>(
                       value: item,
@@ -725,6 +747,16 @@ class _StudentHomeState extends State<StudentHome> {
                   const PopupMenuItem(
                     value: 'Semester Memo',
                     child: Text('Semester Memo',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'Backlogs',
+                    child: Text('Backlogs',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'Supply Exam',
+                    child: Text('Supply Exam',
                         style: TextStyle(color: Colors.white)),
                   ),
                 ],
