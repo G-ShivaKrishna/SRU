@@ -101,6 +101,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const SeedAttendancePage();
     } else if (pageName == 'Results Management') {
       page = const ResultsManagementPage();
+    } else if (pageName == 'Supply Exam') {
+      page = const ResultsManagementPage(initialTab: 1);
     } else {
       return;
     }
@@ -221,6 +223,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Syllabus',
       'Grievances',
       'Attendance Management',
+      'Supply Exam',
       'View Only',
       'Lookup',
     ];
@@ -736,6 +739,13 @@ class _AdminHomeState extends State<AdminHome> {
           Colors.indigo,
           context,
           () => _navigateToPage(context, 'Results Management'),
+        ),
+        _buildActionCard(
+          'Supply Exam\nEnable',
+          Icons.event_available,
+          Colors.green.shade700,
+          context,
+          () => _navigateToPage(context, 'Supply Exam'),
         ),
       ],
     );

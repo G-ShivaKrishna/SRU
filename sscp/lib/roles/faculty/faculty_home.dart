@@ -24,6 +24,7 @@ import 'screens/student_handbook_screen.dart';
 import 'screens/faculty_handbook_screen.dart';
 import 'screens/update_basic_data_screen.dart';
 import 'screens/course_preference_screen.dart';
+import 'screens/supply_marks_screen.dart';
 import 'screens/preference_report_screen.dart';
 import 'screens/course_view_screen.dart';
 import 'screens/cie_format_screen.dart';
@@ -806,6 +807,7 @@ class _FacultyHomeState extends State<FacultyHome> {
                   'Total Marks',
                   'Makeup Mid Marks',
                   'Consolidated Marks Report(New)',
+                  'Supply Exam Marks',
                 ].map((String choice) {
                   return PopupMenuItem<String>(
                     value: choice,
@@ -900,6 +902,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       'Total Marks': 'cie_marks',
       'Makeup Mid Marks': 'makeup_marks',
       'Consolidated Marks Report(New)': 'consolidated_marks',
+      'Supply Exam Marks': 'supply_marks',
 
       // Academics submenu
       'Regulations': 'regulations',
@@ -978,6 +981,8 @@ class _FacultyHomeState extends State<FacultyHome> {
       case 'marks_supply':
       case 'makeup_marks':
         page = const FacultyResultsScreen();
+      case 'supply_marks':
+        page = const SupplyMarksScreen();
       case 'consolidated_marks':
         page = const ConsolidatedMarksScreen();
       case 'cie_marks':
