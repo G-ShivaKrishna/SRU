@@ -28,6 +28,9 @@ class _ViewUpdateDeleteAttendanceScreenState
   /// Edited student attendance map: docId -> rollNo -> present
   final Map<String, Map<String, bool>> _editedAttendance = {};
 
+  /// Approved edit requests from admin for this faculty
+  List<Map<String, dynamic>> _approvedRequests = [];
+
   String get _facultyId =>
       FirebaseAuth.instance.currentUser?.email?.split('@')[0].toUpperCase() ??
       '';
@@ -53,16 +56,27 @@ class _ViewUpdateDeleteAttendanceScreenState
   Future<void> _loadDocs() async {
     setState(() => _isLoading = true);
     try {
-      final snap = await _firestore
-          .collection('attendance')
-          .where('facultyId', isEqualTo: _facultyId)
-          .where('dateStr', isEqualTo: _dateStr(_selectedDate))
-          .get();
-      setState(() {
-        _docs = snap.docs;
-        _expandedDocId = null;
-        _editedAttendance.clear();
-      });
+      final results = await Future.wait([
+        _firestore
+            .collection('attendance')
+            .where('facultyId', isEqualTo: _facultyId)
+            .where('dateStr', isEqualTo: _dateStr(_selectedDate))
+            .get(),
+        _firestore
+            .collection('attendanceEditRequests')
+            .where('facultyId', isEqualTo: _facultyId)
+            .where('status', isEqualTo: 'approved')
+            .get(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _docs = results[0].docs;
+          _expandedDocId = null;
+          _editedAttendance.clear();
+          _approvedRequests =
+              results[1].docs.map((d) => d.data()).toList();
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -71,6 +85,41 @@ class _ViewUpdateDeleteAttendanceScreenState
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  /// Returns true if admin has approved edit access for [subjectCode]
+  /// on the currently selected date.
+  bool _hasApprovedAccess(String subjectCode) {
+    final sel = DateTime(
+        _selectedDate.year, _selectedDate.month, _selectedDate.day);
+    for (final req in _approvedRequests) {
+      final reqCode = (req['subjectCode'] as String? ?? '').trim();
+      // Subject must match (or request has no subject restriction)
+      if (reqCode.isNotEmpty && reqCode != subjectCode) continue;
+      final from = (req['fromDate'] as Timestamp?)?.toDate();
+      final to = (req['toDate'] as Timestamp?)?.toDate();
+      if (from == null || to == null) continue;
+      final fromDay = DateTime(from.year, from.month, from.day);
+      final toDay = DateTime(to.year, to.month, to.day);
+      if (!sel.isBefore(fromDay) && !sel.isAfter(toDay)) return true;
+    }
+    return false;
+  }
+
+  /// Returns true if ANY approved request covers the selected date.
+  bool _hasAnyApprovedForDate() {
+    if (_isToday) return false;
+    final sel = DateTime(
+        _selectedDate.year, _selectedDate.month, _selectedDate.day);
+    for (final req in _approvedRequests) {
+      final from = (req['fromDate'] as Timestamp?)?.toDate();
+      final to = (req['toDate'] as Timestamp?)?.toDate();
+      if (from == null || to == null) continue;
+      final fromDay = DateTime(from.year, from.month, from.day);
+      final toDay = DateTime(to.year, to.month, to.day);
+      if (!sel.isBefore(fromDay) && !sel.isAfter(toDay)) return true;
+    }
+    return false;
   }
 
   // ── helpers ──────────────────────────────────────────────────────────────
@@ -119,7 +168,10 @@ class _ViewUpdateDeleteAttendanceScreenState
                   const SizedBox(height: 12),
                   if (_isToday && !_canEdit) _buildAfter6Banner(),
                   if (_isToday && _canEdit) _buildEditWindowBanner(),
-                  if (!_isToday) _buildPastDateBanner(),
+                  if (!_isToday && _hasAnyApprovedForDate())
+                    _buildApprovedAccessBanner(),
+                  if (!_isToday && !_hasAnyApprovedForDate())
+                    _buildPastDateBanner(),
                   const SizedBox(height: 12),
                   if (_isLoading)
                     const Center(child: CircularProgressIndicator())
@@ -220,6 +272,17 @@ class _ViewUpdateDeleteAttendanceScreenState
       iconColor: Colors.blue,
       text:
           'Past date — view only. Use ✏ button in the app bar to request edit access from admin.',
+    );
+  }
+
+  Widget _buildApprovedAccessBanner() {
+    return _banner(
+      color: Colors.green.shade50,
+      borderColor: Colors.green,
+      icon: Icons.check_circle_outline,
+      iconColor: Colors.green,
+      text:
+          'Admin has approved edit access for this date. You can update attendance below.',
     );
   }
 
@@ -350,8 +413,8 @@ class _ViewUpdateDeleteAttendanceScreenState
             ),
           ),
 
-          // ── action buttons (today-only) ─────────────────────────────
-          if (_isToday && _canEdit)
+          // ── action buttons ────────────────────────────────────────
+          if ((_isToday && _canEdit) || _hasApprovedAccess(subjectCode))
             Container(
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: Colors.grey.shade200)),
@@ -367,15 +430,19 @@ class _ViewUpdateDeleteAttendanceScreenState
                           TextButton.styleFrom(foregroundColor: Colors.orange),
                     ),
                   ),
-                  Container(width: 1, height: 36, color: Colors.grey.shade200),
-                  Expanded(
-                    child: TextButton.icon(
-                      onPressed: () => _showDeleteDialog(doc),
-                      icon: const Icon(Icons.delete_outline, size: 16),
-                      label: const Text('Delete'),
-                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  if (_isToday && _canEdit) ...[
+                    Container(
+                        width: 1, height: 36, color: Colors.grey.shade200),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () => _showDeleteDialog(doc),
+                        icon: const Icon(Icons.delete_outline, size: 16),
+                        label: const Text('Delete'),
+                        style:
+                            TextButton.styleFrom(foregroundColor: Colors.red),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

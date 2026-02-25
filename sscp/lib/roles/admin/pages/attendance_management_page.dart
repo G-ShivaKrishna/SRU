@@ -172,9 +172,9 @@ class _RecordsTabState extends State<_RecordsTab> {
 
       setState(() => _docs = docs);
     } catch (e) {
-      setState(() => _error = '$e');
+      if (mounted) setState(() => _error = '$e');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -1124,17 +1124,31 @@ class _StudentTabState extends State<_StudentTab> {
                       const Text('Attendance History',
                           style: TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 15)),
-                      OutlinedButton.icon(
-                        onPressed: _editByDate,
-                        icon: const Icon(Icons.edit_calendar,
-                            size: 16, color: Color(0xFF1e3a5f)),
-                        label: const Text('Edit by Date',
-                            style: TextStyle(color: Color(0xFF1e3a5f))),
-                        style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF1e3a5f)),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8)),
-                      ),
+                      Row(children: [
+                        OutlinedButton.icon(
+                          onPressed: _editByDate,
+                          icon: const Icon(Icons.edit_calendar,
+                              size: 16, color: Color(0xFF1e3a5f)),
+                          label: const Text('Edit by Date',
+                              style: TextStyle(color: Color(0xFF1e3a5f))),
+                          style: OutlinedButton.styleFrom(
+                              side: const BorderSide(
+                                  color: Color(0xFF1e3a5f)),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8)),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: _addAttendance,
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Add Attendance'),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1e3a5f),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8)),
+                        ),
+                      ]),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -1292,6 +1306,457 @@ class _StudentTabState extends State<_StudentTab> {
 
   /// Let admin pick a date then edit this student's attendance for every
   /// subject that was recorded on that day.
+  /// Admin manually adds an attendance record for this student on any date
+  /// and for any subject — even if the faculty never submitted one.
+  Future<void> _addAttendance({DateTime? initialDate}) async {
+    final roll = _rollCtrl.text.trim().toUpperCase();
+    if (roll.isEmpty || _studentName == null) return;
+
+    // ── 1. Fetch this student's assigned subjects from facultyAssignments ──
+    List<Map<String, dynamic>> assignments = [];
+    try {
+      final snap = await widget.firestore
+          .collection('facultyAssignments')
+          .where('assignedBatches', arrayContains: _batchNumber ?? '')
+          .get();
+      for (final doc in snap.docs) {
+        final d = doc.data();
+        final code = (d['subjectCode'] as String? ?? '').trim();
+        if (code.isEmpty) continue;
+        assignments.add({
+          'subjectCode': code,
+          'subjectName': d['subjectName'] as String? ?? '',
+          'facultyId': d['facultyId'] as String? ?? 'ADMIN',
+          'department': d['department'] as String? ?? '',
+          'year': d['year'] is int
+              ? d['year'] as int
+              : int.tryParse('${d['year']}') ?? 0,
+          'semester': d['semester'] as String? ?? '',
+          'batches': List<String>.from(d['assignedBatches'] ?? [_batchNumber ?? '']),
+        });
+      }
+      // Sort alphabetically by subject code
+      assignments.sort((a, b) =>
+          (a['subjectCode'] as String).compareTo(b['subjectCode'] as String));
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    // ── 2. Dialog state ─────────────────────────────────────────────────────
+    DateTime selectedDate = initialDate ?? DateTime.now();
+    Map<String, dynamic>? selectedAssignment =
+        assignments.isNotEmpty ? assignments.first : null;
+    final topicCtrl = TextEditingController();
+    String? ltpType;
+    String? unitExpNo;
+    bool isPresent = true;
+    final List<bool> periodsSelected = List.filled(9, false);
+
+    const periodLabels = [
+      '09-10', '10-11', '11-12', '12-01', '01-02',
+      '02-03', '03-04', '04-05', '05-06',
+    ];
+
+    // Manual-entry controllers (used when no assignments found)
+    final manualCodeCtrl = TextEditingController();
+    final manualNameCtrl = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) => AlertDialog(
+          title: Text('Add Attendance for $_studentName'),
+          content: SizedBox(
+            width: 540,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Date ─────────────────────────────────────────────
+                  const Text('Date',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  InkWell(
+                    onTap: () async {
+                      final d = await showDatePicker(
+                        context: ctx,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2099),
+                      );
+                      if (d != null) setDlg(() => selectedDate = d);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.calendar_today,
+                            size: 16, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Text(DateFormat('dd-MM-yyyy').format(selectedDate)),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // ── Subject dropdown (pre-loaded from facultyAssignments) ──
+                  const Text('Subject *',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  if (assignments.isNotEmpty) ...[
+                    DropdownButtonFormField<Map<String, dynamic>>(
+                      value: selectedAssignment,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 10),
+                      ),
+                      items: assignments.map((a) {
+                        final code = a['subjectCode'] as String;
+                        final name = a['subjectName'] as String;
+                        return DropdownMenuItem(
+                          value: a,
+                          child: Text(
+                            name.isNotEmpty ? '$code  —  $name' : code,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (v) =>
+                          setDlg(() => selectedAssignment = v),
+                    ),
+                    // Show auto-filled meta below dropdown
+                    if (selectedAssignment != null) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1e3a5f).withOpacity(0.06),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Wrap(spacing: 16, runSpacing: 4, children: [
+                          _metaChip('Faculty',
+                              selectedAssignment!['facultyId'] as String),
+                          _metaChip('Dept',
+                              selectedAssignment!['department'] as String),
+                          _metaChip('Year',
+                              'Y${selectedAssignment!['year']}'),
+                          _metaChip('Sem',
+                              selectedAssignment!['semester'] as String),
+                        ]),
+                      ),
+                    ],
+                  ] else ...[
+                    // Fallback: manual entry if no assignments found
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border:
+                            Border.all(color: Colors.orange.withOpacity(0.4)),
+                      ),
+                      child: const Text(
+                        '⚠  No faculty assignments found for this batch. '
+                        'Enter subject details manually.',
+                        style:
+                            TextStyle(fontSize: 12, color: Colors.deepOrange),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Expanded(
+                        child: TextField(
+                          controller: manualCodeCtrl,
+                          textCapitalization: TextCapitalization.characters,
+                          decoration: const InputDecoration(
+                            labelText: 'Subject Code *',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: manualNameCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Subject Name',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ]),
+                  ],
+                  const SizedBox(height: 14),
+
+                  // ── L/T/P + Unit/Exp ──────────────────────────────────
+                  Row(children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('L / T / P',
+                              style:
+                                  TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 6),
+                          DropdownButtonFormField<String>(
+                            value: ltpType,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 10),
+                            ),
+                            hint: const Text('Select'),
+                            items: const ['L', 'T', 'P']
+                                .map((v) => DropdownMenuItem(
+                                    value: v, child: Text(v)))
+                                .toList(),
+                            onChanged: (v) => setDlg(() => ltpType = v),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Unit / Exp No.',
+                              style:
+                                  TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 6),
+                          DropdownButtonFormField<String>(
+                            value: unitExpNo,
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 10),
+                            ),
+                            hint: const Text('Select'),
+                            items: List.generate(
+                                    6,
+                                    (i) => DropdownMenuItem(
+                                        value: '${i + 1}',
+                                        child: Text('${i + 1}')))
+                                .toList(),
+                            onChanged: (v) => setDlg(() => unitExpNo = v),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+
+                  // ── Topic ─────────────────────────────────────────────
+                  const Text('Topic Covered',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: topicCtrl,
+                    decoration: const InputDecoration(
+                      hintText: 'Optional',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 10),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Periods ───────────────────────────────────────────
+                  const Text('Periods',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: List.generate(9, (i) {
+                      return FilterChip(
+                        label: Text(periodLabels[i],
+                            style: const TextStyle(fontSize: 11)),
+                        selected: periodsSelected[i],
+                        selectedColor:
+                            const Color(0xFF1e3a5f).withOpacity(0.18),
+                        checkmarkColor: const Color(0xFF1e3a5f),
+                        onSelected: (v) =>
+                            setDlg(() => periodsSelected[i] = v),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Status ────────────────────────────────────────────
+                  const Text('Status',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Row(children: [
+                    ChoiceChip(
+                      label: const Text('Present'),
+                      selected: isPresent,
+                      selectedColor: Colors.green.withOpacity(0.2),
+                      onSelected: (_) => setDlg(() => isPresent = true),
+                    ),
+                    const SizedBox(width: 10),
+                    ChoiceChip(
+                      label: const Text('Absent'),
+                      selected: !isPresent,
+                      selectedColor: Colors.red.withOpacity(0.2),
+                      onSelected: (_) => setDlg(() => isPresent = false),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                final needsManual = assignments.isEmpty;
+                if (needsManual && manualCodeCtrl.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(
+                        content: Text('Subject Code is required.'),
+                        backgroundColor: Colors.orange),
+                  );
+                  return;
+                }
+                if (!needsManual && selectedAssignment == null) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(
+                        content: Text('Please select a subject.'),
+                        backgroundColor: Colors.orange),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx, true);
+              },
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1e3a5f)),
+              child: const Text('Save',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // Resolve subject details from selection or manual entry
+      final String subCode;
+      final String subName;
+      final String facultyId;
+      final String department;
+      final int year;
+      final String semester;
+      final List<String> batches;
+
+      if (assignments.isNotEmpty && selectedAssignment != null) {
+        subCode = selectedAssignment!['subjectCode'] as String;
+        subName = selectedAssignment!['subjectName'] as String;
+        facultyId = selectedAssignment!['facultyId'] as String;
+        department = selectedAssignment!['department'] as String;
+        year = selectedAssignment!['year'] as int;
+        semester = selectedAssignment!['semester'] as String;
+        batches = selectedAssignment!['batches'] as List<String>;
+      } else {
+        subCode = manualCodeCtrl.text.trim().toUpperCase();
+        subName = manualNameCtrl.text.trim();
+        facultyId = 'ADMIN';
+        department = '';
+        year = 0;
+        semester = '';
+        batches = [_batchNumber ?? ''];
+      }
+
+      final dateStr = DateFormat('dd-MM-yyyy').format(selectedDate);
+      final periods = <int>[];
+      for (var i = 0; i < periodsSelected.length; i++) {
+        if (periodsSelected[i]) periods.add(i + 1);
+      }
+
+      await widget.firestore.collection('attendance').add({
+        'dateStr': dateStr,
+        'date': Timestamp.fromDate(
+            DateTime(selectedDate.year, selectedDate.month, selectedDate.day)),
+        'facultyId': facultyId,
+        'subjectCode': subCode,
+        'subjectName': subName,
+        'department': department,
+        'year': year,
+        'semester': semester,
+        'batches': batches,
+        'ltpType': ltpType ?? '',
+        'topicCovered': topicCtrl.text.trim(),
+        'unitExpNo': unitExpNo ?? '',
+        'periods': periods,
+        'students': [
+          {
+            'rollNo': roll,
+            'name': _studentName ?? '',
+            'hallTicketNumber': _hallTicket ?? '',
+            'batchNumber': _batchNumber ?? '',
+            'present': isPresent,
+          }
+        ],
+        'totalStudents': 1,
+        'presentCount': isPresent ? 1 : 0,
+        'absentCount': isPresent ? 0 : 1,
+        'adminAdded': true,
+        'submittedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'Attendance added: $subCode  $dateStr  —  '
+              '${isPresent ? 'Present' : 'Absent'}'),
+          backgroundColor: Colors.green,
+        ));
+        _search();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  // Small label+value chip used inside the assignment meta row
+  Widget _metaChip(String label, String value) => RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 11, color: Colors.black87),
+          children: [
+            TextSpan(
+                text: '$label: ',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            TextSpan(text: value.isEmpty ? '—' : value),
+          ],
+        ),
+      );
+
   Future<void> _editByDate() async {
     final roll = _rollCtrl.text.trim().toUpperCase();
     if (roll.isEmpty || _studentName == null) return;
@@ -1313,12 +1778,31 @@ class _StudentTabState extends State<_StudentTab> {
         .toList();
 
     if (dayRecords.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('No attendance records found for $roll on $pickedStr.'),
-          backgroundColor: Colors.orange,
-        ));
-      }
+      // No faculty record for this date — ask if admin wants to add one
+      if (!mounted) return;
+      final wantAdd = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('No Records on $pickedStr'),
+          content: Text(
+            'No attendance was submitted by faculty for $roll on $pickedStr.\n\n'
+            'Would you like to add attendance for this date manually?',
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1e3a5f)),
+              child: const Text('Add Attendance',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+      if (wantAdd == true) _addAttendance(initialDate: picked);
       return;
     }
 
