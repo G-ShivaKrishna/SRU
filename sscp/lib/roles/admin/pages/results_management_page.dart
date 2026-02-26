@@ -175,16 +175,14 @@ Future<List<_AdminBacklogItem>> _deriveAdminBacklogs(
               '${later['year']}_${_normSem(later['semester']?.toString() ?? '')}';
           final lRelease = releaseMap[lKey];
           final lMinPass = (lRelease?['minPassMarks'] as int?) ?? 40;
-          final lRaw =
-              later['componentMarks'] as Map<String, dynamic>? ?? {};
+          final lRaw = later['componentMarks'] as Map<String, dynamic>? ?? {};
           int lTotal = 0;
           for (final v in lRaw.values) {
             lTotal += (v is int) ? v : int.tryParse(v.toString()) ?? 0;
           }
           if (lTotal >= lMinPass) {
             clearedLater = true;
-            clearedSession =
-                (lRelease?['examSession'] as String?) ?? '';
+            clearedSession = (lRelease?['examSession'] as String?) ?? '';
             break;
           }
         }
@@ -193,8 +191,8 @@ Future<List<_AdminBacklogItem>> _deriveAdminBacklogs(
           clearedLater = true;
           clearedSession = supplyPassMap[code]!;
         }
-        final alreadyAdded = items.any((x) =>
-            x.subjectCode == code && x.failedExamSession == examSession);
+        final alreadyAdded = items.any(
+            (x) => x.subjectCode == code && x.failedExamSession == examSession);
         if (!alreadyAdded) {
           items.add(_AdminBacklogItem(
             rollNo: rollNo,
@@ -338,8 +336,7 @@ class _BacklogsTabState extends State<_BacklogsTab> {
                 _filter == 'active'
                     ? '$_searchedRoll has no active backlogs.'
                     : '$_searchedRoll has no $_filter backlogs.',
-                style:
-                    TextStyle(fontSize: 15, color: Colors.grey.shade600),
+                style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
               ),
             ]),
           );
@@ -356,8 +353,7 @@ class _BacklogsTabState extends State<_BacklogsTab> {
               item: items[i],
               firestore: widget.firestore,
               onCleared: () => setState(() {
-                _future =
-                    _deriveAdminBacklogs(widget.firestore, _searchedRoll);
+                _future = _deriveAdminBacklogs(widget.firestore, _searchedRoll);
               }),
             ),
           ),
@@ -397,8 +393,7 @@ class _AdminBacklogCard extends StatelessWidget {
               color: isActive ? Colors.red : Colors.green, size: 20),
         ),
         title: Text('${item.subjectCode} — ${item.subjectName}',
-            style:
-                const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         subtitle: Text(
           'Roll: ${item.rollNo}  •  Year ${item.year}  •  Sem ${item.semester}\n'
           'Failed: ${item.failedExamSession.isNotEmpty ? item.failedExamSession : "—"}'
@@ -433,10 +428,9 @@ class _AdminBacklogCard extends StatelessWidget {
               child: const Text('Cancel')),
           ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('Clear',
-                  style: TextStyle(color: Colors.white))),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child:
+                  const Text('Clear', style: TextStyle(color: Colors.white))),
         ],
       ),
     );
@@ -459,7 +453,6 @@ class _AdminBacklogCard extends StatelessWidget {
     }
   }
 }
-
 
 class _SupplyWindowsTab extends StatefulWidget {
   final FirebaseFirestore firestore;
@@ -1379,24 +1372,20 @@ class _SupplyMarksTabState extends State<_SupplyMarksTab> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color:
-                        isReleased ? Colors.green[50] : Colors.orange[50],
+                    color: isReleased ? Colors.green[50] : Colors.orange[50],
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color:
-                            isReleased ? Colors.green : Colors.orange),
+                        color: isReleased ? Colors.green : Colors.orange),
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                          isReleased
-                              ? Icons.lock_open
-                              : Icons.lock_outline,
-                          color:
-                              isReleased ? Colors.green[700] : Colors.orange[700],
+                      Icon(isReleased ? Icons.lock_open : Icons.lock_outline,
+                          color: isReleased
+                              ? Colors.green[700]
+                              : Colors.orange[700],
                           size: 20),
                       const SizedBox(width: 10),
                       Expanded(
@@ -1590,8 +1579,7 @@ class _SupplyMarksListState extends State<_SupplyMarksList> {
           itemBuilder: (_, i) {
             final roll = rolls[i];
             final subjects = byRoll[roll]!;
-            final studentName =
-                subjects.first['studentName'] as String? ?? '';
+            final studentName = subjects.first['studentName'] as String? ?? '';
             final released =
                 subjects.first['resultsReleased'] as bool? ?? false;
             return Card(
@@ -1605,8 +1593,8 @@ class _SupplyMarksListState extends State<_SupplyMarksList> {
                 children: [
                   // Student header
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     color: const Color(0xFF1e3a5f),
                     child: Row(
                       children: [
@@ -1623,9 +1611,7 @@ class _SupplyMarksListState extends State<_SupplyMarksList> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: released
-                                ? Colors.green
-                                : Colors.orange[700],
+                            color: released ? Colors.green : Colors.orange[700],
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -1652,8 +1638,8 @@ class _SupplyMarksListState extends State<_SupplyMarksList> {
                         5: FlexColumnWidth(0.9),
                         6: FlexColumnWidth(1.5),
                       },
-                      border: TableBorder.all(
-                          color: Colors.grey[300]!, width: 0.5),
+                      border:
+                          TableBorder.all(color: Colors.grey[300]!, width: 0.5),
                       children: [
                         TableRow(
                           decoration: BoxDecoration(color: Colors.grey[200]),

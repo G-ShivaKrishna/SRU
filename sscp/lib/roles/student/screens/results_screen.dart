@@ -1117,9 +1117,8 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
 
         // Sort each group by subject code
         for (final list in byWindow.values) {
-          list.sort((a, b) =>
-              (a['subjectCode'] as String? ?? '')
-                  .compareTo(b['subjectCode'] as String? ?? ''));
+          list.sort((a, b) => (a['subjectCode'] as String? ?? '')
+              .compareTo(b['subjectCode'] as String? ?? ''));
         }
 
         final windowKeys = byWindow.keys.toList();
@@ -1133,8 +1132,7 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
                 windowSubjects.first['examSession'] as String? ?? '—';
             final studentName =
                 windowSubjects.first['studentName'] as String? ?? '';
-            final allPass =
-                windowSubjects.every((s) => s['result'] == 'PASS');
+            final allPass = windowSubjects.every((s) => s['result'] == 'PASS');
 
             return Card(
               elevation: 2,
@@ -1194,8 +1192,7 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
                           horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
                         border: Border(
-                            bottom:
-                                BorderSide(color: Colors.grey[200]!)),
+                            bottom: BorderSide(color: Colors.grey[200]!)),
                       ),
                       child: Row(
                         children: [
@@ -1226,9 +1223,8 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: passed
-                                  ? Colors.green[100]
-                                  : Colors.red[100],
+                              color:
+                                  passed ? Colors.green[100] : Colors.red[100],
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -1253,8 +1249,7 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
                       label: const Text('Download Marks Memo'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFF1e3a5f),
-                        side:
-                            const BorderSide(color: Color(0xFF1e3a5f)),
+                        side: const BorderSide(color: Color(0xFF1e3a5f)),
                       ),
                       onPressed: () => _openMemo(
                         widget.rollNo,
@@ -1281,11 +1276,9 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
           style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color:
-                  highlight ? const Color(0xFF1e3a5f) : Colors.black87),
+              color: highlight ? const Color(0xFF1e3a5f) : Colors.black87),
         ),
-        Text(label,
-            style: const TextStyle(fontSize: 9, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
       ],
     );
   }
