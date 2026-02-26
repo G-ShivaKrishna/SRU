@@ -23,7 +23,7 @@ class _ResultsManagementPageState extends State<ResultsManagementPage>
   void initState() {
     super.initState();
     _tab =
-        TabController(length: 3, vsync: this, initialIndex: widget.initialTab);
+        TabController(length: 4, vsync: this, initialIndex: widget.initialTab);
   }
 
   @override
@@ -49,6 +49,7 @@ class _ResultsManagementPageState extends State<ResultsManagementPage>
             Tab(icon: Icon(Icons.warning_amber), text: 'Backlogs'),
             Tab(icon: Icon(Icons.event_note), text: 'Supply Windows'),
             Tab(icon: Icon(Icons.how_to_reg), text: 'Registrations'),
+            Tab(icon: Icon(Icons.grade), text: 'Supply Marks'),
           ],
         ),
       ),
@@ -58,10 +59,163 @@ class _ResultsManagementPageState extends State<ResultsManagementPage>
           _BacklogsTab(firestore: _firestore),
           _SupplyWindowsTab(firestore: _firestore),
           _RegistrationsTab(firestore: _firestore),
+          _SupplyMarksTab(firestore: _firestore),
         ],
       ),
     );
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Backlog data model + derivation helper (admin-side)
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _AdminBacklogItem {
+  final String rollNo;
+  final String subjectCode;
+  final String subjectName;
+  final String year;
+  final String semester;
+  final String failedExamSession;
+  final String status; // 'active' | 'cleared'
+  final String? clearedExamSession;
+
+  const _AdminBacklogItem({
+    required this.rollNo,
+    required this.subjectCode,
+    required this.subjectName,
+    required this.year,
+    required this.semester,
+    required this.failedExamSession,
+    required this.status,
+    this.clearedExamSession,
+  });
+}
+
+String _normSem(String s) {
+  const m = {'i': '1', 'ii': '2', 'iii': '3', 'iv': '4'};
+  return m[s.toLowerCase().trim()] ?? s.trim();
+}
+
+Future<List<_AdminBacklogItem>> _deriveAdminBacklogs(
+    FirebaseFirestore db, String rollNo) async {
+  final relSnap = await db.collection('cieMemoReleases').get();
+  final releaseMap = <String, Map<String, dynamic>>{};
+  for (final d in relSnap.docs) {
+    final r = d.data();
+    final key = '${r['year']}_${_normSem(r['semester']?.toString() ?? '')}';
+    releaseMap[key] = {
+      'examSession': (r['examSession'] ?? '').toString(),
+      'minPassMarks': (r['minPassMarks'] is int)
+          ? r['minPassMarks'] as int
+          : int.tryParse(r['minPassMarks']?.toString() ?? '') ?? 40,
+    };
+  }
+
+  // Also check supply exam PASS results to determine cleared status
+  final supplySnap = await db
+      .collection('supplyMarks')
+      .where('rollNo', isEqualTo: rollNo)
+      .get();
+  final supplyPassMap = <String, String>{};
+  for (final d in supplySnap.docs) {
+    final data = d.data();
+    if ((data['result'] as String? ?? '') == 'PASS') {
+      final code = data['subjectCode']?.toString() ?? '';
+      if (code.isNotEmpty) {
+        supplyPassMap[code] = data['examSession']?.toString() ?? 'Supply Exam';
+      }
+    }
+  }
+
+  final marksSnap = await db
+      .collection('studentMarks')
+      .where('studentId', isEqualTo: rollNo)
+      .get();
+
+  final bySubject = <String, List<Map<String, dynamic>>>{};
+  for (final doc in marksSnap.docs) {
+    final d = Map<String, dynamic>.from(doc.data());
+    final code = d['subjectCode']?.toString() ?? '';
+    if (code.isEmpty) continue;
+    bySubject.putIfAbsent(code, () => []).add(d);
+  }
+
+  final items = <_AdminBacklogItem>[];
+  bySubject.forEach((code, entries) {
+    entries.sort((a, b) {
+      final ya = int.tryParse(a['year']?.toString() ?? '') ?? 0;
+      final yb = int.tryParse(b['year']?.toString() ?? '') ?? 0;
+      if (ya != yb) return ya.compareTo(yb);
+      return _normSem(a['semester']?.toString() ?? '')
+          .compareTo(_normSem(b['semester']?.toString() ?? ''));
+    });
+
+    for (int i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      final yearStr = e['year']?.toString() ?? '';
+      final semStr = _normSem(e['semester']?.toString() ?? '');
+      final key = '${yearStr}_$semStr';
+      final release = releaseMap[key];
+      final minPass = (release?['minPassMarks'] as int?) ?? 40;
+      final examSession = (release?['examSession'] as String?) ?? '';
+
+      final raw = e['componentMarks'] as Map<String, dynamic>? ?? {};
+      int grandTotal = 0;
+      for (final v in raw.values) {
+        grandTotal += (v is int) ? v : int.tryParse(v.toString()) ?? 0;
+      }
+
+      if (grandTotal < minPass) {
+        bool clearedLater = false;
+        String clearedSession = '';
+        for (int j = i + 1; j < entries.length; j++) {
+          final later = entries[j];
+          final lKey =
+              '${later['year']}_${_normSem(later['semester']?.toString() ?? '')}';
+          final lRelease = releaseMap[lKey];
+          final lMinPass = (lRelease?['minPassMarks'] as int?) ?? 40;
+          final lRaw =
+              later['componentMarks'] as Map<String, dynamic>? ?? {};
+          int lTotal = 0;
+          for (final v in lRaw.values) {
+            lTotal += (v is int) ? v : int.tryParse(v.toString()) ?? 0;
+          }
+          if (lTotal >= lMinPass) {
+            clearedLater = true;
+            clearedSession =
+                (lRelease?['examSession'] as String?) ?? '';
+            break;
+          }
+        }
+        // Also check if cleared via supply exam
+        if (!clearedLater && supplyPassMap.containsKey(code)) {
+          clearedLater = true;
+          clearedSession = supplyPassMap[code]!;
+        }
+        final alreadyAdded = items.any((x) =>
+            x.subjectCode == code && x.failedExamSession == examSession);
+        if (!alreadyAdded) {
+          items.add(_AdminBacklogItem(
+            rollNo: rollNo,
+            subjectCode: code,
+            subjectName: e['subjectName']?.toString() ?? code,
+            year: yearStr,
+            semester: e['semester']?.toString() ?? semStr,
+            failedExamSession: examSession,
+            status: clearedLater ? 'cleared' : 'active',
+            clearedExamSession: clearedLater ? clearedSession : null,
+          ));
+        }
+      }
+    }
+  });
+
+  items.sort((a, b) {
+    if (a.status != b.status) return a.status == 'active' ? -1 : 1;
+    return (int.tryParse(a.year) ?? 0).compareTo(int.tryParse(b.year) ?? 0);
+  });
+  return items;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -79,15 +233,22 @@ class _BacklogsTab extends StatefulWidget {
 class _BacklogsTabState extends State<_BacklogsTab> {
   String _filter = 'active';
   final _searchCtrl = TextEditingController();
+  String _searchedRoll = '';
+  Future<List<_AdminBacklogItem>>? _future;
 
-  Stream<QuerySnapshot> get _stream {
-    var q = widget.firestore
-        .collection('backlogs')
-        .orderBy('createdAt', descending: true);
-    if (_filter != 'all') {
-      return q.where('status', isEqualTo: _filter).snapshots();
-    }
-    return q.snapshots();
+  void _search() {
+    final roll = _searchCtrl.text.trim().toUpperCase();
+    if (roll.isEmpty) return;
+    setState(() {
+      _searchedRoll = roll;
+      _future = _deriveAdminBacklogs(widget.firestore, roll);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -100,13 +261,18 @@ class _BacklogsTabState extends State<_BacklogsTab> {
             Expanded(
               child: TextField(
                 controller: _searchCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Search by Roll No or Subject',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'Enter Roll Number',
+                  prefixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(),
                   isDense: true,
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.arrow_forward),
+                    onPressed: _search,
+                  ),
                 ),
-                onChanged: (_) => setState(() {}),
+                textCapitalization: TextCapitalization.characters,
+                onSubmitted: (_) => _search(),
               ),
             ),
             const SizedBox(width: 10),
@@ -122,59 +288,107 @@ class _BacklogsTabState extends State<_BacklogsTab> {
             ),
           ]),
         ),
-        Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: _stream,
-            builder: (ctx, snap) {
-              if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              var docs = snap.data?.docs ?? [];
-              final q = _searchCtrl.text.trim().toUpperCase();
-              if (q.isNotEmpty) {
-                docs = docs.where((d) {
-                  final data = d.data() as Map<String, dynamic>;
-                  return (data['rollNo'] as String? ?? '')
-                          .toUpperCase()
-                          .contains(q) ||
-                      (data['subjectCode'] as String? ?? '')
-                          .toUpperCase()
-                          .contains(q) ||
-                      (data['subjectName'] as String? ?? '')
-                          .toUpperCase()
-                          .contains(q);
-                }).toList();
-              }
-              if (docs.isEmpty) return _emptyHint('No backlog records found.');
-              return ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: docs.length,
-                itemBuilder: (_, i) {
-                  final data = docs[i].data() as Map<String, dynamic>;
-                  return _BacklogCard(
-                      doc: docs[i], data: data, firestore: widget.firestore);
-                },
-              );
-            },
-          ),
-        ),
+        Expanded(child: _buildBody()),
       ],
+    );
+  }
+
+  Widget _buildBody() {
+    if (_future == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.manage_search, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              'Enter a student roll number and press ↵ to view their backlogs.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return FutureBuilder<List<_AdminBacklogItem>>(
+      future: _future,
+      builder: (ctx, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snap.hasError) {
+          return Center(child: Text('Error: ${snap.error}'));
+        }
+
+        var items = snap.data ?? [];
+        if (_filter == 'active') {
+          items = items.where((i) => i.status == 'active').toList();
+        } else if (_filter == 'cleared') {
+          items = items.where((i) => i.status == 'cleared').toList();
+        }
+
+        if (items.isEmpty) {
+          return Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.check_circle_outline,
+                  size: 64, color: Colors.green.shade400),
+              const SizedBox(height: 12),
+              Text(
+                _filter == 'active'
+                    ? '$_searchedRoll has no active backlogs.'
+                    : '$_searchedRoll has no $_filter backlogs.',
+                style:
+                    TextStyle(fontSize: 15, color: Colors.grey.shade600),
+              ),
+            ]),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: () async => setState(() {
+            _future = _deriveAdminBacklogs(widget.firestore, _searchedRoll);
+          }),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: items.length,
+            itemBuilder: (_, i) => _AdminBacklogCard(
+              item: items[i],
+              firestore: widget.firestore,
+              onCleared: () => setState(() {
+                _future =
+                    _deriveAdminBacklogs(widget.firestore, _searchedRoll);
+              }),
+            ),
+          ),
+        );
+      },
     );
   }
 }
 
-class _BacklogCard extends StatelessWidget {
-  final QueryDocumentSnapshot doc;
-  final Map<String, dynamic> data;
+class _AdminBacklogCard extends StatelessWidget {
+  const _AdminBacklogCard({
+    required this.item,
+    required this.firestore,
+    required this.onCleared,
+  });
+
+  final _AdminBacklogItem item;
   final FirebaseFirestore firestore;
-  const _BacklogCard(
-      {required this.doc, required this.data, required this.firestore});
+  final VoidCallback onCleared;
 
   @override
   Widget build(BuildContext context) {
-    final isActive = (data['status'] as String? ?? 'active') == 'active';
+    final isActive = item.status == 'active';
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+            color: isActive ? Colors.red.shade300 : Colors.green.shade300,
+            width: 1.2),
+      ),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor:
@@ -182,19 +396,20 @@ class _BacklogCard extends StatelessWidget {
           child: Icon(isActive ? Icons.warning_amber : Icons.check_circle,
               color: isActive ? Colors.red : Colors.green, size: 20),
         ),
-        title: Text('${data['rollNo']} — ${data['subjectCode']}',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+        title: Text('${item.subjectCode} — ${item.subjectName}',
+            style:
+                const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
         subtitle: Text(
-          '${data['subjectName']}\n'
-          'Year ${data['year']} • Sem ${data['semester']} • Failed: ${data['examSession']}'
-          '${!isActive ? '\nCleared: ${data['clearedExamSession'] ?? '—'}' : ''}',
+          'Roll: ${item.rollNo}  •  Year ${item.year}  •  Sem ${item.semester}\n'
+          'Failed: ${item.failedExamSession.isNotEmpty ? item.failedExamSession : "—"}'
+          '${!isActive ? '\nCleared: ${item.clearedExamSession ?? "—"}' : ''}',
           style: const TextStyle(fontSize: 12),
         ),
         isThreeLine: true,
         trailing: isActive
             ? IconButton(
                 icon: const Icon(Icons.clear_all, color: Colors.green),
-                tooltip: 'Manually clear backlog',
+                tooltip: 'Manually mark as cleared',
                 onPressed: () => _manualClear(context),
               )
             : Chip(
@@ -211,32 +426,40 @@ class _BacklogCard extends StatelessWidget {
       builder: (_) => AlertDialog(
         title: const Text('Clear Backlog'),
         content: Text(
-            'Manually clear backlog for ${data['rollNo']} — ${data['subjectCode']}?'),
+            'Manually clear backlog for ${item.rollNo} — ${item.subjectCode}?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel')),
           ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child:
-                  const Text('Clear', style: TextStyle(color: Colors.white))),
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: const Text('Clear',
+                  style: TextStyle(color: Colors.white))),
         ],
       ),
     );
     if (ok == true) {
-      await firestore.collection('backlogs').doc(doc.id).update({
+      // Write a cleared record to Firestore so supply exam registration
+      // can reference it if needed.
+      await firestore.collection('backlogs').add({
+        'rollNo': item.rollNo,
+        'subjectCode': item.subjectCode,
+        'subjectName': item.subjectName,
+        'year': item.year,
+        'semester': item.semester,
+        'examSession': item.failedExamSession,
         'status': 'cleared',
         'clearedExamSession': 'MANUAL',
         'clearedAt': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
       });
+      onCleared();
     }
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TAB 2 — Supply Windows (+ faculty assignment)
-// ═══════════════════════════════════════════════════════════════════════════
 
 class _SupplyWindowsTab extends StatefulWidget {
   final FirebaseFirestore firestore;
@@ -247,6 +470,17 @@ class _SupplyWindowsTab extends StatefulWidget {
 }
 
 class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
+  late final Stream<QuerySnapshot> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = widget.firestore
+        .collection('supplyWindows')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -271,10 +505,7 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
         ),
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: widget.firestore
-                .collection('supplyWindows')
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
+            stream: _stream,
             builder: (ctx, snap) {
               if (snap.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -584,6 +815,66 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
   }
 }
 
+// Caches the facuty-assignments stream to avoid rapid subscribe/unsubscribe.
+class _FacultyAssignmentsSummary extends StatefulWidget {
+  const _FacultyAssignmentsSummary({
+    required this.firestore,
+    required this.windowId,
+  });
+
+  final FirebaseFirestore firestore;
+  final String windowId;
+
+  @override
+  State<_FacultyAssignmentsSummary> createState() =>
+      _FacultyAssignmentsSummaryState();
+}
+
+class _FacultyAssignmentsSummaryState
+    extends State<_FacultyAssignmentsSummary> {
+  late final Stream<QuerySnapshot> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = widget.firestore
+        .collection('supplySubjectAssignments')
+        .where('windowId', isEqualTo: widget.windowId)
+        .snapshots();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _stream,
+      builder: (ctx, snap) {
+        final assignments = snap.data?.docs ?? [];
+        if (assignments.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Faculty Assignments:',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blueGrey)),
+              ...assignments.map((a) {
+                final d = a.data() as Map<String, dynamic>;
+                return Text(
+                  '• ${d['subjectCode']} → ${d['facultyName']}',
+                  style: const TextStyle(fontSize: 11, color: Colors.black87),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _SupplyWindowCard extends StatelessWidget {
   final QueryDocumentSnapshot doc;
   final Map<String, dynamic> data;
@@ -638,36 +929,9 @@ class _SupplyWindowCard extends StatelessWidget {
                   style: const TextStyle(fontSize: 12)),
 
             // Faculty assignments live summary
-            StreamBuilder<QuerySnapshot>(
-              stream: firestore
-                  .collection('supplySubjectAssignments')
-                  .where('windowId', isEqualTo: doc.id)
-                  .snapshots(),
-              builder: (ctx, snap) {
-                final assignments = snap.data?.docs ?? [];
-                if (assignments.isEmpty) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Faculty Assignments:',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blueGrey)),
-                      ...assignments.map((a) {
-                        final d = a.data() as Map<String, dynamic>;
-                        return Text(
-                          '• ${d['subjectCode']} → ${d['facultyName']}',
-                          style: const TextStyle(
-                              fontSize: 11, color: Colors.black87),
-                        );
-                      }),
-                    ],
-                  ),
-                );
-              },
+            _FacultyAssignmentsSummary(
+              firestore: firestore,
+              windowId: doc.id,
             ),
 
             const SizedBox(height: 10),
@@ -775,6 +1039,17 @@ class _RegistrationsTab extends StatefulWidget {
 class _RegistrationsTabState extends State<_RegistrationsTab> {
   String? _selectedWindowId;
   final _searchCtrl = TextEditingController();
+  late final Stream<QuerySnapshot> _windowsStream;
+  Stream<QuerySnapshot>? _registrationsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _windowsStream = widget.firestore
+        .collection('supplyWindows')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -783,10 +1058,7 @@ class _RegistrationsTabState extends State<_RegistrationsTab> {
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
           child: StreamBuilder<QuerySnapshot>(
-            stream: widget.firestore
-                .collection('supplyWindows')
-                .orderBy('createdAt', descending: true)
-                .snapshots(),
+            stream: _windowsStream,
             builder: (ctx, snap) {
               final docs = snap.data?.docs ?? [];
               if (docs.isEmpty) {
@@ -804,7 +1076,19 @@ class _RegistrationsTabState extends State<_RegistrationsTab> {
                       value: d.id,
                       child: Text(data['title'] as String? ?? d.id));
                 }).toList(),
-                onChanged: (v) => setState(() => _selectedWindowId = v),
+                onChanged: (v) => setState(() {
+                  _selectedWindowId = v;
+                  if (v != null) {
+                    // No orderBy here — avoids requiring a composite index.
+                    // Sorting is done client-side after receiving results.
+                    _registrationsStream = widget.firestore
+                        .collection('supplyRegistrations')
+                        .where('supplyWindowId', isEqualTo: v)
+                        .snapshots();
+                  } else {
+                    _registrationsStream = null;
+                  }
+                }),
               );
             },
           ),
@@ -830,16 +1114,35 @@ class _RegistrationsTabState extends State<_RegistrationsTab> {
         else
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: widget.firestore
-                  .collection('supplyRegistrations')
-                  .where('supplyWindowId', isEqualTo: _selectedWindowId)
-                  .orderBy('registeredAt', descending: true)
-                  .snapshots(),
+              stream: _registrationsStream,
               builder: (ctx, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                var docs = snap.data?.docs ?? [];
+                if (snap.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'Error loading registrations:\n${snap.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  );
+                }
+                var docs = List.from(snap.data?.docs ?? []);
+                // Sort newest first client-side (avoids composite index requirement)
+                docs.sort((a, b) {
+                  final aTs = (a.data() as Map<String, dynamic>)['registeredAt']
+                      as Timestamp?;
+                  final bTs = (b.data() as Map<String, dynamic>)['registeredAt']
+                      as Timestamp?;
+                  if (aTs == null && bTs == null) return 0;
+                  if (aTs == null) return 1;
+                  if (bTs == null) return -1;
+                  return bTs.compareTo(aTs);
+                });
                 final q = _searchCtrl.text.trim().toUpperCase();
                 if (q.isNotEmpty) {
                   docs = docs.where((d) {
@@ -886,11 +1189,552 @@ class _RegistrationsTabState extends State<_RegistrationsTab> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Shared helpers
+// Supply Marks Tab — view marks, release results per supply window
 // ═══════════════════════════════════════════════════════════════════════════
 
-Widget _sectionTitle(String t) =>
-    Text(t, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold));
+class _SupplyMarksTab extends StatefulWidget {
+  const _SupplyMarksTab({required this.firestore});
+  final FirebaseFirestore firestore;
+
+  @override
+  State<_SupplyMarksTab> createState() => _SupplyMarksTabState();
+}
+
+class _SupplyMarksTabState extends State<_SupplyMarksTab> {
+  late final Stream<QuerySnapshot> _windowsStream;
+  String? _selectedWindowId;
+  final _searchCtrl = TextEditingController();
+  bool _releasing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _windowsStream = widget.firestore.collection('supplyWindows').snapshots();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  /// Flip resultsReleased on the window doc AND batch-update every supplyMarks
+  /// doc under that window so the student filter works without a composite index.
+  Future<void> _toggleRelease(String windowId, bool currentlyReleased) async {
+    final newValue = !currentlyReleased;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(newValue ? 'Release Results?' : 'Withdraw Release?'),
+        content: Text(newValue
+            ? 'Students will immediately be able to see their supply exam results and download their memo.'
+            : 'Results will be hidden from students until you release again.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    newValue ? Colors.green[700] : Colors.orange[700]),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(newValue ? 'Release' : 'Withdraw',
+                style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    setState(() => _releasing = true);
+    try {
+      // 1. Update the window document
+      await widget.firestore.collection('supplyWindows').doc(windowId).update({
+        'resultsReleased': newValue,
+        'resultsReleasedAt':
+            newValue ? FieldValue.serverTimestamp() : FieldValue.delete(),
+      });
+      // 2. Batch-update all supplyMarks docs for this window
+      final markDocs = await widget.firestore
+          .collection('supplyMarks')
+          .where('windowId', isEqualTo: windowId)
+          .get();
+      const batchSize = 400;
+      for (var start = 0; start < markDocs.docs.length; start += batchSize) {
+        final batch = widget.firestore.batch();
+        final end = (start + batchSize).clamp(0, markDocs.docs.length);
+        for (final doc in markDocs.docs.sublist(start, end)) {
+          batch.update(doc.reference, {'resultsReleased': newValue});
+        }
+        await batch.commit();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(newValue
+              ? 'Results released — students can now view marks and download memo.'
+              : 'Results withdrawn from student view.'),
+          backgroundColor: newValue ? Colors.green[700] : Colors.orange[700],
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
+    }
+    if (mounted) setState(() => _releasing = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _windowsStream,
+      builder: (ctx, windowSnap) {
+        final windows = windowSnap.data?.docs ?? [];
+        if (windowSnap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (windows.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Text('No supply windows found.',
+                  style: TextStyle(color: Colors.grey)),
+            ),
+          );
+        }
+
+        // Get data for the selected window
+        Map<String, dynamic>? selectedWindowData;
+        if (_selectedWindowId != null) {
+          final found = windows.where((d) => d.id == _selectedWindowId);
+          if (found.isNotEmpty) {
+            selectedWindowData = found.first.data() as Map<String, dynamic>;
+          }
+        }
+        final isReleased =
+            selectedWindowData?['resultsReleased'] as bool? ?? false;
+
+        return Column(
+          children: [
+            // Window selector dropdown
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              child: DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Select Supply Window',
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  isDense: true,
+                ),
+                value: _selectedWindowId,
+                isExpanded: true,
+                items: windows.map((doc) {
+                  final d = doc.data() as Map<String, dynamic>;
+                  final released = d['resultsReleased'] as bool? ?? false;
+                  return DropdownMenuItem(
+                    value: doc.id,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${d['title'] ?? doc.id}  (${d['examSession'] ?? ''})',
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: released
+                                ? Colors.green[100]
+                                : Colors.orange[100],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            released ? 'RELEASED' : 'HELD',
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: released
+                                    ? Colors.green[800]
+                                    : Colors.orange[800]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (v) => setState(() {
+                  _selectedWindowId = v;
+                  _searchCtrl.clear();
+                }),
+              ),
+            ),
+
+            // Release toggle banner
+            if (_selectedWindowId != null && selectedWindowData != null) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color:
+                        isReleased ? Colors.green[50] : Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color:
+                            isReleased ? Colors.green : Colors.orange),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                          isReleased
+                              ? Icons.lock_open
+                              : Icons.lock_outline,
+                          color:
+                              isReleased ? Colors.green[700] : Colors.orange[700],
+                          size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isReleased
+                                  ? 'Results are RELEASED'
+                                  : 'Results are HELD (not visible to students)',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: isReleased
+                                      ? Colors.green[800]
+                                      : Colors.orange[800]),
+                            ),
+                            if (isReleased &&
+                                selectedWindowData['resultsReleasedAt'] != null)
+                              Text(
+                                'Released on: ${DateFormat('dd MMM yyyy, hh:mm a').format((selectedWindowData['resultsReleasedAt'] as Timestamp).toDate())}',
+                                style: const TextStyle(
+                                    fontSize: 11, color: Colors.grey),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _releasing
+                          ? const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : ElevatedButton.icon(
+                              icon: Icon(
+                                  isReleased
+                                      ? Icons.visibility_off
+                                      : Icons.publish,
+                                  size: 16),
+                              label: Text(
+                                  isReleased ? 'Withdraw' : 'Release Results',
+                                  style: const TextStyle(fontSize: 12)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isReleased
+                                    ? Colors.orange[700]
+                                    : Colors.green[700],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                              ),
+                              onPressed: () => _toggleRelease(
+                                  _selectedWindowId!, isReleased),
+                            ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                child: TextField(
+                  controller: _searchCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Search by Roll No',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    isDense: true,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              Expanded(
+                child: _SupplyMarksList(
+                  firestore: widget.firestore,
+                  windowId: _selectedWindowId!,
+                  searchQuery: _searchCtrl.text.trim().toUpperCase(),
+                ),
+              ),
+            ] else
+              const Expanded(
+                child: Center(
+                  child: Text('Select a supply window to view marks.',
+                      style: TextStyle(color: Colors.grey)),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ── Inner list widget (stateful so stream is cached and recreated on windowId change)
+
+class _SupplyMarksList extends StatefulWidget {
+  const _SupplyMarksList({
+    required this.firestore,
+    required this.windowId,
+    required this.searchQuery,
+  });
+  final FirebaseFirestore firestore;
+  final String windowId;
+  final String searchQuery;
+
+  @override
+  State<_SupplyMarksList> createState() => _SupplyMarksListState();
+}
+
+class _SupplyMarksListState extends State<_SupplyMarksList> {
+  late Stream<QuerySnapshot> _stream;
+  late String _trackedWindowId;
+
+  @override
+  void initState() {
+    super.initState();
+    _trackedWindowId = widget.windowId;
+    _stream = widget.firestore
+        .collection('supplyMarks')
+        .where('windowId', isEqualTo: widget.windowId)
+        .snapshots();
+  }
+
+  @override
+  void didUpdateWidget(_SupplyMarksList old) {
+    super.didUpdateWidget(old);
+    if (widget.windowId != _trackedWindowId) {
+      _trackedWindowId = widget.windowId;
+      _stream = widget.firestore
+          .collection('supplyMarks')
+          .where('windowId', isEqualTo: widget.windowId)
+          .snapshots();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _stream,
+      builder: (ctx, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snap.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Error loading marks:\n${snap.error}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red)),
+            ),
+          );
+        }
+        var docs = List.from(snap.data?.docs ?? []);
+        // Sort by rollNo then subjectCode client-side
+        docs.sort((a, b) {
+          final aData = a.data() as Map<String, dynamic>;
+          final bData = b.data() as Map<String, dynamic>;
+          final rc = (aData['rollNo'] as String? ?? '')
+              .compareTo(bData['rollNo'] as String? ?? '');
+          if (rc != 0) return rc;
+          return (aData['subjectCode'] as String? ?? '')
+              .compareTo(bData['subjectCode'] as String? ?? '');
+        });
+        // Filter by search query
+        if (widget.searchQuery.isNotEmpty) {
+          docs = docs.where((d) {
+            final data = d.data() as Map<String, dynamic>;
+            return (data['rollNo'] as String? ?? '')
+                .toUpperCase()
+                .contains(widget.searchQuery);
+          }).toList();
+        }
+        if (docs.isEmpty) {
+          return _emptyHint(widget.searchQuery.isNotEmpty
+              ? 'No marks found for "${widget.searchQuery}".'
+              : 'No marks uploaded for this window yet.');
+        }
+        // Group by rollNo
+        final Map<String, List<Map<String, dynamic>>> byRoll = {};
+        for (final d in docs) {
+          final data = d.data() as Map<String, dynamic>;
+          byRoll
+              .putIfAbsent(data['rollNo'] as String? ?? '?', () => [])
+              .add(data);
+        }
+        final rolls = byRoll.keys.toList()..sort();
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: rolls.length,
+          itemBuilder: (_, i) {
+            final roll = rolls[i];
+            final subjects = byRoll[roll]!;
+            final studentName =
+                subjects.first['studentName'] as String? ?? '';
+            final released =
+                subjects.first['resultsReleased'] as bool? ?? false;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 10),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              elevation: 2,
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Student header
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    color: const Color(0xFF1e3a5f),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '$roll${studentName.isNotEmpty ? '  —  $studentName' : ''}',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: released
+                                ? Colors.green
+                                : Colors.orange[700],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            released ? 'RELEASED' : 'HELD',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Marks table
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Table(
+                      columnWidths: const {
+                        0: FlexColumnWidth(1.8),
+                        1: FlexColumnWidth(3),
+                        2: FlexColumnWidth(0.9),
+                        3: FlexColumnWidth(0.9),
+                        4: FlexColumnWidth(0.9),
+                        5: FlexColumnWidth(0.9),
+                        6: FlexColumnWidth(1.5),
+                      },
+                      border: TableBorder.all(
+                          color: Colors.grey[300]!, width: 0.5),
+                      children: [
+                        TableRow(
+                          decoration: BoxDecoration(color: Colors.grey[200]),
+                          children: const [
+                            _MarksTH('Code'),
+                            _MarksTH('Subject'),
+                            _MarksTH('Int'),
+                            _MarksTH('Ext'),
+                            _MarksTH('Tot'),
+                            _MarksTH('Grd'),
+                            _MarksTH('Result'),
+                          ],
+                        ),
+                        ...subjects.map(
+                          (s) => TableRow(children: [
+                            _MarksTD(s['subjectCode'] ?? '—'),
+                            _MarksTD(s['subjectName'] ?? '—',
+                                align: TextAlign.left),
+                            _MarksTD('${s['internalMarks'] ?? '—'}'),
+                            _MarksTD('${s['externalMarks'] ?? '—'}'),
+                            _MarksTD('${s['totalMarks'] ?? '—'}'),
+                            _MarksTD('${s['grade'] ?? '—'}'),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 5, horizontal: 3),
+                              child: Text(
+                                s['result'] ?? '—',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: s['result'] == 'PASS'
+                                      ? Colors.green[700]
+                                      : Colors.red[700],
+                                ),
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _MarksTH extends StatelessWidget {
+  const _MarksTH(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 3),
+        child: Text(text,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center),
+      );
+}
+
+class _MarksTD extends StatelessWidget {
+  const _MarksTD(this.text, {this.align = TextAlign.center});
+  final String text;
+  final TextAlign align;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 3),
+        child: Text(text,
+            style: const TextStyle(fontSize: 11),
+            textAlign: align,
+            overflow: TextOverflow.ellipsis),
+      );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Shared helpers
+// ═══════════════════════════════════════════════════════════════════════════
 
 Widget _emptyHint(String msg) => Padding(
       padding: const EdgeInsets.all(32),

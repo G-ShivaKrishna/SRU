@@ -41,6 +41,16 @@ class AcademicRegulationsScreen extends StatefulWidget {
 class _AcademicRegulationsScreenState extends State<AcademicRegulationsScreen> {
   bool _showingPdf = false;
   RegulationItem? _selectedRegulation;
+  late final Stream<QuerySnapshot> _regulationsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _regulationsStream = FirebaseFirestore.instance
+        .collection('academicRegulations')
+        .orderBy('sNo')
+        .snapshots();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +71,7 @@ class _AcademicRegulationsScreenState extends State<AcademicRegulationsScreen> {
 
   Widget _buildRegulationsList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('academicRegulations')
-          .orderBy('sNo')
-          .snapshots(),
+      stream: _regulationsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

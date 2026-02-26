@@ -2138,7 +2138,7 @@ class _RequestsTabState extends State<_RequestsTab>
 // Reusable request list (pending / history)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _RequestList extends StatelessWidget {
+class _RequestList extends StatefulWidget {
   const _RequestList({
     required this.firestore,
     required this.statusFilter,
@@ -2151,12 +2151,23 @@ class _RequestList extends StatelessWidget {
   final String emptyMessage;
   final bool showActions;
 
-  Stream<QuerySnapshot> get _stream {
-    final col = firestore.collection('attendanceEditRequests');
-    if (statusFilter != null) {
-      return col.where('status', isEqualTo: statusFilter).snapshots();
+  @override
+  State<_RequestList> createState() => _RequestListState();
+}
+
+class _RequestListState extends State<_RequestList> {
+  late final Stream<QuerySnapshot> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    final col = widget.firestore.collection('attendanceEditRequests');
+    if (widget.statusFilter != null) {
+      _stream = col.where('status', isEqualTo: widget.statusFilter).snapshots();
+    } else {
+      _stream =
+          col.where('status', whereIn: ['approved', 'rejected']).snapshots();
     }
-    return col.where('status', whereIn: ['approved', 'rejected']).snapshots();
   }
 
   @override
@@ -2185,7 +2196,7 @@ class _RequestList extends StatelessWidget {
               Icon(Icons.assignment_outlined,
                   size: 64, color: Colors.grey.shade400),
               const SizedBox(height: 12),
-              Text(emptyMessage,
+              Text(widget.emptyMessage,
                   style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
             ]),
           );
@@ -2195,8 +2206,8 @@ class _RequestList extends StatelessWidget {
           itemCount: docs.length,
           itemBuilder: (ctx, i) => _RequestCard(
             doc: docs[i],
-            showActions: showActions,
-            firestore: firestore,
+            showActions: widget.showActions,
+            firestore: widget.firestore,
           ),
         );
       },

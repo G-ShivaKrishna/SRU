@@ -298,8 +298,28 @@ class _SubmitGrievanceTabState extends State<_SubmitGrievanceTab> {
 
 // ─── Status Tab ──────────────────────────────────────────────────────────────
 
-class _GrievanceStatusTab extends StatelessWidget {
+class _GrievanceStatusTab extends StatefulWidget {
   const _GrievanceStatusTab();
+
+  @override
+  State<_GrievanceStatusTab> createState() => _GrievanceStatusTabState();
+}
+
+class _GrievanceStatusTabState extends State<_GrievanceStatusTab> {
+  Stream<QuerySnapshot>? _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final rollNumber = user.email!.split('@')[0].toUpperCase();
+      _stream = FirebaseFirestore.instance
+          .collection('grievances')
+          .where('rollNumber', isEqualTo: rollNumber)
+          .snapshots();
+    }
+  }
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
@@ -316,17 +336,12 @@ class _GrievanceStatusTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    if (_stream == null) {
       return const Center(child: Text('Not logged in.'));
     }
-    final rollNumber = user.email!.split('@')[0].toUpperCase();
 
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('grievances')
-          .where('rollNumber', isEqualTo: rollNumber)
-          .snapshots(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

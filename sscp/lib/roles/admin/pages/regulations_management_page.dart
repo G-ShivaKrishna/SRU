@@ -13,6 +13,13 @@ class RegulationsManagementPage extends StatefulWidget {
 class _RegulationsManagementPageState extends State<RegulationsManagementPage> {
   final _firestore = FirebaseFirestore.instance;
   final _collection = 'academicRegulations';
+  late final Stream<QuerySnapshot> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = _firestore.collection(_collection).orderBy('sNo').snapshots();
+  }
 
   // ─── Add / Edit Dialog ─────────────────────────────────────────────────────
 
@@ -253,7 +260,7 @@ class _RegulationsManagementPageState extends State<RegulationsManagementPage> {
 
   Widget _buildBody() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection(_collection).orderBy('sNo').snapshots(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

@@ -1,3 +1,6 @@
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -48,9 +51,9 @@ class _ResultsScreenState extends State<ResultsScreen>
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.yellow,
           tabs: const [
-            Tab(text: 'Results'),
             Tab(text: 'Backlogs'),
             Tab(text: 'Supply Exam'),
+            Tab(text: 'Supply Results'),
           ],
         ),
       ),
@@ -61,9 +64,9 @@ class _ResultsScreenState extends State<ResultsScreen>
             child: TabBarView(
               controller: _tab,
               children: [
-                _ResultsTab(rollNo: _rollNo),
                 _BacklogsTab(rollNo: _rollNo),
                 _SupplyExamTab(rollNo: _rollNo),
+                _SupplyResultsTab(rollNo: _rollNo),
               ],
             ),
           ),
@@ -77,19 +80,31 @@ class _ResultsScreenState extends State<ResultsScreen>
 // Tab 1 – Results
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ResultsTab extends StatelessWidget {
+class _ResultsTab extends StatefulWidget {
   const _ResultsTab({required this.rollNo});
   final String rollNo;
 
   @override
-  Widget build(BuildContext context) {
-    final query = FirebaseFirestore.instance
-        .collection('semResults')
-        .where('rollNo', isEqualTo: rollNo)
-        .orderBy('uploadedAt', descending: true);
+  State<_ResultsTab> createState() => _ResultsTabState();
+}
 
+class _ResultsTabState extends State<_ResultsTab> {
+  late final Stream<QuerySnapshot> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = FirebaseFirestore.instance
+        .collection('semResults')
+        .where('rollNo', isEqualTo: widget.rollNo)
+        .orderBy('uploadedAt', descending: true)
+        .snapshots();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: query.snapshots(),
+      stream: _stream,
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -351,13 +366,30 @@ Future<List<_BacklogItem>> _deriveBacklogs(String rollNo) async {
     };
   }
 
-  // 2. Load all marks for this student
+  // 2. Load supply exam PASS records for this student (cleared via supply exam)
+  final supplySnap = await db
+      .collection('supplyMarks')
+      .where('rollNo', isEqualTo: rollNo)
+      .get();
+  // Map: subjectCode -> examSession (only PASS results)
+  final supplyPassMap = <String, String>{};
+  for (final d in supplySnap.docs) {
+    final data = d.data();
+    if ((data['result'] as String? ?? '') == 'PASS') {
+      final code = data['subjectCode']?.toString() ?? '';
+      if (code.isNotEmpty) {
+        supplyPassMap[code] = data['examSession']?.toString() ?? 'Supply Exam';
+      }
+    }
+  }
+
+  // 3. Load all marks for this student
   final marksSnap = await db
       .collection('studentMarks')
       .where('studentId', isEqualTo: rollNo)
       .get();
 
-  // 3. Group by subjectCode
+  // 4. Group by subjectCode
   final bySubject = <String, List<Map<String, dynamic>>>{};
   for (final doc in marksSnap.docs) {
     final d = Map<String, dynamic>.from(doc.data());
@@ -413,6 +445,11 @@ Future<List<_BacklogItem>> _deriveBacklogs(String rollNo) async {
             clearedSession = (lRelease?['examSession'] as String?) ?? '';
             break;
           }
+        }
+        // Also check if cleared via supply exam
+        if (!clearedLater && supplyPassMap.containsKey(code)) {
+          clearedLater = true;
+          clearedSession = supplyPassMap[code]!;
         }
         // Avoid duplicate entries for the same fail session
         final alreadyAdded = items.any(
@@ -581,18 +618,30 @@ class _BacklogCard extends StatelessWidget {
 // Tab 3 – Supply Exam Registration
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SupplyExamTab extends StatelessWidget {
+class _SupplyExamTab extends StatefulWidget {
   const _SupplyExamTab({required this.rollNo});
   final String rollNo;
 
   @override
-  Widget build(BuildContext context) {
-    final query = FirebaseFirestore.instance
-        .collection('supplyWindows')
-        .where('isActive', isEqualTo: true);
+  State<_SupplyExamTab> createState() => _SupplyExamTabState();
+}
 
+class _SupplyExamTabState extends State<_SupplyExamTab> {
+  late final Stream<QuerySnapshot> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = FirebaseFirestore.instance
+        .collection('supplyWindows')
+        .where('isActive', isEqualTo: true)
+        .snapshots();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: query.snapshots(),
+      stream: _stream,
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -616,7 +665,7 @@ class _SupplyExamTab extends StatelessWidget {
           itemCount: windows.length,
           itemBuilder: (_, i) => _SupplyWindowWidget(
             windowDoc: windows[i],
-            rollNo: rollNo,
+            rollNo: widget.rollNo,
           ),
         );
       },
@@ -909,6 +958,335 @@ class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
             ),
         ],
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Supply Results Tab — only shows marks for windows where admin has released
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SupplyResultsTab extends StatefulWidget {
+  const _SupplyResultsTab({required this.rollNo});
+  final String rollNo;
+
+  @override
+  State<_SupplyResultsTab> createState() => _SupplyResultsTabState();
+}
+
+class _SupplyResultsTabState extends State<_SupplyResultsTab> {
+  late final Stream<QuerySnapshot> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    // Only fetch marks where admin has released results for that window
+    _stream = FirebaseFirestore.instance
+        .collection('supplyMarks')
+        .where('rollNo', isEqualTo: widget.rollNo)
+        .where('resultsReleased', isEqualTo: true)
+        .snapshots();
+  }
+
+  // ── Memo generator — opens a styled HTML page in a new browser tab ─────────
+  void _openMemo(String rollNo, String studentName, String examSession,
+      List<Map<String, dynamic>> subjects) {
+    final rows = subjects.map((s) {
+      final pass = s['result'] == 'PASS';
+      final color = pass ? '#1b5e20' : '#b71c1c';
+      return '<tr>'
+          '<td>${s['subjectCode'] ?? ''}</td>'
+          '<td style="text-align:left">${s['subjectName'] ?? ''}</td>'
+          '<td>${s['internalMarks'] ?? ''}</td>'
+          '<td>${s['externalMarks'] ?? ''}</td>'
+          '<td><strong>${s['totalMarks'] ?? ''}</strong></td>'
+          '<td><strong>${s['grade'] ?? ''}</strong></td>'
+          '<td style="color:$color;font-weight:bold">${s['result'] ?? ''}</td>'
+          '</tr>';
+    }).join();
+
+    final allPass = subjects.every((s) => s['result'] == 'PASS');
+    final overallColor = allPass ? '#1b5e20' : '#b71c1c';
+    final overallText = allPass ? 'PASS' : 'FAIL';
+    final today = DateTime.now();
+    final dateStr =
+        '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
+
+    final memoHtml = '<!DOCTYPE html>'
+        '<html><head><meta charset="UTF-8">'
+        '<title>Supply Exam Memo - $rollNo</title>'
+        '<style>'
+        '@media print{body{-webkit-print-color-adjust:exact}}'
+        'body{font-family:Arial,sans-serif;margin:0;padding:20px;color:#111}'
+        '.header{text-align:center;border-bottom:3px double #1e3a5f;padding-bottom:12px;margin-bottom:18px}'
+        '.inst-name{font-size:22px;font-weight:bold;color:#1e3a5f}'
+        '.inst-sub{font-size:13px;color:#555}'
+        '.memo-title{font-size:17px;font-weight:bold;letter-spacing:2px;'
+        'background:#1e3a5f;color:#fff;padding:6px 20px;display:inline-block;border-radius:4px;margin:10px 0}'
+        '.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 30px;margin:14px 0;font-size:14px}'
+        '.info-grid .label{color:#666}'
+        '.info-grid .val{font-weight:bold}'
+        'table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}'
+        'th{background:#1e3a5f;color:#fff;padding:7px 8px}'
+        'td{padding:6px 8px;border:1px solid #ddd;text-align:center}'
+        'tr:nth-child(even) td{background:#f5f7fa}'
+        '.overall{margin-top:16px;text-align:center;font-size:18px;font-weight:bold;'
+        'color:$overallColor;letter-spacing:1px}'
+        '.footer{margin-top:40px;display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;font-size:13px}'
+        '.footer .line{border-top:1px solid #333;padding-top:6px;margin-top:28px}'
+        '.watermark{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);'
+        'font-size:80px;color:rgba(30,58,95,0.06);font-weight:bold;pointer-events:none;z-index:0}'
+        '.content{position:relative;z-index:1}'
+        '@media print{.no-print{display:none}}'
+        '.print-btn{position:fixed;top:16px;right:20px;background:#1e3a5f;color:#fff;border:none;'
+        'padding:10px 22px;border-radius:6px;font-size:14px;cursor:pointer}'
+        '</style></head><body>'
+        '<div class="watermark">OFFICIAL</div>'
+        '<button class="print-btn no-print" onclick="window.print()">Print / Save PDF</button>'
+        '<div class="content">'
+        '<div class="header">'
+        '<div class="inst-name">SRU — Supply Examination Results Memo</div>'
+        '<div class="inst-sub">Autonomous Examination Cell</div>'
+        '<div class="memo-title">SUPPLEMENTARY EXAMINATION MARKS MEMO</div>'
+        '</div>'
+        '<div class="info-grid">'
+        '<div><span class="label">Roll No: </span><span class="val">$rollNo</span></div>'
+        '<div><span class="label">Date Issued: </span><span class="val">$dateStr</span></div>'
+        '<div><span class="label">Student Name: </span><span class="val">$studentName</span></div>'
+        '<div><span class="label">Exam Session: </span><span class="val">$examSession</span></div>'
+        '</div>'
+        '<table><thead><tr>'
+        '<th>Subject Code</th><th>Subject Name</th>'
+        '<th>Internal</th><th>External</th><th>Total</th><th>Grade</th><th>Result</th>'
+        '</tr></thead><tbody>$rows</tbody></table>'
+        '<div class="overall">Overall Result: $overallText</div>'
+        '<div class="footer">'
+        '<div><div class="line">Student Signature</div></div>'
+        '<div><div class="line">Controller of Examinations</div></div>'
+        '<div><div class="line">Principal</div></div>'
+        '</div>'
+        '<p style="font-size:11px;color:#999;margin-top:32px;text-align:center">'
+        'This is a computer-generated document. For official use only.'
+        '</p></div></body></html>';
+
+    final blob = html.Blob([memoHtml], 'text/html');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.window.open(url, '_blank');
+    Future.delayed(
+        const Duration(seconds: 10), () => html.Url.revokeObjectUrl(url));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _stream,
+      builder: (ctx, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snap.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('Error: ${snap.error}',
+                  style: const TextStyle(color: Colors.red)),
+            ),
+          );
+        }
+        final allDocs = List.from(snap.data?.docs ?? []);
+        if (allDocs.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Text(
+                'No supply exam results available yet.\n\nResults will appear here once the admin releases them.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          );
+        }
+
+        // Group by windowId / examSession
+        final Map<String, List<Map<String, dynamic>>> byWindow = {};
+        for (final d in allDocs) {
+          final data = d.data() as Map<String, dynamic>;
+          final key = data['windowId'] as String? ?? 'unknown';
+          byWindow.putIfAbsent(key, () => []).add(data);
+        }
+
+        // Sort each group by subject code
+        for (final list in byWindow.values) {
+          list.sort((a, b) =>
+              (a['subjectCode'] as String? ?? '')
+                  .compareTo(b['subjectCode'] as String? ?? ''));
+        }
+
+        final windowKeys = byWindow.keys.toList();
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: windowKeys.length,
+          itemBuilder: (_, wi) {
+            final windowSubjects = byWindow[windowKeys[wi]]!;
+            final examSession =
+                windowSubjects.first['examSession'] as String? ?? '—';
+            final studentName =
+                windowSubjects.first['studentName'] as String? ?? '';
+            final allPass =
+                windowSubjects.every((s) => s['result'] == 'PASS');
+
+            return Card(
+              elevation: 2,
+              margin: const EdgeInsets.only(bottom: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Session header
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    color: const Color(0xFF1e3a5f),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Supplementary Examination',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14)),
+                              Text('Session: $examSession',
+                                  style: const TextStyle(
+                                      color: Colors.white70, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color:
+                                allPass ? Colors.green[400] : Colors.red[400],
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            allPass ? 'OVERALL PASS' : 'OVERALL FAIL',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Subject rows
+                  ...windowSubjects.map((s) {
+                    final passed = s['result'] == 'PASS';
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        border: Border(
+                            bottom:
+                                BorderSide(color: Colors.grey[200]!)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(s['subjectCode'] ?? '—',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13)),
+                                Text(s['subjectName'] ?? '—',
+                                    style: const TextStyle(
+                                        fontSize: 11, color: Colors.grey)),
+                              ],
+                            ),
+                          ),
+                          _miniChip('Int', s['internalMarks']),
+                          const SizedBox(width: 4),
+                          _miniChip('Ext', s['externalMarks']),
+                          const SizedBox(width: 4),
+                          _miniChip('Tot', s['totalMarks'], highlight: true),
+                          const SizedBox(width: 8),
+                          _miniChip('Grd', s['grade']),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: passed
+                                  ? Colors.green[100]
+                                  : Colors.red[100],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              s['result'] ?? '—',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: passed
+                                      ? Colors.green[800]
+                                      : Colors.red[800]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                  // Download Memo button
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('Download Marks Memo'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF1e3a5f),
+                        side:
+                            const BorderSide(color: Color(0xFF1e3a5f)),
+                      ),
+                      onPressed: () => _openMemo(
+                        widget.rollNo,
+                        studentName,
+                        examSession,
+                        windowSubjects,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _miniChip(String label, dynamic value, {bool highlight = false}) {
+    return Column(
+      children: [
+        Text(
+          '${value ?? '—'}',
+          style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color:
+                  highlight ? const Color(0xFF1e3a5f) : Colors.black87),
+        ),
+        Text(label,
+            style: const TextStyle(fontSize: 9, color: Colors.grey)),
+      ],
     );
   }
 }

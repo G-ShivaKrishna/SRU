@@ -40,6 +40,16 @@ class SyllabusScreen extends StatefulWidget {
 class _SyllabusScreenState extends State<SyllabusScreen> {
   bool _showingPdf = false;
   SyllabusItem? _selectedSyllabus;
+  late final Stream<QuerySnapshot> _syllabusStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _syllabusStream = FirebaseFirestore.instance
+        .collection('syllabusItems')
+        .orderBy('sNo')
+        .snapshots();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,10 +70,7 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
 
   Widget _buildSyllabusList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('syllabusItems')
-          .orderBy('sNo')
-          .snapshots(),
+      stream: _syllabusStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

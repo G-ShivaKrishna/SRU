@@ -12,6 +12,13 @@ class SyllabusManagementPage extends StatefulWidget {
 class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
   final _firestore = FirebaseFirestore.instance;
   final _collection = 'syllabusItems';
+  late final Stream<QuerySnapshot> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = _firestore.collection(_collection).orderBy('sNo').snapshots();
+  }
 
   // ─── Add / Edit Dialog ─────────────────────────────────────────────────────
 
@@ -253,7 +260,7 @@ class _SyllabusManagementPageState extends State<SyllabusManagementPage> {
 
   Widget _buildBody() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection(_collection).orderBy('sNo').snapshots(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
