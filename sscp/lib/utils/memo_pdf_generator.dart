@@ -1,6 +1,8 @@
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 /// Generates and prints a Supply Exam Memo PDF
 Future<void> printSupplyExamMemo({
@@ -16,6 +18,106 @@ Future<void> printSupplyExamMemo({
   required double totalCreditPoints,
   required int passed,
 }) async {
+  final pdf = _buildSupplyExamPdf(
+    studentName: studentName,
+    fatherName: fatherName,
+    enrolmentNumber: enrolmentNumber,
+    branch: branch,
+    examSession: examSession,
+    memoNumber: memoNumber,
+    subjects: subjects,
+    sgpa: sgpa,
+    totalCredits: totalCredits,
+    totalCreditPoints: totalCreditPoints,
+    passed: passed,
+  );
+
+  try {
+    await Printing.layoutPdf(
+      onLayout: (_) => pdf.save(),
+      name: 'Supply_Exam_Memo_$enrolmentNumber',
+    );
+  } catch (e) {
+    // Fallback: Save PDF to device if printing fails
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/Supply_Exam_Memo_$enrolmentNumber.pdf');
+      await file.writeAsBytes(await pdf.save());
+      // Return success message to be handled by caller
+      throw 'PDF saved to ${file.path}';
+    } catch (saveError) {
+      rethrow;
+    }
+  }
+}
+
+/// Generates and prints a Semester CIE Memo PDF
+Future<void> printSemesterMemo({
+  required String studentName,
+  required String fatherName,
+  required String enrolmentNumber,
+  required String branch,
+  required String semester,
+  required String academicYear,
+  required List<Map<String, dynamic>> subjects,
+  required double sgpa,
+  required int totalCredits,
+  required double totalCreditPoints,
+  required int appeared,
+  required int passed,
+}) async {
+  final pdf = _buildSemesterMemoPdf(
+    studentName: studentName,
+    fatherName: fatherName,
+    enrolmentNumber: enrolmentNumber,
+    branch: branch,
+    semester: semester,
+    academicYear: academicYear,
+    subjects: subjects,
+    sgpa: sgpa,
+    totalCredits: totalCredits,
+    totalCreditPoints: totalCreditPoints,
+    appeared: appeared,
+    passed: passed,
+  );
+
+  try {
+    await Printing.layoutPdf(
+      onLayout: (_) => pdf.save(),
+      name: 'Semester_Memo_$enrolmentNumber',
+    );
+  } catch (e) {
+    // Fallback: Save PDF to device if printing fails
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/Semester_Memo_$enrolmentNumber.pdf');
+      await file.writeAsBytes(await pdf.save());
+      // Return success message to be handled by caller
+      throw 'PDF saved to ${file.path}';
+    } catch (saveError) {
+      rethrow;
+    }
+  }
+}
+
+pw.Document _detailRowPdf(String label, String value) {
+  return pw.Widget();
+}
+
+/// Builds the Supply Exam Memo PDF document
+pw.Document _buildSupplyExamPdf({
+  required String studentName,
+  required String fatherName,
+  required String enrolmentNumber,
+  required String branch,
+  required String examSession,
+  required String memoNumber,
+  required List<Map<String, dynamic>> subjects,
+  required double sgpa,
+  required int totalCredits,
+  required double totalCreditPoints,
+  required int passed,
+}) {
   final pdf = pw.Document();
 
   pdf.addPage(
@@ -102,12 +204,12 @@ Future<void> printSupplyExamMemo({
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      _detailRowPdf('Memo No.', memoNumber),
-                      _detailRowPdf('Serial No.', enrolmentNumber),
-                      _detailRowPdf('Examination', 'SUPPLEMENTARY EXAMINATION'),
-                      _detailRowPdf('Branch', branch),
-                      _detailRowPdf('Name', studentName),
-                      _detailRowPdf('Father\'s Name', fatherName),
+                      _detailRowPdfWidget('Memo No.', memoNumber),
+                      _detailRowPdfWidget('Serial No.', enrolmentNumber),
+                      _detailRowPdfWidget('Examination', 'SUPPLEMENTARY EXAMINATION'),
+                      _detailRowPdfWidget('Branch', branch),
+                      _detailRowPdfWidget('Name', studentName),
+                      _detailRowPdfWidget('Father\'s Name', fatherName),
                     ],
                   ),
                 ),
@@ -117,8 +219,8 @@ Future<void> printSupplyExamMemo({
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      _detailRowPdf('Enrolment Number', enrolmentNumber),
-                      _detailRowPdf('Exam Session', examSession),
+                      _detailRowPdfWidget('Enrolment Number', enrolmentNumber),
+                      _detailRowPdfWidget('Exam Session', examSession),
                     ],
                   ),
                 ),
@@ -175,14 +277,11 @@ Future<void> printSupplyExamMemo({
     ),
   );
 
-  await Printing.layoutPdf(
-    onLayout: (_) => pdf.save(),
-    name: 'Supply_Exam_Memo_$enrolmentNumber',
-  );
+  return pdf;
 }
 
-/// Generates and prints a Semester CIE Memo PDF
-Future<void> printSemesterMemo({
+/// Builds the Semester Memo PDF document
+pw.Document _buildSemesterMemoPdf({
   required String studentName,
   required String fatherName,
   required String enrolmentNumber,
@@ -195,7 +294,7 @@ Future<void> printSemesterMemo({
   required double totalCreditPoints,
   required int appeared,
   required int passed,
-}) async {
+}) {
   final pdf = pw.Document();
 
   pdf.addPage(
@@ -282,12 +381,12 @@ Future<void> printSemesterMemo({
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      _detailRowPdf('Exam Session', 'Odd/Even'),
-                      _detailRowPdf('Year', 'Year'),
-                      _detailRowPdf('Semester', semester),
-                      _detailRowPdf('Branch', branch),
-                      _detailRowPdf('Name', studentName),
-                      _detailRowPdf('Father\'s Name', fatherName),
+                      _detailRowPdfWidget('Exam Session', 'Odd/Even'),
+                      _detailRowPdfWidget('Year', 'Year'),
+                      _detailRowPdfWidget('Semester', semester),
+                      _detailRowPdfWidget('Branch', branch),
+                      _detailRowPdfWidget('Name', studentName),
+                      _detailRowPdfWidget('Father\'s Name', fatherName),
                     ],
                   ),
                 ),
@@ -297,8 +396,8 @@ Future<void> printSemesterMemo({
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      _detailRowPdf('Roll No.', enrolmentNumber),
-                      _detailRowPdf('Academic Year', academicYear),
+                      _detailRowPdfWidget('Roll No.', enrolmentNumber),
+                      _detailRowPdfWidget('Academic Year', academicYear),
                     ],
                   ),
                 ),
@@ -355,13 +454,10 @@ Future<void> printSemesterMemo({
     ),
   );
 
-  await Printing.layoutPdf(
-    onLayout: (_) => pdf.save(),
-    name: 'Semester_Memo_$enrolmentNumber',
-  );
+  return pdf;
 }
 
-pw.Widget _detailRowPdf(String label, String value) {
+pw.Widget _detailRowPdfWidget(String label, String value) {
   return pw.Padding(
     padding: const pw.EdgeInsets.only(bottom: 4),
     child: pw.Row(
