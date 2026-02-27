@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
@@ -23,12 +24,14 @@ import 'screens/student_handbook_screen.dart';
 import 'screens/faculty_handbook_screen.dart';
 import 'screens/update_basic_data_screen.dart';
 import 'screens/course_preference_screen.dart';
+import 'screens/supply_marks_screen.dart';
 import 'screens/preference_report_screen.dart';
 import 'screens/course_view_screen.dart';
 import 'screens/cie_format_screen.dart';
 import 'screens/cie_marks_screen.dart';
 import 'screens/consolidated_marks_screen.dart';
 import 'screens/employee_directory_screen.dart';
+import 'screens/mentor_student_access_screen.dart';
 
 class FacultyHome extends StatefulWidget {
   const FacultyHome({super.key});
@@ -91,7 +94,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       final doc = await _firestore.collection('faculty').doc(facultyId).get();
       if (doc.exists) {
         _facultyData = doc.data();
-        
+
         // Fetch average feedback from backend
         try {
           final avgFeedback = await _feedbackService.getOverallAverageFeedback(
@@ -102,7 +105,7 @@ class _FacultyHomeState extends State<FacultyHome> {
           // If feedback calculation fails, use default value
           _facultyData?['avgFeedback'] = '0.0';
         }
-        
+
         setState(() {
           _isLoading = false;
         });
@@ -240,16 +243,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               'Staff Handbook',
               'Student Handbook',
             ]),
-            _buildDropdownMenu(context, 'Professional Outline', [
-              'View Profile',
-              'Update Basic Data',
-              'Course View',
-              'Course Preference',
-              'Preference Report',
-              'Feedback',
-              'Employee Directory',
-              'Download',
-            ]),
+            _buildProfessionalOutlineMenu(context),
             _buildDropdownMenu(context, 'Attendance', [
               'Attendance Entry',
               'Attendance Entry-Multi Batch Selection',
@@ -259,6 +253,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               'SSM',
             ]),
             _buildMarksEntryMenu(context),
+            _buildMenuButton(context, 'Mentorship', 'mentor'),
           ],
         ),
       ),
@@ -286,16 +281,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               'Staff Handbook',
               'Student Handbook',
             ]),
-            _buildDropdownMenu(context, 'Professional Outline', [
-              'View Profile',
-              'Update Basic Data',
-              'Course View',
-              'Course Preference',
-              'Preference Report',
-              'Feedback',
-              'Employee Directory',
-              'Download',
-            ]),
+            _buildProfessionalOutlineMenu(context),
             _buildDropdownMenu(context, 'Attendance', [
               'Attendance Entry',
               'Attendance Entry-Multi Batch Selection',
@@ -305,6 +291,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               'SSM',
             ]),
             _buildMarksEntryMenu(context),
+            _buildMenuButton(context, 'Mentorship', 'mentor'),
           ],
         ),
       ),
@@ -651,6 +638,68 @@ class _FacultyHomeState extends State<FacultyHome> {
     );
   }
 
+  Widget _buildProfessionalOutlineMenu(BuildContext context) {
+    const items = [
+      'View Profile',
+      'Update Basic Data',
+      'Course View',
+      'Course Preference',
+      'Preference Report',
+      'Feedback',
+      'Employee Directory',
+    ];
+    const downloadItems = [
+      'M.Tech/M.Sc Internship Template',
+      'M.Tech/M.Sc PROJECT Template',
+      'MBA Internship Template Download',
+      'MBA PROJECT Template Download',
+    ];
+    return PopupMenuButton<String>(
+      offset: const Offset(0, 48),
+      color: const Color(0xFF2d3e4f),
+      constraints: const BoxConstraints(minWidth: 250, maxWidth: 350),
+      onSelected: (value) =>
+          _handleMenuSelection(context, 'Professional Outline', value),
+      itemBuilder: (BuildContext ctx) {
+        final List<PopupMenuEntry<String>> entries = [
+          ...items.map((item) => PopupMenuItem<String>(
+                value: item,
+                child: Text(item,
+                    style: const TextStyle(color: Colors.white, fontSize: 13)),
+              )),
+          PopupMenuItem<String>(
+            enabled: false,
+            padding: EdgeInsets.zero,
+            height: 48,
+            child: _DownloadSubMenu(
+              items: downloadItems,
+              onSelected: (value) {
+                Navigator.of(ctx).pop();
+                _handleMenuSelection(context, 'Professional Outline', value);
+              },
+            ),
+          ),
+        ];
+        return entries;
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Text('Professional Outline',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500)),
+            SizedBox(width: 4),
+            Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDropdownMenu(
       BuildContext context, String title, List<String> items) {
     return PopupMenuButton<String>(
@@ -662,7 +711,25 @@ class _FacultyHomeState extends State<FacultyHome> {
       ),
       onSelected: (value) => _handleMenuSelection(context, title, value),
       itemBuilder: (BuildContext context) {
-        return items.map((String choice) {
+        return items.map<PopupMenuEntry<String>>((String choice) {
+          if (choice == '---') {
+            return const PopupMenuDivider();
+          }
+          if (choice.startsWith('##')) {
+            return PopupMenuItem<String>(
+              enabled: false,
+              height: 30,
+              child: Text(
+                choice.substring(2).trim(),
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            );
+          }
           return PopupMenuItem<String>(
             value: choice,
             child: Text(
@@ -740,6 +807,7 @@ class _FacultyHomeState extends State<FacultyHome> {
                   'Total Marks',
                   'Makeup Mid Marks',
                   'Consolidated Marks Report(New)',
+                  'Supply Exam Marks',
                 ].map((String choice) {
                   return PopupMenuItem<String>(
                     value: choice,
@@ -834,6 +902,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       'Total Marks': 'cie_marks',
       'Makeup Mid Marks': 'makeup_marks',
       'Consolidated Marks Report(New)': 'consolidated_marks',
+      'Supply Exam Marks': 'supply_marks',
 
       // Academics submenu
       'Regulations': 'regulations',
@@ -855,7 +924,13 @@ class _FacultyHomeState extends State<FacultyHome> {
       'Preference Report': 'preference_report',
       'Feedback': 'feedback',
       'Employee Directory': 'employee_directory',
-      'Download': 'download',
+      'Mentorship': 'mentor',
+
+      // Download submenu
+      'M.Tech/M.Sc Internship Template': 'download_mtech_internship',
+      'M.Tech/M.Sc PROJECT Template': 'download_mtech_project',
+      'MBA Internship Template Download': 'download_mba_internship',
+      'MBA PROJECT Template Download': 'download_mba_project',
     };
 
     final route = routeMap[item];
@@ -906,6 +981,8 @@ class _FacultyHomeState extends State<FacultyHome> {
       case 'marks_supply':
       case 'makeup_marks':
         page = const FacultyResultsScreen();
+      case 'supply_marks':
+        page = const SupplyMarksScreen();
       case 'consolidated_marks':
         page = const ConsolidatedMarksScreen();
       case 'cie_marks':
@@ -925,6 +1002,32 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const CourseViewScreen();
       case 'employee_directory':
         page = const EmployeeDirectoryScreen();
+      case 'mentor':
+        page = const MentorStudentAccessScreen();
+      case 'download_mtech_internship':
+        launchUrl(
+            Uri.parse(
+                'https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_INTERNSHIP.pptx'),
+            mode: LaunchMode.externalApplication);
+        return;
+      case 'download_mtech_project':
+        launchUrl(
+            Uri.parse(
+                'https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_PROJECT.pptx'),
+            mode: LaunchMode.externalApplication);
+        return;
+      case 'download_mba_internship':
+        launchUrl(
+            Uri.parse(
+                'https://github.com/SumithReddy007/DOCS/raw/main/MBA_Internship.pptx'),
+            mode: LaunchMode.externalApplication);
+        return;
+      case 'download_mba_project':
+        launchUrl(
+            Uri.parse(
+                'https://github.com/SumithReddy007/DOCS/raw/main/MBA_PROJECT.pptx'),
+            mode: LaunchMode.externalApplication);
+        return;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$route - Coming Soon')),
@@ -934,6 +1037,43 @@ class _FacultyHomeState extends State<FacultyHome> {
 
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => page),
+    );
+  }
+}
+
+class _DownloadSubMenu extends StatelessWidget {
+  final List<String> items;
+  final void Function(String) onSelected;
+
+  const _DownloadSubMenu({required this.items, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      offset: const Offset(240, -8),
+      color: const Color(0xFF2d3e4f),
+      constraints: const BoxConstraints(minWidth: 250, maxWidth: 320),
+      onSelected: onSelected,
+      itemBuilder: (context) => items
+          .map((item) => PopupMenuItem<String>(
+                value: item,
+                child: Text(item,
+                    style: const TextStyle(color: Colors.white, fontSize: 13)),
+              ))
+          .toList(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          children: const [
+            Expanded(
+              child: Text('Download',
+                  style: TextStyle(color: Colors.white, fontSize: 13)),
+            ),
+            Icon(Icons.arrow_right, color: Colors.white70, size: 18),
+          ],
+        ),
+      ),
     );
   }
 }

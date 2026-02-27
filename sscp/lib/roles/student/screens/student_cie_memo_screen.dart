@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
+import '../../../utils/memo_pdf_generator.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Small model for a released memo
@@ -605,6 +606,44 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
         title: const Text('Semester Marks Memo'),
         backgroundColor: const Color(0xFF1e3a5f),
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.print),
+            onPressed: () async {
+              try {
+                await printSemesterMemo(
+                  studentName: _studentName,
+                  fatherName: _fatherName,
+                  enrolmentNumber: _enrolmentNumber,
+                  branch: _branch,
+                  semester: widget.memo.semester,
+                  academicYear: widget.memo.academicYear,
+                  subjects: _subjects.asMap().entries.map((e) => {
+                    'subjectCode': e.value.subjectCode,
+                    'subjectName': e.value.subjectName,
+                    'internalMarks': e.value.cieTotal,
+                    'externalMarks': e.value.eteTotal,
+                    'totalMarks': e.value.grandTotal,
+                    'grade': e.value.letterGrade,
+                    'result': e.value.isPassedFor(widget.memo.minPassMarks) ? 'PASS' : 'FAIL',
+                  }).toList(),
+                  sgpa: _sgpa,
+                  totalCredits: _totalCredits,
+                  totalCreditPoints: _totalCreditPoints,
+                  appeared: _subjects.length,
+                  passed: _passed,
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Print error: $e')),
+                  );
+                }
+              }
+            },
+            tooltip: 'Print Memo',
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -744,23 +783,27 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
               ),
             ),
             const SizedBox(width: 20),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'SR UNIVERSITY',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1e3a5f),
-                    letterSpacing: 2,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'SR UNIVERSITY',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1e3a5f),
+                      letterSpacing: 2,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Text(
-                  'Hanmakonda - 506 371, Telangana State, INDIA',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                ),
-              ],
+                  Text(
+                    'Hanmakonda - 506 371, Telangana State, INDIA',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -787,35 +830,62 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
       ['Exam Session', widget.memo.examSession],
     ];
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Left column
-        Expanded(
-          child: Column(
-            children: leftDetails.map((item) {
-              return _detailRow(item[0], item[1]);
-            }).toList(),
+    // Make details responsive: stack on narrow screens, side-by-side on wide
+    return LayoutBuilder(builder: (context, constraints) {
+      final isNarrow = constraints.maxWidth < 480;
+      if (isNarrow) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              children: leftDetails.map((item) => _detailRow(item[0], item[1])).toList(),
+            ),
+            const SizedBox(height: 8),
+            Column(
+              children: rightDetails.map((item) {
+                return _detailRow(item[0], item[1],
+                    valueStyle: item[0] == 'Enrolment Number'
+                        ? const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.red)
+                        : null);
+              }).toList(),
+            ),
+          ],
+        );
+      }
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left column
+          Expanded(
+            child: Column(
+              children: leftDetails.map((item) {
+                return _detailRow(item[0], item[1]);
+              }).toList(),
+            ),
           ),
-        ),
-        const SizedBox(width: 16),
-        // Right column
-        SizedBox(
-          width: 220,
-          child: Column(
-            children: rightDetails.map((item) {
-              return _detailRow(item[0], item[1],
-                  valueStyle: item[0] == 'Enrolment Number'
-                      ? const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.red)
-                      : null);
-            }).toList(),
+          const SizedBox(width: 16),
+          // Right column
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 260),
+            child: Column(
+              children: rightDetails.map((item) {
+                return _detailRow(item[0], item[1],
+                    valueStyle: item[0] == 'Enrolment Number'
+                        ? const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.red)
+                        : null);
+              }).toList(),
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    });
   }
 
   Widget _detailRow(String label, String value, {TextStyle? valueStyle}) {
@@ -824,16 +894,18 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 110,
+          Expanded(
+            flex: 2,
             child: Text(
               label,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           const Text(': ',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
           Expanded(
+            flex: 3,
             child: Text(
               value,
               style: valueStyle ??
@@ -841,6 +913,7 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF1e3a5f)),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -866,45 +939,70 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
       );
     }
 
-    // Table header style
-    const headerDecoration = BoxDecoration(
-      color: Color(0xFF1e3a5f),
-    );
-    const headerText = TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.bold,
-      fontSize: 12,
-    );
-    const cellText = TextStyle(fontSize: 12);
-    const rowPad = EdgeInsets.symmetric(horizontal: 8, vertical: 6);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        
+        // Table header style
+        const headerDecoration = BoxDecoration(
+          color: Color(0xFF1e3a5f),
+        );
+        final headerText = TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: isMobile ? 9 : 12,
+        );
+        final cellText = TextStyle(fontSize: isMobile ? 10 : 12);
+        final rowPad = EdgeInsets.symmetric(
+          horizontal: isMobile ? 3 : 8, 
+          vertical: isMobile ? 4 : 6,
+        );
 
-    return Table(
-      border: TableBorder.all(color: Colors.grey.shade500, width: 0.8),
-      columnWidths: const {
-        0: FixedColumnWidth(36),
-        1: FixedColumnWidth(90),
-        2: FlexColumnWidth(3),
-        3: FixedColumnWidth(60),
-        4: FixedColumnWidth(70),
-        5: FixedColumnWidth(75),
-        6: FixedColumnWidth(60),
-      },
-      children: [
-        // ── Header ──────────────────────────────────────────────────────────
-        TableRow(
-          decoration: headerDecoration,
+        return Table(
+          border: TableBorder.all(color: Colors.grey.shade500, width: 0.8),
+          columnWidths: isMobile 
+            ? const {
+                0: FlexColumnWidth(1.2),   // S.NO
+                1: FlexColumnWidth(2.5),   // Code
+                2: FlexColumnWidth(5),     // Title
+                3: FlexColumnWidth(1.5),   // Grade
+                4: FlexColumnWidth(1.5),   // Credits
+                5: FlexColumnWidth(2),     // Points
+                6: FlexColumnWidth(1.8),   // Status
+              }
+            : const {
+                0: FixedColumnWidth(36),
+                1: FixedColumnWidth(90),
+                2: FlexColumnWidth(3),
+                3: FixedColumnWidth(60),
+                4: FixedColumnWidth(70),
+                5: FixedColumnWidth(75),
+                6: FixedColumnWidth(60),
+              },
           children: [
-            _cell('S.NO', headerText, rowPad),
-            _cell('COURSE\nCODE', headerText, rowPad),
-            _cell('COURSE TITLE', headerText, rowPad),
-            _cell('LETTER\nGRADE', headerText, rowPad, align: TextAlign.center),
-            _cell('COURSE\nCREDITS', headerText, rowPad,
-                align: TextAlign.center),
-            _cell('CREDIT\nPOINTS', headerText, rowPad,
-                align: TextAlign.center),
-            _cell('STATUS', headerText, rowPad, align: TextAlign.center),
-          ],
-        ),
+            // ── Header ──────────────────────────────────────────────────────────
+            TableRow(
+              decoration: headerDecoration,
+              children: isMobile 
+                ? [
+                    _cell('S.NO', headerText, rowPad),
+                    _cell('CODE', headerText, rowPad),
+                    _cell('COURSE', headerText, rowPad),
+                    _cell('GR', headerText, rowPad, align: TextAlign.center),
+                    _cell('CR', headerText, rowPad, align: TextAlign.center),
+                    _cell('POINTS', headerText, rowPad, align: TextAlign.center),
+                    _cell('STATUS', headerText, rowPad, align: TextAlign.center),
+                  ]
+                : [
+                    _cell('S.NO', headerText, rowPad),
+                    _cell('COURSE\nCODE', headerText, rowPad),
+                    _cell('COURSE TITLE', headerText, rowPad),
+                    _cell('LETTER\nGRADE', headerText, rowPad, align: TextAlign.center),
+                    _cell('COURSE\nCREDITS', headerText, rowPad, align: TextAlign.center),
+                    _cell('CREDIT\nPOINTS', headerText, rowPad, align: TextAlign.center),
+                    _cell('STATUS', headerText, rowPad, align: TextAlign.center),
+                  ],
+            ),
         // ── Data rows ───────────────────────────────────────────────────────
         ..._subjects.asMap().entries.map((e) {
           final idx = e.key;
@@ -956,7 +1054,9 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
             ],
           );
         }),
-      ],
+        ],
+      );
+      },
     );
   }
 
@@ -964,7 +1064,13 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
       {TextAlign align = TextAlign.left}) {
     return Padding(
       padding: padding,
-      child: Text(text, style: style, textAlign: align),
+      child: Text(
+        text, 
+        style: style, 
+        textAlign: align,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 3,
+      ),
     );
   }
 
@@ -974,39 +1080,57 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
     final total = _subjects.length;
     final passed = _passed;
 
-    return Table(
-      border: TableBorder.all(color: Colors.grey.shade500, width: 0.8),
-      columnWidths: const {
-        0: FlexColumnWidth(2),
-        1: FlexColumnWidth(2),
-        2: FlexColumnWidth(2),
-        3: FlexColumnWidth(2),
-        4: FlexColumnWidth(2),
-      },
-      children: [
-        TableRow(
-          decoration: const BoxDecoration(color: Color(0xFFF5F5F5)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        
+        return Table(
+          border: TableBorder.all(color: Colors.grey.shade500, width: 0.8),
+          columnWidths: const {
+            0: FlexColumnWidth(2),
+            1: FlexColumnWidth(2),
+            2: FlexColumnWidth(2),
+            3: FlexColumnWidth(2),
+            4: FlexColumnWidth(2),
+          },
           children: [
-            _summaryCell('SUBJECTS\nREGISTERED\n$total', Colors.black),
-            _summaryCell('APPEARED\n$total', Colors.black),
-            _summaryCell('PASSED\n$passed', Colors.green.shade700),
-            _summaryCell('TOTAL\nCREDITS\n$_totalCredits', Colors.black),
-            _summaryCell(
-                'TOTAL CREDIT\nPOINTS\n${_totalCreditPoints.toStringAsFixed(3)}',
-                Colors.black),
+            TableRow(
+              decoration: const BoxDecoration(color: Color(0xFFF5F5F5)),
+              children: isMobile
+                ? [
+                    _summaryCell('REG\n$total', Colors.black, isMobile),
+                    _summaryCell('APP\n$total', Colors.black, isMobile),
+                    _summaryCell('PASS\n$passed', Colors.green.shade700, isMobile),
+                    _summaryCell('TOT CR\n$_totalCredits', Colors.black, isMobile),
+                    _summaryCell('CR PTS\n${_totalCreditPoints.toStringAsFixed(1)}', Colors.black, isMobile),
+                  ]
+                : [
+                    _summaryCell('SUBJECTS\nREGISTERED\n$total', Colors.black, isMobile),
+                    _summaryCell('APPEARED\n$total', Colors.black, isMobile),
+                    _summaryCell('PASSED\n$passed', Colors.green.shade700, isMobile),
+                    _summaryCell('TOTAL\nCREDITS\n$_totalCredits', Colors.black, isMobile),
+                    _summaryCell('TOTAL CREDIT\nPOINTS\n${_totalCreditPoints.toStringAsFixed(3)}', Colors.black, isMobile),
+                  ],
+            ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _summaryCell(String text, Color color) {
+  Widget _summaryCell(String text, Color color, bool isMobile) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 4 : 8, 
+        vertical: isMobile ? 6 : 8,
+      ),
       child: Text(
         text,
-        style:
-            TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+        style: TextStyle(
+          fontSize: isMobile ? 9 : 11, 
+          fontWeight: FontWeight.bold, 
+          color: color,
+        ),
         textAlign: TextAlign.center,
       ),
     );

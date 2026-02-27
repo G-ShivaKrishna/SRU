@@ -11,6 +11,12 @@ import 'pages/faculty_assignment_page.dart';
 import 'pages/subject_management_page.dart';
 import 'pages/student_promotion_page.dart';
 import 'pages/feedback_management_page.dart';
+import 'pages/regulations_management_page.dart';
+import 'pages/syllabus_management_page.dart';
+import 'pages/grievance_management_page.dart';
+import 'pages/attendance_management_page.dart';
+import 'pages/seed_attendance_page.dart';
+import 'pages/results_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
 import 'screens/admin_cie_memo_release_screen.dart';
 import 'screens/admin_lookup_screen.dart';
@@ -83,6 +89,20 @@ class _AdminHomeState extends State<AdminHome> {
       page = const AdminLookupScreen();
     } else if (pageName == 'Feedback Management') {
       page = const FeedbackManagementPage();
+    } else if (pageName == 'Regulations') {
+      page = const RegulationsManagementPage();
+    } else if (pageName == 'Syllabus') {
+      page = const SyllabusManagementPage();
+    } else if (pageName == 'Grievances') {
+      page = const GrievanceManagementPage();
+    } else if (pageName == 'Attendance Management') {
+      page = const AttendanceManagementPage();
+    } else if (pageName == 'Seed Attendance') {
+      page = const SeedAttendancePage();
+    } else if (pageName == 'Results Management') {
+      page = const ResultsManagementPage();
+    } else if (pageName == 'Supply Exam') {
+      page = const ResultsManagementPage(initialTab: 1);
     } else {
       return;
     }
@@ -199,6 +219,11 @@ class _AdminHomeState extends State<AdminHome> {
       'Course Management',
       'CIE Memo Release',
       'Feedback Management',
+      'Regulations',
+      'Syllabus',
+      'Grievances',
+      'Attendance Management',
+      'Supply Exam',
       'View Only',
       'Lookup',
     ];
@@ -672,6 +697,55 @@ class _AdminHomeState extends State<AdminHome> {
           const Color(0xFF1e3a5f),
           context,
           () => _navigateToPage(context, 'Lookup'),
+        ),
+        _buildActionCard(
+          'Regulations',
+          Icons.menu_book,
+          Colors.deepPurple,
+          context,
+          () => _navigateToPage(context, 'Regulations'),
+        ),
+        _buildActionCard(
+          'Syllabus',
+          Icons.import_contacts,
+          Colors.teal,
+          context,
+          () => _navigateToPage(context, 'Syllabus'),
+        ),
+        _buildActionCard(
+          'Grievances',
+          Icons.report_problem,
+          Colors.deepOrange,
+          context,
+          () => _navigateToPage(context, 'Grievances'),
+        ),
+        _buildActionCard(
+          'Attendance\nManagement',
+          Icons.fact_check,
+          Colors.brown,
+          context,
+          () => _navigateToPage(context, 'Attendance Management'),
+        ),
+        _buildActionCard(
+          'Seed Feb\nAttendance',
+          Icons.upload_file,
+          Colors.teal,
+          context,
+          () => _navigateToPage(context, 'Seed Attendance'),
+        ),
+        _buildActionCard(
+          'Results &\nBacklogs',
+          Icons.school,
+          Colors.indigo,
+          context,
+          () => _navigateToPage(context, 'Results Management'),
+        ),
+        _buildActionCard(
+          'Supply Exam\nEnable',
+          Icons.event_available,
+          Colors.green.shade700,
+          context,
+          () => _navigateToPage(context, 'Supply Exam'),
         ),
       ],
     );
