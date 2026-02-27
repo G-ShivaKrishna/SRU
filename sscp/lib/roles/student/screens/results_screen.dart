@@ -1,10 +1,11 @@
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../widgets/app_header.dart';
+import '../../../utils/html_preview_screen.dart';
+import 'supply_exam_memo_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Student Results Screen – Results / Backlogs / Supply Exam tabs
@@ -266,8 +267,7 @@ class _ResultCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Student: ${data['studentName']}  (${data['rollNo']})'),
-              Text(
-                  'Year ${data['year']}  •  Sem ${data['semester']}  •  ${data['department']}'),
+              Text('Year ${data['year']}  •  Sem ${data['semester']}  •  ${data['department']}'),
               const Divider(),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -991,12 +991,12 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
   // ── Memo generator — opens a styled HTML page in a new browser tab ─────────
   void _openMemo(String rollNo, String studentName, String examSession,
       List<Map<String, dynamic>> subjects) {
-    final rows = subjects.map((s) {
+        final rows = subjects.map((s) {
       final pass = s['result'] == 'PASS';
       final color = pass ? '#1b5e20' : '#b71c1c';
       return '<tr>'
           '<td>${s['subjectCode'] ?? ''}</td>'
-          '<td style="text-align:left">${s['subjectName'] ?? ''}</td>'
+          '<td>${s['subjectName'] ?? ''}</td>'
           '<td>${s['internalMarks'] ?? ''}</td>'
           '<td>${s['externalMarks'] ?? ''}</td>'
           '<td><strong>${s['totalMarks'] ?? ''}</strong></td>'
@@ -1014,10 +1014,12 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
 
     final memoHtml = '<!DOCTYPE html>'
         '<html><head><meta charset="UTF-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
         '<title>Supply Exam Memo - $rollNo</title>'
         '<style>'
         '@media print{body{-webkit-print-color-adjust:exact}}'
-        'body{font-family:Arial,sans-serif;margin:0;padding:20px;color:#111}'
+        'body{font-family: Arial, Helvetica, sans-serif; margin:10px; color:#111}'
+        '@media (max-width:600px){body{margin:5px;font-size:12px}.inst-name{font-size:16px}.memo-title{font-size:13px}.info-grid{grid-template-columns:1fr;gap:4px;font-size:11px}}'
         '.header{text-align:center;border-bottom:3px double #1e3a5f;padding-bottom:12px;margin-bottom:18px}'
         '.inst-name{font-size:22px;font-weight:bold;color:#1e3a5f}'
         '.inst-sub{font-size:13px;color:#555}'
@@ -1026,9 +1028,20 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
         '.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 30px;margin:14px 0;font-size:14px}'
         '.info-grid .label{color:#666}'
         '.info-grid .val{font-weight:bold}'
-        'table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}'
-        'th{background:#1e3a5f;color:#fff;padding:7px 8px}'
-        'td{padding:6px 8px;border:1px solid #ddd;text-align:center}'
+        '/* Responsive wrapper */'
+        '.table-container{width:100%;overflow:hidden}'
+        '/* Table styling */'
+        'table{width:100%;border-collapse:collapse;font-size:10px;margin-top:12px;table-layout:fixed}'
+        'th,td{padding:4px 2px;border:1px solid #ddd;word-wrap:break-word;overflow-wrap:break-word;vertical-align:top}'
+        'th{background:#1e3a5f;color:#fff;font-weight:bold;text-align:center;font-size:9px;line-height:1.2}'
+        'td{text-align:center;font-size:10px;line-height:1.3}'
+        'th:nth-child(1),td:nth-child(1){width:15%}'
+        'th:nth-child(2),td:nth-child(2){width:35%;text-align:left}'
+        'th:nth-child(3),td:nth-child(3){width:10%}'
+        'th:nth-child(4),td:nth-child(4){width:10%}'
+        'th:nth-child(5),td:nth-child(5){width:10%}'
+        'th:nth-child(6),td:nth-child(6){width:10%}'
+        'th:nth-child(7),td:nth-child(7){width:10%}'
         'tr:nth-child(even) td{background:#f5f7fa}'
         '.overall{margin-top:16px;text-align:center;font-size:18px;font-weight:bold;'
         'color:$overallColor;letter-spacing:1px}'
@@ -1055,10 +1068,12 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
         '<div><span class="label">Student Name: </span><span class="val">$studentName</span></div>'
         '<div><span class="label">Exam Session: </span><span class="val">$examSession</span></div>'
         '</div>'
+        '<div class="table-container">'
         '<table><thead><tr>'
-        '<th>Subject Code</th><th>Subject Name</th>'
-        '<th>Internal</th><th>External</th><th>Total</th><th>Grade</th><th>Result</th>'
+        '<th>Code</th><th>Subject</th>'
+        '<th>Int</th><th>Ext</th><th>Tot</th><th>Gr</th><th>Result</th>'
         '</tr></thead><tbody>$rows</tbody></table>'
+        '</div>'
         '<div class="overall">Overall Result: $overallText</div>'
         '<div class="footer">'
         '<div><div class="line">Student Signature</div></div>'
@@ -1069,11 +1084,12 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
         'This is a computer-generated document. For official use only.'
         '</p></div></body></html>';
 
-    final blob = html.Blob([memoHtml], 'text/html');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    html.window.open(url, '_blank');
-    Future.delayed(
-        const Duration(seconds: 10), () => html.Url.revokeObjectUrl(url));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HtmlPreviewScreen(htmlContent: memoHtml),
+      ),
+    );
   }
 
   @override
@@ -1184,78 +1200,251 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
                       ],
                     ),
                   ),
-                  // Subject rows
-                  ...windowSubjects.map((s) {
-                    final passed = s['result'] == 'PASS';
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        border: Border(
-                            bottom: BorderSide(color: Colors.grey[200]!)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                  // Responsive marks table
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isMobile = constraints.maxWidth < 600;
+                        
+                        return Table(
+                          border: TableBorder.all(color: Colors.grey.shade400, width: 0.8),
+                          columnWidths: isMobile 
+                            ? const {
+                                0: FlexColumnWidth(2.5),   // Code
+                                1: FlexColumnWidth(5),     // Subject
+                                2: FlexColumnWidth(1.5),   // Int
+                                3: FlexColumnWidth(1.5),   // Ext
+                                4: FlexColumnWidth(1.5),   // Tot
+                                5: FlexColumnWidth(1.3),   // Grd
+                                6: FlexColumnWidth(2),     // Result
+                              }
+                            : const {
+                                0: FixedColumnWidth(90),
+                                1: FlexColumnWidth(3),
+                                2: FixedColumnWidth(70),
+                                3: FixedColumnWidth(70),
+                                4: FixedColumnWidth(70),
+                                5: FixedColumnWidth(60),
+                                6: FixedColumnWidth(80),
+                              },
+                          children: [
+                            // Header
+                            TableRow(
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF1e3a5f),
+                              ),
                               children: [
-                                Text(s['subjectCode'] ?? '—',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13)),
-                                Text(s['subjectName'] ?? '—',
-                                    style: const TextStyle(
-                                        fontSize: 11, color: Colors.grey)),
+                                _tableCell(
+                                  isMobile ? 'Code' : 'Subject Code',
+                                  TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 9 : 12,
+                                  ),
+                                  EdgeInsets.symmetric(
+                                    horizontal: isMobile ? 3 : 8,
+                                    vertical: isMobile ? 4 : 6,
+                                  ),
+                                ),
+                                _tableCell(
+                                  isMobile ? 'Subject' : 'Subject Name',
+                                  TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 9 : 12,
+                                  ),
+                                  EdgeInsets.symmetric(
+                                    horizontal: isMobile ? 3 : 8,
+                                    vertical: isMobile ? 4 : 6,
+                                  ),
+                                ),
+                                _tableCell(
+                                  'Int',
+                                  TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 9 : 12,
+                                  ),
+                                  EdgeInsets.symmetric(
+                                    horizontal: isMobile ? 3 : 8,
+                                    vertical: isMobile ? 4 : 6,
+                                  ),
+                                  align: TextAlign.center,
+                                ),
+                                _tableCell(
+                                  'Ext',
+                                  TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 9 : 12,
+                                  ),
+                                  EdgeInsets.symmetric(
+                                    horizontal: isMobile ? 3 : 8,
+                                    vertical: isMobile ? 4 : 6,
+                                  ),
+                                  align: TextAlign.center,
+                                ),
+                                _tableCell(
+                                  'Tot',
+                                  TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 9 : 12,
+                                  ),
+                                  EdgeInsets.symmetric(
+                                    horizontal: isMobile ? 3 : 8,
+                                    vertical: isMobile ? 4 : 6,
+                                  ),
+                                  align: TextAlign.center,
+                                ),
+                                _tableCell(
+                                  isMobile ? 'Gr' : 'Grade',
+                                  TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 9 : 12,
+                                  ),
+                                  EdgeInsets.symmetric(
+                                    horizontal: isMobile ? 3 : 8,
+                                    vertical: isMobile ? 4 : 6,
+                                  ),
+                                  align: TextAlign.center,
+                                ),
+                                _tableCell(
+                                  'Result',
+                                  TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: isMobile ? 9 : 12,
+                                  ),
+                                  EdgeInsets.symmetric(
+                                    horizontal: isMobile ? 3 : 8,
+                                    vertical: isMobile ? 4 : 6,
+                                  ),
+                                  align: TextAlign.center,
+                                ),
                               ],
                             ),
-                          ),
-                          _miniChip('Int', s['internalMarks']),
-                          const SizedBox(width: 4),
-                          _miniChip('Ext', s['externalMarks']),
-                          const SizedBox(width: 4),
-                          _miniChip('Tot', s['totalMarks'], highlight: true),
-                          const SizedBox(width: 8),
-                          _miniChip('Grd', s['grade']),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color:
-                                  passed ? Colors.green[100] : Colors.red[100],
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              s['result'] ?? '—',
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: passed
-                                      ? Colors.green[800]
-                                      : Colors.red[800]),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                  // Download Memo button
+                            // Data rows
+                            ...windowSubjects.asMap().entries.map((e) {
+                              final idx = e.key;
+                              final s = e.value;
+                              final passed = s['result'] == 'PASS';
+                              final isEven = idx % 2 == 0;
+                              
+                              return TableRow(
+                                decoration: BoxDecoration(
+                                  color: isEven ? Colors.white : Colors.grey.shade50,
+                                ),
+                                children: [
+                                  _tableCell(
+                                    s['subjectCode'] ?? '—',
+                                    TextStyle(fontSize: isMobile ? 10 : 12),
+                                    EdgeInsets.symmetric(
+                                      horizontal: isMobile ? 3 : 8,
+                                      vertical: isMobile ? 4 : 6,
+                                    ),
+                                  ),
+                                  _tableCell(
+                                    s['subjectName'] ?? '—',
+                                    TextStyle(fontSize: isMobile ? 10 : 12),
+                                    EdgeInsets.symmetric(
+                                      horizontal: isMobile ? 3 : 8,
+                                      vertical: isMobile ? 4 : 6,
+                                    ),
+                                  ),
+                                  _tableCell(
+                                    '${s['internalMarks'] ?? '—'}',
+                                    TextStyle(fontSize: isMobile ? 10 : 12),
+                                    EdgeInsets.symmetric(
+                                      horizontal: isMobile ? 3 : 8,
+                                      vertical: isMobile ? 4 : 6,
+                                    ),
+                                    align: TextAlign.center,
+                                  ),
+                                  _tableCell(
+                                    '${s['externalMarks'] ?? '—'}',
+                                    TextStyle(fontSize: isMobile ? 10 : 12),
+                                    EdgeInsets.symmetric(
+                                      horizontal: isMobile ? 3 : 8,
+                                      vertical: isMobile ? 4 : 6,
+                                    ),
+                                    align: TextAlign.center,
+                                  ),
+                                  _tableCell(
+                                    '${s['totalMarks'] ?? '—'}',
+                                    TextStyle(
+                                      fontSize: isMobile ? 10 : 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    EdgeInsets.symmetric(
+                                      horizontal: isMobile ? 3 : 8,
+                                      vertical: isMobile ? 4 : 6,
+                                    ),
+                                    align: TextAlign.center,
+                                  ),
+                                  _tableCell(
+                                    s['grade'] ?? '—',
+                                    TextStyle(
+                                      fontSize: isMobile ? 10 : 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    EdgeInsets.symmetric(
+                                      horizontal: isMobile ? 3 : 8,
+                                      vertical: isMobile ? 4 : 6,
+                                    ),
+                                    align: TextAlign.center,
+                                  ),
+                                  _tableCell(
+                                    s['result'] ?? '—',
+                                    TextStyle(
+                                      fontSize: isMobile ? 10 : 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: passed ? Colors.green[800] : Colors.red[800],
+                                    ),
+                                    EdgeInsets.symmetric(
+                                      horizontal: isMobile ? 3 : 8,
+                                      vertical: isMobile ? 4 : 6,
+                                    ),
+                                    align: TextAlign.center,
+                                  ),
+                                ],
+                              );
+                            }),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  // View Detailed Memo Button
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.download, size: 18),
-                      label: const Text('Download Marks Memo'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF1e3a5f),
-                        side: const BorderSide(color: Color(0xFF1e3a5f)),
-                      ),
-                      onPressed: () => _openMemo(
-                        widget.rollNo,
-                        studentName,
-                        examSession,
-                        windowSubjects,
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SupplyExamMemoScreen(
+                                rollNo: widget.rollNo,
+                                examSession: examSession,
+                                subjects: windowSubjects,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.description_outlined),
+                        label: const Text('View Detailed Memo'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1e3a5f),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -1265,6 +1454,20 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
           },
         );
       },
+    );
+  }
+
+  Widget _tableCell(String text, TextStyle style, EdgeInsets padding,
+      {TextAlign align = TextAlign.left}) {
+    return Padding(
+      padding: padding,
+      child: Text(
+        text,
+        style: style,
+        textAlign: align,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 3,
+      ),
     );
   }
 

@@ -26,16 +26,10 @@ class AppHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           padding: const EdgeInsets.all(8),
-          child: Image.asset(
-            'images/image.png',
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return Icon(
-                Icons.school,
-                size: isMobile ? 40 : 60,
-                color: Colors.grey[400],
-              );
-            },
+          child: Icon(
+            Icons.school,
+            size: isMobile ? 40 : 60,
+            color: const Color(0xFF1e3a5f),
           ),
         ),
       ),
