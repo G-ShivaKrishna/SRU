@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../utils/memo_pdf_generator.dart';
 
 class SupplyExamMemoScreen extends StatefulWidget {
   const SupplyExamMemoScreen({
@@ -113,11 +114,28 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.print),
-            onPressed: () {
-              // TODO: Implement print functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Print functionality coming soon')),
-              );
+            onPressed: () async {
+              try {
+                await printSupplyExamMemo(
+                  studentName: _studentName,
+                  fatherName: _fatherName,
+                  enrolmentNumber: _enrolmentNumber,
+                  branch: _branch,
+                  examSession: widget.examSession,
+                  memoNumber: _memoNumber,
+                  subjects: widget.subjects,
+                  sgpa: _sgpa,
+                  totalCredits: _totalCredits,
+                  totalCreditPoints: _totalCreditPoints,
+                  passed: _passed,
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Print error: $e')),
+                  );
+                }
+              }
             },
             tooltip: 'Print Memo',
           ),

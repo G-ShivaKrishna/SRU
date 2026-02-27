@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
+import '../../../utils/memo_pdf_generator.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Small model for a released memo
@@ -608,11 +609,37 @@ class _MemoViewScreenState extends State<_MemoViewScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.print),
-            onPressed: () {
-              // TODO: Implement print functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Print functionality coming soon')),
-              );
+            onPressed: () async {
+              try {
+                await printSemesterMemo(
+                  studentName: _studentName,
+                  fatherName: _fatherName,
+                  enrolmentNumber: _enrolmentNumber,
+                  branch: _branch,
+                  semester: widget.memo.semester,
+                  academicYear: widget.memo.academicYear,
+                  subjects: _subjects.asMap().entries.map((e) => {
+                    'subjectCode': e.value.subjectCode,
+                    'subjectName': e.value.subjectName,
+                    'internalMarks': e.value.cieTotal,
+                    'externalMarks': e.value.eteTotal,
+                    'totalMarks': e.value.grandTotal,
+                    'grade': e.value.letterGrade,
+                    'result': e.value.isPassedFor(widget.memo.minPassMarks) ? 'PASS' : 'FAIL',
+                  }).toList(),
+                  sgpa: _sgpa,
+                  totalCredits: _totalCredits,
+                  totalCreditPoints: _totalCreditPoints,
+                  appeared: _subjects.length,
+                  passed: _passed,
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Print error: $e')),
+                  );
+                }
+              }
             },
             tooltip: 'Print Memo',
           ),
