@@ -110,8 +110,14 @@ class _StudentHomeState extends State<StudentHome> {
             studentData['lastPromotedAt'] as dynamic; // Timestamp?
         DateTime? sinceDate;
         try {
-          sinceDate = (lastPromotedTs as dynamic)?.toDate() as DateTime?;
-        } catch (_) {}
+          if (lastPromotedTs != null) {
+            final dt = (lastPromotedTs as dynamic).toDate() as DateTime;
+            // Normalize to start of day to avoid time comparison issues
+            sinceDate = DateTime(dt.year, dt.month, dt.day);
+          }
+        } catch (_) {
+          debugPrint('[Attendance] Error parsing lastPromotedAt timestamp');
+        }
         _computeAttendancePct(rollNumber, sinceDate: sinceDate);
         _computeBacklogs(rollNumber);
       } else {
@@ -341,11 +347,20 @@ class _StudentHomeState extends State<StudentHome> {
           try {
             final p = dateStr.split('-');
             if (p.length == 3) {
-              final recDate =
-                  DateTime(int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
-              if (recDate.isBefore(sinceDate)) continue;
+              // Parse dd-MM-yyyy format
+              final day = int.parse(p[0]);
+              final month = int.parse(p[1]);
+              final year = int.parse(p[2]);
+              final recDate = DateTime(year, month, day);
+              
+              // Only include records from sinceDate onwards (inclusive)
+              if (recDate.isBefore(sinceDate)) {
+                continue; // Skip this old record
+              }
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('[Attendance] Error parsing date "$dateStr": $e');
+          }
         }
 
         held += count;

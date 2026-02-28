@@ -514,6 +514,19 @@ class _StudentCardState extends State<_StudentCard> {
     if (roll == '—' || batch == '—') return;
     setState(() => _attendanceLoading = true);
     try {
+      // Get promotion date to filter attendance records
+      DateTime? sinceDate;
+      try {
+        final lastPromotedTs = widget.student['lastPromotedAt'];
+        if (lastPromotedTs != null) {
+          final dt = (lastPromotedTs as dynamic).toDate() as DateTime;
+          // Normalize to start of day to avoid time comparison issues
+          sinceDate = DateTime(dt.year, dt.month, dt.day);
+        }
+      } catch (_) {
+        // If no promotion date, show all records
+      }
+
       final snap = await _fs
           .collection('attendance')
           .where('batches', arrayContains: batch)
@@ -523,6 +536,30 @@ class _StudentCardState extends State<_StudentCard> {
       final Map<String, Map<String, dynamic>> subjectMap = {};
       for (final doc in snap.docs) {
         final data = doc.data();
+        
+        // Filter by promotion date if available
+        if (sinceDate != null) {
+          final dateStr = data['dateStr'] as String? ?? '';
+          if (dateStr.isNotEmpty) {
+            try {
+              final p = dateStr.split('-');
+              if (p.length == 3) {
+                final day = int.parse(p[0]);
+                final month = int.parse(p[1]);
+                final year = int.parse(p[2]);
+                final recDate = DateTime(year, month, day);
+                
+                // Skip records before promotion date
+                if (recDate.isBefore(sinceDate)) {
+                  continue;
+                }
+              }
+            } catch (_) {
+              // If date parsing fails, include the record
+            }
+          }
+        }
+
         final subjectCode = data['subjectCode'] as String? ?? '';
         final subjectName = data['subjectName'] as String? ?? '';
         final key = subjectCode.isNotEmpty ? subjectCode : subjectName;
