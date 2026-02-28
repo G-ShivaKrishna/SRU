@@ -236,6 +236,15 @@ class _MultiBatchAttendanceScreenState
 
     setState(() => _submitting = true);
     try {
+      // Validate that assignment is still active before submitting attendance
+      final assignDoc = await _firestore
+          .collection('facultyAssignments')
+          .doc(assignment.docId)
+          .get();
+      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      }
+      
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
       final studentRecords = _students
           .map((s) => {

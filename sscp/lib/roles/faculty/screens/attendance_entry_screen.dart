@@ -269,6 +269,16 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     try {
       final user = _auth.currentUser!;
       final facultyId = user.email!.split('@')[0].toUpperCase();
+      
+      // Validate that assignment is still active before submitting attendance
+      final assignDoc = await _firestore
+          .collection('facultyAssignments')
+          .doc(assignment.docId)
+          .get();
+      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      }
+      
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
       final batches = _selectedBatch != null
           ? [_selectedBatch!]

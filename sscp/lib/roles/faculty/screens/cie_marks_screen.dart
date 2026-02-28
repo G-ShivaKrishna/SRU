@@ -315,6 +315,13 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     setState(() => row.isSaving = true);
     try {
       final facultyId = _auth.currentUser!.email!.split('@')[0].toUpperCase();
+      
+      // Validate that assignment is still active before saving
+      final assignDoc = await _fs.collection('facultyAssignments').doc(assignment.docId).get();
+      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      }
+      
       final compMarks = <String, int>{};
       for (final c in _components) {
         compMarks[c.name] =
@@ -394,6 +401,12 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     final now = FieldValue.serverTimestamp();
 
     try {
+      // Validate that assignment is still active before saving
+      final assignDoc = await _fs.collection('facultyAssignments').doc(assignment.docId).get();
+      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      }
+      
       final wb = _fs.batch();
       for (final row in _studentRows) {
         final compMarks = <String, int>{};

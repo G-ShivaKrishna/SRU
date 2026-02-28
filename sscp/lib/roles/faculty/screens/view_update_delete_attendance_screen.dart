@@ -858,15 +858,22 @@ class _ViewUpdateDeleteAttendanceScreenState
     required String reason,
   }) async {
     try {
-      // Fetch subjectName
+      // Fetch subjectName from active assignments only
       final assignSnap = await _firestore
           .collection('facultyAssignments')
           .where('facultyId', isEqualTo: _facultyId)
           .where('subjectCode', isEqualTo: subjectCode)
           .limit(1)
           .get();
-      final subjectName = assignSnap.docs.isNotEmpty
-          ? (assignSnap.docs.first.data()['subjectName'] as String? ?? '')
+      
+      // Filter by isActive to ensure only currently active courses
+      final activeDocs = assignSnap.docs.where((doc) {
+        final d = doc.data();
+        return (d['isActive'] ?? true) == true;
+      }).toList();
+      
+      final subjectName = activeDocs.isNotEmpty
+          ? (activeDocs.first.data()['subjectName'] as String? ?? '')
           : '';
 
       await _firestore.collection('attendanceEditRequests').add({
