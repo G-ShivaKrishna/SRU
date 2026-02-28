@@ -28,6 +28,9 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
   CourseRequirement? _requirement;
   StudentCourseSelection? _studentSelection;
   bool _isLoading = true;
+
+  /// Cached future for previous-semester course history
+  Future<QuerySnapshot>? _historyFuture;
   bool _isSaving = false;
   Map<String, dynamic>? _cachedValidation;
 
@@ -110,12 +113,20 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       debugPrint('Courses found: OE=${courses[CourseType.OE]?.length ?? 0}, PE=${courses[CourseType.PE]?.length ?? 0}, SE=${courses[CourseType.SE]?.length ?? 0}');
       debugPrint('=================================');
 
+      // Fetch course history for the Status tab
+      final historyFuture = FirebaseFirestore.instance
+          .collection('studentCoursesHistory')
+          .where('studentId', isEqualTo: studentId)
+          .orderBy('archivedAt', descending: true)
+          .get();
+
       setState(() {
         _settings = settings;
         _availableCourses = courses;
         _requirement = requirement;
         _studentSelection = selection;
         _cachedValidation = null; // Reset validation cache
+        _historyFuture = historyFuture;
         _isLoading = false;
       });
     } catch (e) {
@@ -147,8 +158,6 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
     if (_isLoading || _tabController == null) {
       return Scaffold(
         appBar: AppBar(
@@ -623,9 +632,119 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                   ],
                 ),
               ),
+            const SizedBox(height: 24),
+            _buildCourseHistory(context),
           ],
         ),
       ),
+    );
+  }
+
+  /// Shows all previous semester registration archives from
+  /// the `studentCoursesHistory` collection.
+  Widget _buildCourseHistory(BuildContext context) {
+    if (_historyFuture == null) return const SizedBox.shrink();
+    return FutureBuilder<QuerySnapshot>(
+      future: _historyFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final docs = snapshot.data?.docs ?? [];
+        if (docs.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Previous Registrations',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ...docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final archivedAt = data['archivedAt'];
+              String dateLabel = 'Archived';
+              if (archivedAt is Timestamp) {
+                final d = archivedAt.toDate();
+                dateLabel =
+                    'Archived ${d.day.toString().padLeft(2, '0')}-${d.month.toString().padLeft(2, '0')}-${d.year}';
+              }
+              final year = data['year']?.toString() ?? '';
+              final branch = data['branch']?.toString() ?? '';
+              final selByType =
+                  (data['selectionsByType'] as Map<String, dynamic>?) ?? {};
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ExpansionTile(
+                  title: Text(
+                    year.isNotEmpty ? 'Year $year  |  $branch' : 'History',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    dateLabel,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  children: selByType.entries.map((e) {
+                    final typeLabel = e.key;
+                    final ids = (e.value as List<dynamic>? ?? []);
+                    if (ids.isEmpty) return const SizedBox.shrink();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Text(
+                            typeLabel,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w500, fontSize: 13),
+                          ),
+                        ),
+                        ...ids.map((id) => FutureBuilder<Course?>(
+                              future:
+                                  _courseService.getCourse(id.toString()),
+                              builder: (ctx, cs) {
+                                final name = cs.data?.name ?? id.toString();
+                                final code = cs.data?.code ?? '';
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.only(left: 8, bottom: 4),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.circle,
+                                          size: 6, color: Colors.grey),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          code.isNotEmpty
+                                              ? '$code — $name'
+                                              : name,
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            )),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              );
+            }),
+          ],
+        );
+      },
     );
   }
 
@@ -717,8 +836,6 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
     List<Course> courses,
     CourseType type,
   ) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
     if (courses.isEmpty) {
       return _EmptyCourseSection(typeLabel: typeLabel);
     }
@@ -1493,71 +1610,6 @@ class _SelectedCourseWidget extends StatelessWidget {
                 color: Colors.red[600],
                 size: 16,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CourseCheckboxWidget extends StatelessWidget {
-  final Course course;
-  final bool isSelected;
-  final String courseType;
-  final Function(Course, bool, String) onChanged;
-
-  const _CourseCheckboxWidget({
-    required Key key,
-    required this.course,
-    required this.isSelected,
-    required this.courseType,
-    required this.onChanged,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: isSelected ? Colors.blue[400]! : Colors.grey[300]!,
-        ),
-        borderRadius: BorderRadius.circular(6),
-        color: isSelected ? Colors.blue[50] : Colors.white,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Checkbox(
-            value: isSelected,
-            onChanged: (value) async {
-              await onChanged(course, value ?? false, courseType);
-            },
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${course.code} - ${course.name}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Credits: ${course.credits}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
             ),
           ),
         ],

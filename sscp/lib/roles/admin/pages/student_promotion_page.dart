@@ -26,6 +26,10 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
   String? _demoteDepartment;
   int _demoteStudentCount = 0;
 
+  // Semester toggle state
+  bool _semesterActive = false;
+  List<String>? _promotionLog;
+
   // Individual promotion state
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _searchResults = [];
@@ -34,7 +38,8 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
+    _promotionLog = <String>[];
     _loadDepartments();
   }
 
@@ -282,6 +287,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
             Tab(text: 'Bulk Promotion'),
             Tab(text: 'Bulk Demotion'),
             Tab(text: 'Individual'),
+            Tab(text: 'Semester Toggle'),
           ],
         ),
       ),
@@ -293,6 +299,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
               _buildBulkPromotionTab(),
               _buildBulkDemotionTab(),
               _buildIndividualTab(),
+              _buildSemesterToggleTab(),
             ],
           ),
           if (_isLoading)
@@ -871,6 +878,286 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  // ─── Semester Toggle ────────────────────────────────────────────────────────
+
+  /// Promotes every student in the system from highest year/sem down to lowest,
+  /// ensuring no student is double-promoted.  All post-promotion side effects
+  /// (attendance reset, course archival, mentor removal, faculty prefs reset)
+  /// are handled inside [StudentPromotionService.bulkPromoteStudents].
+  Future<void> _performFullSemesterPromotion() async {
+    final confirmed = await _showConfirmDialog(
+      title: 'Start New Semester?',
+      message:
+          'This will:\n\n'
+          '• Promote ALL students to the next semester/year\n'
+          '• Reset attendance counters to 0\n'
+          '• Archive & clear enrolled courses\n'
+          '• Remove mentor assignments\n'
+          '• Reset faculty course preferences\n\n'
+          'This action cannot be undone. Continue?',
+    );
+    if (!confirmed) return;
+
+    setState(() {
+      _isLoading = true;
+      _promotionLog = <String>[];
+    });
+
+    // Process from the highest year/semester first so students are not
+    // promoted a second time when their new group is processed.
+    final batches = [
+      (year: 4, semester: 2),
+      (year: 4, semester: 1),
+      (year: 3, semester: 2),
+      (year: 3, semester: 1),
+      (year: 2, semester: 2),
+      (year: 2, semester: 1),
+      (year: 1, semester: 2),
+      (year: 1, semester: 1),
+    ];
+
+    final log = <String>[];
+    bool anyError = false;
+
+    for (final b in batches) {
+      try {
+        final result = await StudentPromotionService.bulkPromoteStudents(
+          fromYear: b.year,
+          fromSemester: b.semester,
+        );
+        final msg = result['message'] as String? ?? '';
+        log.add('Y${b.year}S${b.semester}: $msg');
+        if (result['success'] != true) anyError = true;
+      } catch (e) {
+        log.add('Y${b.year}S${b.semester}: ERROR — $e');
+        anyError = true;
+      }
+    }
+
+    setState(() {
+      _isLoading = false;
+      _semesterActive = true;
+      _promotionLog = log;
+    });
+
+    _showSnackBar(
+      anyError ? 'Completed with some errors' : 'New semester started successfully!',
+      isError: anyError,
+    );
+  }
+
+  Widget _buildSemesterToggleTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 12),
+
+          // Warning banner
+          Card(
+            color: Colors.red[50],
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_rounded, color: Colors.red[700]),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'This toggle starts a new semester for the entire institution. '
+                      'All students will be promoted and all associated data will be reset.',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Toggle card
+          Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 32, vertical: 40),
+              child: Column(
+                children: [
+                  Icon(
+                    _semesterActive
+                        ? Icons.check_circle_rounded
+                        : Icons.school_rounded,
+                    size: 72,
+                    color: _semesterActive
+                        ? Colors.green
+                        : Colors.grey[400],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    _semesterActive
+                        ? 'New Semester Active'
+                        : 'Start New Semester',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: _semesterActive
+                          ? Colors.green[700]
+                          : Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _semesterActive
+                        ? 'All students have been promoted and data has been reset.'
+                        : 'Toggle the switch below to promote all students and reset semester data.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 14, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 32),
+                  Transform.scale(
+                    scale: 1.8,
+                    child: Switch(
+                      value: _semesterActive,
+                      activeColor: Colors.green,
+                      inactiveThumbColor: const Color(0xFF1e3a5f),
+                      inactiveTrackColor:
+                          const Color(0xFF1e3a5f).withOpacity(0.3),
+                      onChanged: _isLoading
+                          ? null
+                          : (value) {
+                              if (value) {
+                                _performFullSemesterPromotion();
+                              } else {
+                                setState(
+                                    () => _semesterActive = false);
+                              }
+                            },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _semesterActive ? 'ON' : 'OFF',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: _semesterActive
+                          ? Colors.green
+                          : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          _buildWhatItDoes(),
+          _buildPromotionLog(),
+        ],
+      ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+
+  Widget _buildWhatItDoes() {
+    if (_semesterActive) return const SizedBox.shrink();
+    return Column(
+      children: [
+        const SizedBox(height: 24),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'What this does:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+                _infoRow(Icons.arrow_upward, Colors.green,
+                    'Promotes ALL students to next semester/year'),
+                _infoRow(Icons.bar_chart, Colors.blue,
+                    'Resets attendance to 0% for the new semester'),
+                _infoRow(Icons.archive_rounded, Colors.orange,
+                    'Archives enrolled courses to history & clears current registrations'),
+                _infoRow(Icons.person_remove, Colors.purple,
+                    'Removes all mentor assignments'),
+                _infoRow(Icons.playlist_remove, Colors.red,
+                    'Clears faculty course preferences for re-submission'),
+                _infoRow(Icons.assignment_turned_in_outlined, Colors.teal,
+                    'Deactivates faculty course assignments — admin must re-assign for new semester'),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPromotionLog() {
+    final log = _promotionLog;
+    if (log == null || log.isEmpty) return const SizedBox.shrink();
+    final rows = <Widget>[
+      const Text(
+        'Promotion Log',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+      ),
+      const SizedBox(height: 8),
+    ];
+    for (final entry in log) {
+      rows.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              entry.contains('ERROR')
+                  ? Icons.error_outline
+                  : Icons.check_circle_outline,
+              size: 16,
+              color: entry.contains('ERROR') ? Colors.red : Colors.green,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+                child: Text(entry, style: const TextStyle(fontSize: 12))),
+          ],
+        ),
+      ));
+    }
+    return Column(
+      children: [
+        const SizedBox(height: 24),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: rows,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _infoRow(IconData icon, Color color, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
         ],
       ),
     );
