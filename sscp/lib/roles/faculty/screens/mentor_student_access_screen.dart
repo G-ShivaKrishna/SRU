@@ -111,14 +111,23 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
         return;
       }
 
-      final batchNumber =
-          (assignSnap.docs.first.data()['batchNumber'] ?? '').toString().trim();
+      // Faculty may have multiple assignments (different years), take first one
+      final assignmentData = assignSnap.docs.first.data();
+      final batchNumber = (assignmentData['batchNumber'] ?? '').toString().trim();
+      final year = assignmentData['year'];
+      final yearInt = year is int ? year : int.tryParse(year.toString());
 
-      // Step 4: fetch all students in that batch
-      final studentsSnap = await _firestore
+      // Step 4: fetch all students in that year+batch combination
+      Query<Map<String, dynamic>> studentsQuery = _firestore
           .collection('students')
-          .where('batchNumber', isEqualTo: batchNumber)
-          .get();
+          .where('batchNumber', isEqualTo: batchNumber);
+      
+      // Add year filter if available
+      if (yearInt != null) {
+        studentsQuery = studentsQuery.where('year', isEqualTo: yearInt);
+      }
+      
+      final studentsSnap = await studentsQuery.get();
 
       final studentsList = studentsSnap.docs.map((doc) {
         final data = doc.data();
@@ -132,7 +141,7 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
 
       setState(() {
         _facultyName = facultyName;
-        _assignedBatch = batchNumber;
+        _assignedBatch = yearInt != null ? 'Year $yearInt - $batchNumber' : batchNumber;
         _students = studentsList;
         _filteredStudents = List.from(studentsList);
         _isLoading = false;

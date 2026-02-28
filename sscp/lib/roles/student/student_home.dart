@@ -236,19 +236,32 @@ class _StudentHomeState extends State<StudentHome> {
     }
   }
 
-  /// Fetch mentor information from backend based on batch assignment
+  /// Fetch mentor information from backend based on year and batch assignment
   Future<void> _fetchMentorData(
       Map<String, dynamic> studentData, String batchNumber) async {
     try {
-      // Look for mentor assignment for this batch
+      // Get student's year
+      final year = studentData['year'];
+      final yearInt = year is int ? year : int.tryParse(year.toString());
+      
+      if (yearInt == null) {
+        // No valid year found
+        studentData['mentorName'] = 'Not Assigned';
+        studentData['mentorPhone'] = 'N/A';
+        studentData['mentorEmail'] = 'N/A';
+        return;
+      }
+
+      // Look for mentor assignment for this year+batch combination
       final assignmentSnap = await _firestore
           .collection('mentorAssignments')
+          .where('year', isEqualTo: yearInt)
           .where('batchNumber', isEqualTo: batchNumber)
           .limit(1)
           .get();
 
       if (assignmentSnap.docs.isEmpty) {
-        // No mentor assigned for this batch
+        // No mentor assigned for this year+batch
         studentData['mentorName'] = 'Not Assigned';
         studentData['mentorPhone'] = 'N/A';
         studentData['mentorEmail'] = 'N/A';
