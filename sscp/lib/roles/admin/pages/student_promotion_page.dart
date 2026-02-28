@@ -133,7 +133,8 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
       // Search by hall ticket number
       final students = await StudentPromotionService.getStudents();
       final filtered = students.where((s) {
-        final hallTicket = (s['hallTicketNumber'] ?? '').toString().toLowerCase();
+        final hallTicket =
+            (s['hallTicketNumber'] ?? '').toString().toLowerCase();
         final name = (s['name'] ?? '').toString().toLowerCase();
         final queryLower = query.toLowerCase();
         return hallTicket.contains(queryLower) || name.contains(queryLower);
@@ -159,8 +160,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
 
     final confirmed = await _showConfirmDialog(
       title: 'Confirm Promotion',
-      message:
-          'Promote ${_selectedStudent!['name']} to the next semester?',
+      message: 'Promote ${_selectedStudent!['name']} to the next semester?',
     );
 
     if (!confirmed) return;
@@ -189,8 +189,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
 
     final confirmed = await _showConfirmDialog(
       title: 'Confirm Demotion',
-      message:
-          'Demote ${_selectedStudent!['name']} to the previous semester?',
+      message: 'Demote ${_selectedStudent!['name']} to the previous semester?',
     );
 
     if (!confirmed) return;
@@ -671,7 +670,9 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
                           _demoteStudentCount > 0
                               ? Icons.people
                               : Icons.people_outline,
-                          color: _demoteStudentCount > 0 ? Colors.orange : Colors.grey,
+                          color: _demoteStudentCount > 0
+                              ? Colors.orange
+                              : Colors.grey,
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -679,8 +680,9 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
-                            color:
-                                _demoteStudentCount > 0 ? Colors.orange : Colors.grey,
+                            color: _demoteStudentCount > 0
+                                ? Colors.orange
+                                : Colors.grey,
                           ),
                         ),
                       ],
@@ -705,7 +707,9 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _demoteStudentCount > 0 && !_isLoading && !(_demoteYear == 1 && _demoteSemester == 1)
+              onPressed: _demoteStudentCount > 0 &&
+                      !_isLoading &&
+                      !(_demoteYear == 1 && _demoteSemester == 1)
                   ? _performBulkDemotion
                   : null,
               icon: const Icon(Icons.arrow_downward),
@@ -782,8 +786,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
                 itemCount: _searchResults.length,
                 itemBuilder: (context, index) {
                   final student = _searchResults[index];
-                  final isSelected =
-                      _selectedStudent?['id'] == student['id'];
+                  final isSelected = _selectedStudent?['id'] == student['id'];
                   return ListTile(
                     selected: isSelected,
                     selectedTileColor: Colors.blue[50],
@@ -892,8 +895,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
   Future<void> _performFullSemesterPromotion() async {
     final confirmed = await _showConfirmDialog(
       title: 'Start New Semester?',
-      message:
-          'This will:\n\n'
+      message: 'This will:\n\n'
           '• Promote ALL students to the next semester/year\n'
           '• Reset attendance counters to 0\n'
           '• Archive & clear enrolled courses\n'
@@ -946,7 +948,9 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
     });
 
     _showSnackBar(
-      anyError ? 'Completed with some errors' : 'New semester started successfully!',
+      anyError
+          ? 'Completed with some errors'
+          : 'New semester started successfully!',
       isError: anyError,
     );
   }
@@ -984,11 +988,10 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
           // Toggle card
           Card(
             elevation: 4,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 32, vertical: 40),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
               child: Column(
                 children: [
                   Icon(
@@ -996,9 +999,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
                         ? Icons.check_circle_rounded
                         : Icons.school_rounded,
                     size: 72,
-                    color: _semesterActive
-                        ? Colors.green
-                        : Colors.grey[400],
+                    color: _semesterActive ? Colors.green : Colors.grey[400],
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -1019,8 +1020,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
                         ? 'All students have been promoted and data has been reset.'
                         : 'Toggle the switch below to promote all students and reset semester data.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 14, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 32),
                   Transform.scale(
@@ -1037,8 +1037,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
                               if (value) {
                                 _performFullSemesterPromotion();
                               } else {
-                                setState(
-                                    () => _semesterActive = false);
+                                setState(() => _semesterActive = false);
                               }
                             },
                     ),
@@ -1049,9 +1048,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: _semesterActive
-                          ? Colors.green
-                          : Colors.grey,
+                      color: _semesterActive ? Colors.green : Colors.grey,
                     ),
                   ),
                 ],
@@ -1128,8 +1125,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
               color: entry.contains('ERROR') ? Colors.red : Colors.green,
             ),
             const SizedBox(width: 6),
-            Expanded(
-                child: Text(entry, style: const TextStyle(fontSize: 12))),
+            Expanded(child: Text(entry, style: const TextStyle(fontSize: 12))),
           ],
         ),
       ));

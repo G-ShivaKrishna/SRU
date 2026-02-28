@@ -127,8 +127,7 @@ class _StudentHomeState extends State<StudentHome> {
   Future<void> _computeBacklogs(String rollNumber) async {
     try {
       // 1. Release map: year_sem -> minPassMarks
-      final relSnap =
-          await _firestore.collection('cieMemoReleases').get();
+      final relSnap = await _firestore.collection('cieMemoReleases').get();
       String normSem(String s) {
         const m = {'i': '1', 'ii': '2', 'iii': '3', 'iv': '4'};
         return m[s.toLowerCase().trim()] ?? s.trim();
@@ -137,8 +136,7 @@ class _StudentHomeState extends State<StudentHome> {
       final releaseMap = <String, int>{};
       for (final d in relSnap.docs) {
         final r = d.data();
-        final key =
-            '${r['year']}_${normSem(r['semester']?.toString() ?? '')}';
+        final key = '${r['year']}_${normSem(r['semester']?.toString() ?? '')}';
         releaseMap[key] = (r['minPassMarks'] is int)
             ? r['minPassMarks'] as int
             : int.tryParse(r['minPassMarks']?.toString() ?? '') ?? 40;
@@ -195,12 +193,10 @@ class _StudentHomeState extends State<StudentHome> {
           final key =
               '${e['year']}_${normSem(e['semester']?.toString() ?? '')}';
           final minPass = releaseMap[key] ?? 40;
-          final raw =
-              e['componentMarks'] as Map<String, dynamic>? ?? {};
+          final raw = e['componentMarks'] as Map<String, dynamic>? ?? {};
           int total = 0;
           for (final v in raw.values) {
-            total +=
-                (v is int) ? v : int.tryParse(v.toString()) ?? 0;
+            total += (v is int) ? v : int.tryParse(v.toString()) ?? 0;
           }
           if (total >= minPass) continue; // passed — not a backlog
 
@@ -212,12 +208,10 @@ class _StudentHomeState extends State<StudentHome> {
             final lKey =
                 '${later['year']}_${normSem(later['semester']?.toString() ?? '')}';
             final lMin = releaseMap[lKey] ?? 40;
-            final lRaw =
-                later['componentMarks'] as Map<String, dynamic>? ?? {};
+            final lRaw = later['componentMarks'] as Map<String, dynamic>? ?? {};
             int lTotal = 0;
             for (final v in lRaw.values) {
-              lTotal +=
-                  (v is int) ? v : int.tryParse(v.toString()) ?? 0;
+              lTotal += (v is int) ? v : int.tryParse(v.toString()) ?? 0;
             }
             if (lTotal >= lMin) {
               clearedLater = true;
@@ -334,8 +328,8 @@ class _StudentHomeState extends State<StudentHome> {
           try {
             final p = dateStr.split('-');
             if (p.length == 3) {
-              final recDate = DateTime(
-                  int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
+              final recDate =
+                  DateTime(int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
               if (recDate.isBefore(sinceDate)) continue;
             }
           } catch (_) {}

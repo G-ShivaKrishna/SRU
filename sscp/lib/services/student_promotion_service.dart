@@ -61,8 +61,7 @@ class StudentPromotionService {
       }
 
       // ── 5 · Reset faculty course preferences ─────────────────────────────
-      final prefSnap =
-          await _firestore.collection('coursePreferences').get();
+      final prefSnap = await _firestore.collection('coursePreferences').get();
       if (prefSnap.docs.isNotEmpty) {
         await _batchDelete(prefSnap.docs.map((d) => d.reference).toList());
       }
@@ -72,11 +71,10 @@ class StudentPromotionService {
       // against old semester courses. Historical records are preserved.
       // Admin re-assigns faculty for the new semester via Faculty Assignment page.
       const faChunk = 400;
-      final faSnap =
-          await _firestore.collection('facultyAssignments').get();
+      final faSnap = await _firestore.collection('facultyAssignments').get();
       for (int i = 0; i < faSnap.docs.length; i += faChunk) {
-        final chunk = faSnap.docs
-            .sublist(i, (i + faChunk).clamp(0, faSnap.docs.length));
+        final chunk =
+            faSnap.docs.sublist(i, (i + faChunk).clamp(0, faSnap.docs.length));
         final wb = _firestore.batch();
         for (final doc in chunk) {
           wb.update(doc.reference, {
@@ -93,17 +91,14 @@ class StudentPromotionService {
 
   /// Helper: archive each doc into studentCoursesHistory, then delete original.
   /// Max 200 docs per call (2 writes/doc → 400 per Firestore batch).
-  static Future<void> _archiveAndDelete(
-      List<DocumentSnapshot> docs) async {
+  static Future<void> _archiveAndDelete(List<DocumentSnapshot> docs) async {
     const maxPerBatch = 200;
     for (int i = 0; i < docs.length; i += maxPerBatch) {
-      final chunk =
-          docs.sublist(i, (i + maxPerBatch).clamp(0, docs.length));
+      final chunk = docs.sublist(i, (i + maxPerBatch).clamp(0, docs.length));
       final wb = _firestore.batch();
       for (final doc in chunk) {
         final data = doc.data() as Map<String, dynamic>;
-        final histRef =
-            _firestore.collection('studentCoursesHistory').doc();
+        final histRef = _firestore.collection('studentCoursesHistory').doc();
         wb.set(histRef, {
           ...data,
           'archivedAt': FieldValue.serverTimestamp(),
@@ -119,8 +114,7 @@ class StudentPromotionService {
   static Future<void> _batchDelete(List<DocumentReference> refs) async {
     const maxPerBatch = 400;
     for (int i = 0; i < refs.length; i += maxPerBatch) {
-      final chunk =
-          refs.sublist(i, (i + maxPerBatch).clamp(0, refs.length));
+      final chunk = refs.sublist(i, (i + maxPerBatch).clamp(0, refs.length));
       final wb = _firestore.batch();
       for (final ref in chunk) {
         wb.delete(ref);
@@ -146,24 +140,27 @@ class StudentPromotionService {
       // Don't filter by year in query either, as it might be stored as string or int
 
       final snapshot = await query.get();
-      var results = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
-      
+      var results =
+          snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+
       // Client-side filter for year (handle both string and int)
       if (year != null) {
         results = results.where((student) {
-          final studentYear = int.tryParse(student['year']?.toString() ?? '0') ?? 0;
+          final studentYear =
+              int.tryParse(student['year']?.toString() ?? '0') ?? 0;
           return studentYear == year;
         }).toList();
       }
-      
+
       // Client-side filter for semester (treat missing/null as semester 1)
       if (semester != null) {
         results = results.where((student) {
-          final studentSemester = int.tryParse(student['semester']?.toString() ?? '1') ?? 1;
+          final studentSemester =
+              int.tryParse(student['semester']?.toString() ?? '1') ?? 1;
           return studentSemester == semester;
         }).toList();
       }
-      
+
       // Exclude graduated students by default
       if (excludeGraduated) {
         results = results.where((student) {
@@ -171,7 +168,7 @@ class StudentPromotionService {
           return status != 'graduated';
         }).toList();
       }
-      
+
       return results;
     } catch (e) {
       throw Exception('Error fetching students: $e');
@@ -199,7 +196,8 @@ class StudentPromotionService {
   /// Semester 1 → Semester 2 (same year)
   /// Semester 2 → Semester 1 (next year)
   /// Year 4 Semester 2 → Graduated (year: 5, status: 'graduated')
-  static Future<Map<String, dynamic>> promoteStudent(String hallTicketNumber) async {
+  static Future<Map<String, dynamic>> promoteStudent(
+      String hallTicketNumber) async {
     try {
       final docRef = _firestore.collection('students').doc(hallTicketNumber);
       final doc = await docRef.get();
@@ -210,7 +208,8 @@ class StudentPromotionService {
 
       final data = doc.data()!;
       int currentYear = int.tryParse(data['year']?.toString() ?? '1') ?? 1;
-      int currentSemester = int.tryParse(data['semester']?.toString() ?? '1') ?? 1;
+      int currentSemester =
+          int.tryParse(data['semester']?.toString() ?? '1') ?? 1;
 
       int newYear = currentYear;
       int newSemester = currentSemester;
@@ -279,16 +278,19 @@ class StudentPromotionService {
       }
 
       final snapshot = await query.get();
-      
+
       // Filter client-side for year, semester, status
       final matchingDocs = snapshot.docs.where((doc) {
         final data = doc.data();
         final studentYear = int.tryParse(data['year']?.toString() ?? '0') ?? 0;
-        final studentSemester = int.tryParse(data['semester']?.toString() ?? '1') ?? 1;
+        final studentSemester =
+            int.tryParse(data['semester']?.toString() ?? '1') ?? 1;
         final status = data['status']?.toString() ?? 'active';
-        return studentYear == fromYear && studentSemester == fromSemester && status != 'graduated';
+        return studentYear == fromYear &&
+            studentSemester == fromSemester &&
+            status != 'graduated';
       }).toList();
-      
+
       if (matchingDocs.isEmpty) {
         return {
           'success': true,
@@ -359,7 +361,8 @@ class StudentPromotionService {
   }
 
   /// Demote a student (rollback promotion)
-  static Future<Map<String, dynamic>> demoteStudent(String hallTicketNumber) async {
+  static Future<Map<String, dynamic>> demoteStudent(
+      String hallTicketNumber) async {
     try {
       final docRef = _firestore.collection('students').doc(hallTicketNumber);
       final doc = await docRef.get();
@@ -370,7 +373,8 @@ class StudentPromotionService {
 
       final data = doc.data()!;
       int currentYear = int.tryParse(data['year']?.toString() ?? '1') ?? 1;
-      int currentSemester = int.tryParse(data['semester']?.toString() ?? '1') ?? 1;
+      int currentSemester =
+          int.tryParse(data['semester']?.toString() ?? '1') ?? 1;
 
       int newYear = currentYear;
       int newSemester = currentSemester;
@@ -440,7 +444,8 @@ class StudentPromotionService {
       final matchingDocs = snapshot.docs.where((doc) {
         final data = doc.data();
         final studentYear = int.tryParse(data['year']?.toString() ?? '0') ?? 0;
-        final studentSemester = int.tryParse(data['semester']?.toString() ?? '1') ?? 1;
+        final studentSemester =
+            int.tryParse(data['semester']?.toString() ?? '1') ?? 1;
         return studentYear == fromYear && studentSemester == fromSemester;
       }).toList();
 
@@ -483,7 +488,8 @@ class StudentPromotionService {
 
       return {
         'success': true,
-        'message': '$demoted students demoted to Year $newYear, Semester $newSemester',
+        'message':
+            '$demoted students demoted to Year $newYear, Semester $newSemester',
         'demoted': demoted,
         'failed': 0,
         'toYear': newYear,
