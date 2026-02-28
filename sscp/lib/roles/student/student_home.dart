@@ -1141,7 +1141,6 @@ class _StudentHomeState extends State<StudentHome> {
                   color: Colors.amber.shade900,
                 ),
               ),
-
             ],
           ),
           const SizedBox(height: 12),
