@@ -42,23 +42,29 @@ class _SupplyMarksScreenState extends State<SupplyMarksScreen> {
     final list = <Map<String, dynamic>>[];
     for (final doc in snap.docs) {
       final data = doc.data();
-      // Load window title
+      // Load window title and check if window is still active
       String windowTitle = data['windowId']?.toString() ?? '';
+      bool isWindowActive = false;
       try {
         final winDoc = await _firestore
             .collection('supplyWindows')
             .doc(data['windowId']?.toString())
             .get();
         if (winDoc.exists) {
-          windowTitle =
-              (winDoc.data()!['title'] as String?) ?? windowTitle;
+          final winData = winDoc.data()!;
+          windowTitle = (winData['title'] as String?) ?? windowTitle;
+          isWindowActive = (winData['isActive'] as bool?) ?? false;
         }
       } catch (_) {}
-      list.add({
-        ...data,
-        'docId': doc.id,
-        'windowTitle': windowTitle,
-      });
+      
+      // Only include assignments for active/enabled windows
+      if (isWindowActive) {
+        list.add({
+          ...data,
+          'docId': doc.id,
+          'windowTitle': windowTitle,
+        });
+      }
     }
 
     if (mounted) {
@@ -305,6 +311,31 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
   }
 
   Future<void> _saveAll() async {
+    // Validate that the supply window is still active/enabled before saving
+    try {
+      final winDoc = await widget.firestore
+          .collection('supplyWindows')
+          .doc(_windowId)
+          .get();
+      if (!winDoc.exists || (winDoc.data()?['isActive'] ?? false) != true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('This supply window has been disabled by admin. Cannot save marks.'),
+            backgroundColor: Colors.red,
+          ));
+        }
+        return;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error checking window status: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
+      return;
+    }
+    
     final batch = widget.firestore.batch();
     int saved = 0;
 
