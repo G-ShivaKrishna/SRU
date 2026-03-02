@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:excel/excel.dart' as excel_package;
+import 'dart:io' show Directory, File, Platform;
+import 'dart:typed_data';
 import '../../../widgets/app_header.dart';
+
+// Web-only import for file download
+import 'dart:html' as html show Blob, Url, AnchorElement;
+
+// For web: conditional import
+export 'dart:html' if (dart.library.io) 'dart:convert';
 
 // ─── Models ────────────────────────────────────────────────────────────────────
 
@@ -99,6 +110,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
   // save-all state
   bool _savingAll = false;
+  bool _isUploadingExcel = false;
 
   @override
   void initState() {
@@ -462,7 +474,279 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     }
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
+  // ── Excel Download/Upload ─────────────────────────────────────────────────
+
+  Uint8List _createExcelTemplate(String assignmentName, String batchName) {
+    var excelFile = excel_package.Excel.createExcel();
+    excel_package.Sheet sheetObject = excelFile['Sheet1'];
+
+    // Add headers
+    sheetObject.appendRow([
+      excel_package.TextCellValue('Student ID'),
+      excel_package.TextCellValue('Student Name'),
+      ..._components.map((c) => excel_package.TextCellValue('${c.name} /${c.maxMarks}')),
+    ]);
+
+    // Add student data
+    for (var student in _studentRows) {
+      sheetObject.appendRow([
+        excel_package.TextCellValue(student.studentId),
+        excel_package.TextCellValue(student.studentName),
+        ..._components.map((c) => excel_package.TextCellValue('')),
+      ]);
+    }
+
+    List<int> encoded = excelFile.encode()!;
+    return Uint8List.fromList(encoded);
+  }
+
+  Future<void> _downloadExcelTemplate() async {
+    if (_selectedAssignment == null || _selectedBatch == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select subject and batch first'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final assignment = _selectedAssignment!;
+      final bytes = _createExcelTemplate(assignment.subjectName, _selectedBatch!);
+      final fileName =
+          '${assignment.subjectCode}_${_selectedBatch}_Marks_Template.xlsx'
+              .replaceAll(' ', '_')
+              .replaceAll('-', '')
+              .replaceAll('/', '');
+
+      // For web - trigger browser download
+      if (kIsWeb) {
+        try {
+          final blob = html.Blob([bytes]);
+          final url = html.Url.createObjectUrlFromBlob(blob);
+          (html.AnchorElement(href: url)
+                ..setAttribute('download', fileName))
+              .click();
+          html.Url.revokeObjectUrl(url);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Template downloading:\n$fileName'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Download error: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+      // For mobile (Android/iOS) - save to Downloads folder
+      else if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        try {
+          // Android: /storage/emulated/0/Download or /sdcard/Download
+          Directory downloadsDir = Directory('/storage/emulated/0/Download');
+          
+          // Check if the primary downloads directory exists
+          if (!await downloadsDir.exists()) {
+            // Try alternative path
+            downloadsDir = Directory('/sdcard/Download');
+          }
+          
+          if (!await downloadsDir.exists()) {
+            // Create Downloads directory if it doesn't exist
+            await downloadsDir.create(recursive: true);
+          }
+
+          final filePath = '${downloadsDir.path}/$fileName';
+          final file = File(filePath);
+          await file.writeAsBytes(bytes);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Template downloaded to Downloads:\n$fileName',
+                ),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        } catch (e) {
+          // If Downloads folder access fails, try internal app directory
+          try {
+            final tempDir = Directory.systemTemp;
+            final filePath = '${tempDir.path}/$fileName';
+            final file = File(filePath);
+            await file.writeAsBytes(bytes);
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Template prepared:\n$fileName\nCheck Files app',
+                  ),
+                  backgroundColor: Colors.amber,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+          } catch (innerError) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Save error: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        }
+      }
+      // For desktop (Windows/macOS/Linux) - show save dialog
+      else {
+        try {
+          String? outputPath = await FilePicker.platform.saveFile(
+            fileName: fileName,
+            type: FileType.custom,
+            allowedExtensions: ['xlsx'],
+          );
+
+          if (outputPath != null) {
+            final file = File(outputPath);
+            await file.writeAsBytes(bytes);
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Template downloaded:\n$fileName'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating template: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadAndParseExcel() async {
+    if (_studentRows.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please load students first'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isUploadingExcel = true);
+
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        var bytes = result.files.single.bytes!;
+        var excelFile = excel_package.Excel.decodeBytes(bytes);
+
+        excel_package.Sheet? sheet = excelFile.tables.values.first;
+        bool isFirstRow = true;
+        Map<int, String> componentColumns = {};
+
+        // Parse Excel data
+        for (var rows in sheet.rows) {
+          if (isFirstRow) {
+            // Find column indices for components
+            for (int i = 0; i < rows.length; i++) {
+              String cellValue = rows[i]?.value.toString().toLowerCase() ?? '';
+              for (final comp in _components) {
+                if (cellValue.contains(comp.name.toLowerCase())) {
+                  componentColumns[i] = comp.name;
+                  break;
+                }
+              }
+            }
+            isFirstRow = false;
+            continue;
+          }
+
+          if (rows.length > 0 && componentColumns.isNotEmpty) {
+            String studentId = rows[0]?.value.toString() ?? '';
+
+            // Find and update matching student row
+            for (var studentRow in _studentRows) {
+              if (studentRow.studentId == studentId) {
+                // Update marks from Excel
+                componentColumns.forEach((colIndex, componentName) {
+                  if (colIndex < rows.length) {
+                    String value = rows[colIndex]?.value.toString() ?? '';
+                    studentRow.controllers[componentName]?.text = value;
+                  }
+                });
+                break;
+              }
+            }
+          }
+        }
+
+        setState(() {
+          _isUploadingExcel = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Excel file uploaded successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        setState(() => _isUploadingExcel = false);
+      }
+    } catch (e) {
+      setState(() => _isUploadingExcel = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error uploading Excel: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -571,22 +855,135 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           else ...[
             isMobile ? _buildSelectionMobile() : _buildSelectionDesktop(),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed:
-                    (_selectedAssignment != null && _selectedBatch != null)
-                        ? _loadMarksEntry
-                        : null,
-                icon: const Icon(Icons.search),
-                label: const Text('Load Students'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1e3a5f),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                ),
+            if (isMobile)
+              Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed:
+                          (_selectedAssignment != null && _selectedBatch != null)
+                              ? _loadMarksEntry
+                              : null,
+                      icon: const Icon(Icons.search),
+                      label: const Text('Load Students'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1e3a5f),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed:
+                              (_selectedAssignment != null &&
+                                      _selectedBatch != null &&
+                                      _marksLoaded)
+                                  ? _downloadExcelTemplate
+                                  : null,
+                          icon: const Icon(Icons.download),
+                          label: const Text(
+                            'Download Template',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: _isUploadingExcel ? null : _uploadAndParseExcel,
+                          icon: const Icon(Icons.upload_file),
+                          label: Text(
+                            _isUploadingExcel ? 'Uploading...' : 'Upload Excel',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed:
+                          (_selectedAssignment != null && _selectedBatch != null)
+                              ? _loadMarksEntry
+                              : null,
+                      icon: const Icon(Icons.search),
+                      label: const Text('Load Students'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1e3a5f),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                      onPressed:
+                          (_selectedAssignment != null &&
+                                  _selectedBatch != null &&
+                                  _marksLoaded)
+                              ? _downloadExcelTemplate
+                              : null,
+                      icon: const Icon(Icons.download),
+                      label: const Text(
+                        'Download Template',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                      onPressed: _isUploadingExcel ? null : _uploadAndParseExcel,
+                      icon: const Icon(Icons.upload_file),
+                      label: Text(
+                        _isUploadingExcel ? 'Uploading...' : 'Upload Excel',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
           ],
         ],
       ),

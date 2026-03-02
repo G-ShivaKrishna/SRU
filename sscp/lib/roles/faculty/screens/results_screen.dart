@@ -1,5 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:file_picker/file_picker.dart';
+import 'package:excel/excel.dart' as excel_package;
+import 'dart:io' show Directory, File, Platform;
+import 'dart:typed_data';
 import '../../../widgets/app_header.dart';
+
+// Web-only import for file download
+import 'dart:html' as html show Blob, Url, AnchorElement;
+
+// For web: conditional import
+export 'dart:html' if (dart.library.io) 'dart:convert';
 
 class FacultyResultsScreen extends StatefulWidget {
   const FacultyResultsScreen({super.key});
@@ -13,6 +24,7 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
   String? selectedSection;
   String? selectedExamType;
   bool isStudentListLoaded = false;
+  bool isUploadingExcel = false;
 
   final courses = ['22CS301 - DAA', '22CS302 - OS', '22CS303 - DBMS'];
   final sections = ['A', 'B', 'C', 'D'];
@@ -112,6 +124,53 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed:
+                            selectedCourse != null &&
+                                    selectedSection != null &&
+                                    selectedExamType != null
+                                ? _downloadExcelTemplate
+                                : null,
+                        icon: const Icon(Icons.download),
+                        label: const Text(
+                          'Download Template',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: isUploadingExcel
+                            ? null
+                            : _uploadAndParseExcel,
+                        icon: const Icon(Icons.upload_file),
+                        label: Text(
+                          isUploadingExcel ? 'Uploading...' : 'Upload Excel',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             )
           else
@@ -142,23 +201,69 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onPressed: _onLoadPressed,
-                    child: const Text(
-                      'Load Students',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: _onLoadPressed,
+                        child: const Text(
+                          'Load Students',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed:
+                            selectedCourse != null &&
+                                    selectedSection != null &&
+                                    selectedExamType != null
+                                ? _downloadExcelTemplate
+                                : null,
+                        icon: const Icon(Icons.download),
+                        label: const Text(
+                          'Download Template',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: isUploadingExcel
+                            ? null
+                            : _uploadAndParseExcel,
+                        icon: const Icon(Icons.upload_file),
+                        label: Text(
+                          isUploadingExcel ? 'Uploading...' : 'Upload Excel',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -350,5 +455,257 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
         ],
       ),
     );
+  }
+
+  // Excel template creation
+  Uint8List _createExcelTemplate() {
+    var excelFile = excel_package.Excel.createExcel();
+    excel_package.Sheet sheetObject = excelFile['Sheet1'];
+
+    // Add headers
+    sheetObject.appendRow([
+      excel_package.TextCellValue('Student ID'),
+      excel_package.TextCellValue('Student Name'),
+      excel_package.TextCellValue('Marks'),
+    ]);
+
+    // Add student data
+    for (var student in students) {
+      sheetObject.appendRow([
+        excel_package.TextCellValue(student['rollNo']),
+        excel_package.TextCellValue(student['name']),
+        excel_package.TextCellValue(''), // Empty marks column for faculty to fill
+      ]);
+    }
+
+    List<int> encoded = excelFile.encode()!;
+    return Uint8List.fromList(encoded);
+  }
+
+  // Download Excel template
+  Future<void> _downloadExcelTemplate() async {
+    try {
+      final bytes = _createExcelTemplate();
+      final fileName =
+          '${selectedCourse}_${selectedSection}_${selectedExamType}_Template.xlsx'
+              .replaceAll(' ', '_')
+              .replaceAll('-', '')
+              .replaceAll('/', '');
+
+      // For web - trigger browser download
+      if (kIsWeb) {
+        try {
+          final blob = html.Blob([bytes]);
+          final url = html.Url.createObjectUrlFromBlob(blob);
+          (html.AnchorElement(href: url)
+                ..setAttribute('download', fileName))
+              .click();
+          html.Url.revokeObjectUrl(url);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Template downloading:\n$fileName'),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Download error: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+      // For mobile (Android/iOS) - save to Downloads folder
+      else if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        try {
+          // Android: /storage/emulated/0/Download or /sdcard/Download
+          Directory downloadsDir = Directory('/storage/emulated/0/Download');
+          
+          // Check if the primary downloads directory exists
+          if (!await downloadsDir.exists()) {
+            // Try alternative path
+            downloadsDir = Directory('/sdcard/Download');
+          }
+          
+          if (!await downloadsDir.exists()) {
+            // Create Downloads directory if it doesn't exist
+            await downloadsDir.create(recursive: true);
+          }
+
+          final filePath = '${downloadsDir.path}/$fileName';
+          final file = File(filePath);
+          await file.writeAsBytes(bytes);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Template downloaded to Downloads:\n$fileName',
+                ),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        } catch (e) {
+          // If Downloads folder access fails, try internal app directory
+          try {
+            final tempDir = Directory.systemTemp;
+            final filePath = '${tempDir.path}/$fileName';
+            final file = File(filePath);
+            await file.writeAsBytes(bytes);
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Template prepared:\n$fileName\nCheck Files app',
+                  ),
+                  backgroundColor: Colors.amber,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+          } catch (innerError) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Save error: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        }
+      }
+      // For desktop (Windows/macOS/Linux) - show save dialog
+      else {
+        try {
+          String? outputPath = await FilePicker.platform.saveFile(
+            fileName: fileName,
+            type: FileType.custom,
+            allowedExtensions: ['xlsx'],
+          );
+
+          if (outputPath != null) {
+            final file = File(outputPath);
+            await file.writeAsBytes(bytes);
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Template downloaded:\n$fileName'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating template: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Upload and parse Excel file
+  Future<void> _uploadAndParseExcel() async {
+    try {
+      setState(() => isUploadingExcel = true);
+
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        var bytes = result.files.single.bytes!;
+        var excelFile = excel_package.Excel.decodeBytes(bytes);
+
+        excel_package.Sheet? sheet = excelFile.tables.values.first;
+        bool isFirstRow = true;
+        int marksColumnIndex = -1;
+        int rollNoColumnIndex = -1;
+
+        // Parse Excel data
+        for (var rows in sheet.rows) {
+          if (isFirstRow) {
+            // Find column indices from headers
+            for (int i = 0; i < rows.length; i++) {
+              String cellValue = rows[i]?.value.toString().toLowerCase() ?? '';
+              if (cellValue.contains('id') || cellValue.contains('roll')) {
+                rollNoColumnIndex = i;
+              }
+              if (cellValue.contains('mark')) {
+                marksColumnIndex = i;
+              }
+            }
+            isFirstRow = false;
+            continue;
+          }
+
+          if (rollNoColumnIndex >= 0 &&
+              marksColumnIndex >= 0 &&
+              rows.length > marksColumnIndex) {
+            String rollNo = rows[rollNoColumnIndex]?.value.toString() ?? '';
+            String marks = rows[marksColumnIndex]?.value.toString() ?? '';
+
+            // Update student marks
+            for (var student in students) {
+              if (student['rollNo'] == rollNo && marks.isNotEmpty) {
+                student['marks'] = marks;
+                break;
+              }
+            }
+          }
+        }
+
+        setState(() {
+          isStudentListLoaded = true;
+          isUploadingExcel = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Excel file uploaded and parsed successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        setState(() => isUploadingExcel = false);
+      }
+    } catch (e) {
+      setState(() => isUploadingExcel = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error uploading Excel: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
