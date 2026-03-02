@@ -329,11 +329,11 @@ class _AdminHomeState extends State<AdminHome> {
         horizontal: isMobile ? 12 : 16,
         vertical: 8,
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 16),
-          const SizedBox(width: 8),
-          const Text(
+          Icon(Icons.check_circle, color: Colors.green, size: 16),
+          SizedBox(width: 8),
+          Text(
             'System Status: All Systems Operational',
             style: TextStyle(color: Colors.white, fontSize: 12),
           ),
@@ -390,8 +390,8 @@ class _AdminHomeState extends State<AdminHome> {
                   color: const Color(0xFF1e3a5f).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.admin_panel_settings,
-                    color: const Color(0xFF1e3a5f), size: 32),
+                child: const Icon(Icons.admin_panel_settings,
+                    color: Color(0xFF1e3a5f), size: 32),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -813,7 +813,7 @@ class _AdminHomeState extends State<AdminHome> {
         children: [
           Row(
             children: [
-              Icon(Icons.history, color: const Color(0xFF1e3a5f), size: 24),
+              const Icon(Icons.history, color: Color(0xFF1e3a5f), size: 24),
               const SizedBox(width: 8),
               Text(
                 'Recent Activity',
@@ -932,9 +932,9 @@ class _OverflowNavButton extends StatelessWidget {
           .toList(),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Text('More',
                 style: TextStyle(
                     color: Colors.white,

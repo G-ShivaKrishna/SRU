@@ -194,7 +194,7 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          headingRowColor: MaterialStateProperty.all(Colors.grey[100]),
+          headingRowColor: WidgetStateProperty.all(Colors.grey[100]),
           columns: const [
             DataColumn(label: Text('S.No')),
             DataColumn(label: Text('AC Year')),

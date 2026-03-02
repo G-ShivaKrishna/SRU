@@ -512,7 +512,7 @@ class _ViewUpdateDeleteAttendanceScreenState
             trailing: isEditing
                 ? Switch(
                     value: present,
-                    activeColor: Colors.green,
+                    activeThumbColor: Colors.green,
                     onChanged: (v) {
                       setState(() {
                         _editedAttendance[doc.id]![rollNo] = v;
@@ -759,7 +759,7 @@ class _ViewUpdateDeleteAttendanceScreenState
                 const SizedBox(height: 16),
                 // Subject dropdown
                 DropdownButtonFormField<String>(
-                  value: selectedSubject,
+                  initialValue: selectedSubject,
                   decoration: const InputDecoration(
                     labelText: 'Subject *',
                     border: OutlineInputBorder(),

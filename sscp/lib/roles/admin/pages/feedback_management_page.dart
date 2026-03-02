@@ -224,7 +224,7 @@ class _FeedbackManagementPageState extends State<FeedbackManagementPage> {
                     Switch(
                       value: isActive,
                       onChanged: (value) => _toggleSession(session, value),
-                      activeColor: Colors.white,
+                      activeThumbColor: Colors.white,
                     ),
                   ],
                 ),
@@ -436,7 +436,7 @@ class _CreateSessionDialogState extends State<_CreateSessionDialog> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _semester,
+                  initialValue: _semester,
                   decoration: const InputDecoration(
                     labelText: 'Semester',
                     border: OutlineInputBorder(),

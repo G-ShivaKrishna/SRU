@@ -1104,7 +1104,7 @@ class _ComponentRowState extends State<_ComponentRow> {
           SizedBox(
             width: 110,
             child: DropdownButtonFormField<String>(
-              value: widget.component.type,
+              initialValue: widget.component.type,
               isDense: true,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),

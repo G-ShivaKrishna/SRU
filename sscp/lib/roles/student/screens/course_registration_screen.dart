@@ -408,7 +408,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                   type,
                 ),
               );
-            }).toList(),
+            }),
             const SizedBox(height: 16),
             _buildSubmitButton(context),
           ],
@@ -525,7 +525,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                   type,
                 ),
               );
-            }).toList(),
+            }),
             const SizedBox(height: 16),
             _buildUpdateButton(context),
           ],
@@ -611,7 +611,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                   );
                 },
               );
-            }).toList(),
+            }),
             if (_studentSelection!.isSubmitted)
               Container(
                 padding: const EdgeInsets.all(12),
@@ -829,7 +829,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -969,7 +969,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                               course, false, typeLabel);
                         },
                       );
-                    }).toList(),
+                    }),
                   ],
                 ],
               ),
@@ -1232,7 +1232,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                             style: const TextStyle(fontSize: 12),
                           ),
                         ))
-                    .toList(),
+                    ,
               ],
             ),
           ),
@@ -1347,7 +1347,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                             style: const TextStyle(fontSize: 12),
                           ),
                         ))
-                    .toList(),
+                    ,
               ],
             ),
           ),

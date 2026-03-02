@@ -147,10 +147,10 @@ class _ResultCard extends StatelessWidget {
           // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1e3a5f),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1e3a5f),
               borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(8)),
+                  BorderRadius.vertical(top: Radius.circular(8)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

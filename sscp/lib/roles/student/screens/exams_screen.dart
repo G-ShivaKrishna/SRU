@@ -142,9 +142,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(isMobile ? 12 : 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1e3a5f),
-              borderRadius: const BorderRadius.only(
+            decoration: const BoxDecoration(
+              color: Color(0xFF1e3a5f),
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(7),
                 topRight: Radius.circular(7),
               ),

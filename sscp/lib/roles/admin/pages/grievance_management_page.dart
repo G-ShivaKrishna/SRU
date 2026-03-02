@@ -108,7 +108,7 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                         TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
-                  value: selectedStatus,
+                  initialValue: selectedStatus,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8)),
@@ -304,7 +304,7 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                       SizedBox(
                         width: 160,
                         child: DropdownButtonFormField<String>(
-                          value: _filterStatus,
+                          initialValue: _filterStatus,
                           isExpanded: true,
                           decoration: InputDecoration(
                             labelText: 'Status',
@@ -324,7 +324,7 @@ class _GrievanceManagementPageState extends State<GrievanceManagementPage> {
                       SizedBox(
                         width: 200,
                         child: DropdownButtonFormField<String>(
-                          value: _filterType,
+                          initialValue: _filterType,
                           isExpanded: true,
                           decoration: InputDecoration(
                             labelText: 'Type',

@@ -11,10 +11,10 @@ class UniversityClubsScreen extends StatelessWidget {
         title: const Text('University Clubs'),
         backgroundColor: const Color(0xFF1e3a5f),
       ),
-      body: Column(
+      body: const Column(
         children: [
-          const AppHeader(),
-          const Expanded(
+          AppHeader(),
+          Expanded(
             child: Center(
               child: Text('University Clubs Screen'),
             ),

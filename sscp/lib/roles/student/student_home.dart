@@ -370,8 +370,9 @@ class _StudentHomeState extends State<StudentHome> {
         cwMap.putIfAbsent(
             code, () => {'code': code, 'name': name, 'held': 0, 'present': 0});
         cwMap[code]!['held'] = (cwMap[code]!['held'] as int) + count;
-        if (isPresent)
+        if (isPresent) {
           cwMap[code]!['present'] = (cwMap[code]!['present'] as int) + count;
+        }
 
         // Daily accumulation
         if (dateStr.isNotEmpty) {
@@ -522,11 +523,12 @@ class _StudentHomeState extends State<StudentHome> {
       });
     } catch (e) {
       debugPrint('[CGPA] computation error: $e');
-      if (mounted)
+      if (mounted) {
         setState(() {
           _computedCgpa = 0.0;
           _cgpaLoaded = true;
         });
+      }
     }
   }
 
@@ -845,16 +847,16 @@ class _StudentHomeState extends State<StudentHome> {
                   if (value == 'Calendar') {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                          builder: (context) => AcademicsScreen()),
+                          builder: (context) => const AcademicsScreen()),
                     );
                   } else if (value == 'Handbook') {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                          builder: (context) => StudentHandbookScreen()),
+                          builder: (context) => const StudentHandbookScreen()),
                     );
                   } else if (value == 'Syllabus') {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => SyllabusScreen()),
+                      MaterialPageRoute(builder: (context) => const SyllabusScreen()),
                     );
                   } else {
                     _navigateToPage(context, value);
@@ -877,11 +879,11 @@ class _StudentHomeState extends State<StudentHome> {
                         Text('Syllabus', style: TextStyle(color: Colors.white)),
                   ),
                 ],
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
                         'Academics',
                         style: TextStyle(
@@ -926,11 +928,11 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                 ],
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
                         'Results',
                         style: TextStyle(
@@ -965,11 +967,11 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                 ],
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
                         'Grievance',
                         style: TextStyle(
@@ -1016,9 +1018,9 @@ class _StudentHomeState extends State<StudentHome> {
         horizontal: isMobile ? 12 : 16,
         vertical: 8,
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Text(
+          Text(
             'No Due',
             style: TextStyle(color: Colors.white, fontSize: 12),
           ),

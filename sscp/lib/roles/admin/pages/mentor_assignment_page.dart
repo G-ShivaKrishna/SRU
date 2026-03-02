@@ -215,7 +215,7 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                 labelText: 'Select Year',
                                 border: OutlineInputBorder(),
                               ),
-                              value: selectedYear,
+                              initialValue: selectedYear,
                               items: batchesByYear.keys.isEmpty
                                   ? [
                                       const DropdownMenuItem(
@@ -247,7 +247,7 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                 labelText: 'Select Batch',
                                 border: OutlineInputBorder(),
                               ),
-                              value: selectedBatch,
+                              initialValue: selectedBatch,
                               items: selectedYear != null && batchesByYear[selectedYear] != null && batchesByYear[selectedYear]!.isNotEmpty
                                   ? batchesByYear[selectedYear]!
                                       .map((batch) => DropdownMenuItem(
@@ -271,7 +271,7 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                 labelText: 'Select Faculty',
                                 border: OutlineInputBorder(),
                               ),
-                              value: selectedFaculty,
+                              initialValue: selectedFaculty,
                               items: faculties.isNotEmpty
                                   ? faculties
                                       .map((faculty) => DropdownMenuItem(

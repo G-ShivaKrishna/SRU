@@ -319,11 +319,11 @@ class _StudentHandbookScreenState extends State<StudentHandbookScreen> {
   }
 
   Widget _buildCoverPage() {
-    return Center(
+    return const Center(
       child: Column(
         children: [
-          const SizedBox(height: 40),
-          const Text(
+          SizedBox(height: 40),
+          Text(
             'STUDENT HANDBOOK',
             style: TextStyle(
               fontSize: 36,
@@ -332,24 +332,24 @@ class _StudentHandbookScreenState extends State<StudentHandbookScreen> {
               letterSpacing: 2,
             ),
           ),
-          const SizedBox(height: 20),
-          const Text(
+          SizedBox(height: 20),
+          Text(
             'Applicable for students admitted into UG/PG/PhD Programs\nfrom Academic Year 2025-2026',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 16, height: 1.6),
           ),
-          const SizedBox(height: 10),
-          const Text(
+          SizedBox(height: 10),
+          Text(
             '(BBA/BCA/B.Sc./B. Tech/MBA/MCA/M.Sc./M. Tech/PhD)',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
           ),
-          const SizedBox(height: 40),
-          const Text(
+          SizedBox(height: 40),
+          Text(
             'June 2025',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 60),
+          SizedBox(height: 60),
         ],
       ),
     );

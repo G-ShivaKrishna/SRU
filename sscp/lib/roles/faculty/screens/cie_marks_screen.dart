@@ -172,7 +172,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     if (assignment == null || batch == null) return;
 
     // Dispose old rows
-    for (final row in _studentRows) row.dispose();
+    for (final row in _studentRows) {
+      row.dispose();
+    }
 
     setState(() {
       _loadingMarks = true;
@@ -441,7 +443,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       await wb.commit();
       if (!mounted) return;
       setState(() {
-        for (final row in _studentRows) row.isSaved = true;
+        for (final row in _studentRows) {
+          row.isSaved = true;
+        }
         _savingAll = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -474,8 +478,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
   }
 
   Widget _buildBody() {
-    if (_loadingAssignments)
+    if (_loadingAssignments) {
       return const Center(child: CircularProgressIndicator());
+    }
     if (_assignmentError != null) {
       return Center(
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -549,10 +554,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            const Icon(Icons.tune, color: Color(0xFF1e3a5f), size: 18),
-            const SizedBox(width: 8),
-            const Text('Select Subject & Batch',
+          const Row(children: [
+            Icon(Icons.tune, color: Color(0xFF1e3a5f), size: 18),
+            SizedBox(width: 8),
+            Text('Select Subject & Batch',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
@@ -618,7 +623,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                 color: Color(0xFF1e3a5f))),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: _selectedAssignment?.docId,
+          initialValue: _selectedAssignment?.docId,
           isExpanded: true,
           decoration: const InputDecoration(
               border: OutlineInputBorder(),
@@ -642,7 +647,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
               _selectedBatch = a.batches.length == 1 ? a.batches.first : null;
               _marksLoaded = false;
               _marksError = null;
-              for (final row in _studentRows) row.dispose();
+              for (final row in _studentRows) {
+                row.dispose();
+              }
               _studentRows = [];
             });
           },
@@ -663,7 +670,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                 color: Color(0xFF1e3a5f))),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: batches.contains(_selectedBatch) ? _selectedBatch : null,
+          initialValue: batches.contains(_selectedBatch) ? _selectedBatch : null,
           isExpanded: true,
           decoration: const InputDecoration(
               border: OutlineInputBorder(),
@@ -681,7 +688,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                     _selectedBatch = b;
                     _marksLoaded = false;
                     _marksError = null;
-                    for (final row in _studentRows) row.dispose();
+                    for (final row in _studentRows) {
+                      row.dispose();
+                    }
                     _studentRows = [];
                   });
                 },

@@ -354,7 +354,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
 
                   // Year Selection
                   DropdownButtonFormField<int>(
-                    value: _selectedYear,
+                    initialValue: _selectedYear,
                     decoration: const InputDecoration(
                       labelText: 'From Year',
                       border: OutlineInputBorder(),
@@ -374,7 +374,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
 
                   // Semester Selection
                   DropdownButtonFormField<int>(
-                    value: _selectedSemester,
+                    initialValue: _selectedSemester,
                     decoration: const InputDecoration(
                       labelText: 'From Semester',
                       border: OutlineInputBorder(),
@@ -394,7 +394,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
 
                   // Department Selection (optional)
                   DropdownButtonFormField<String?>(
-                    value: _selectedDepartment,
+                    initialValue: _selectedDepartment,
                     decoration: const InputDecoration(
                       labelText: 'Department (Optional)',
                       border: OutlineInputBorder(),
@@ -590,7 +590,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
 
                   // Year Selection
                   DropdownButtonFormField<int>(
-                    value: _demoteYear,
+                    initialValue: _demoteYear,
                     decoration: const InputDecoration(
                       labelText: 'From Year',
                       border: OutlineInputBorder(),
@@ -610,7 +610,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
 
                   // Semester Selection
                   DropdownButtonFormField<int>(
-                    value: _demoteSemester,
+                    initialValue: _demoteSemester,
                     decoration: const InputDecoration(
                       labelText: 'From Semester',
                       border: OutlineInputBorder(),
@@ -630,7 +630,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
 
                   // Department Selection (optional)
                   DropdownButtonFormField<String?>(
-                    value: _demoteDepartment,
+                    initialValue: _demoteDepartment,
                     decoration: const InputDecoration(
                       labelText: 'Department (Optional)',
                       border: OutlineInputBorder(),
@@ -1027,7 +1027,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
                     scale: 1.8,
                     child: Switch(
                       value: _semesterActive,
-                      activeColor: Colors.green,
+                      activeThumbColor: Colors.green,
                       inactiveThumbColor: const Color(0xFF1e3a5f),
                       inactiveTrackColor:
                           const Color(0xFF1e3a5f).withOpacity(0.3),
@@ -1172,7 +1172,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<int>(
-                value: selectedYear,
+                initialValue: selectedYear,
                 decoration: const InputDecoration(
                   labelText: 'Year',
                   border: OutlineInputBorder(),
@@ -1191,7 +1191,7 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
-                value: selectedSemester,
+                initialValue: selectedSemester,
                 decoration: const InputDecoration(
                   labelText: 'Semester',
                   border: OutlineInputBorder(),

@@ -713,7 +713,7 @@ class _StudentCardState extends State<_StudentCard> {
                         _attendanceLoading
                             ? '…'
                             : _attendanceLoaded && _totalHeld > 0
-                                ? '${_overallPct.toStringAsFixed(1)}%  (${_totalPresent}/${_totalHeld})'
+                                ? '${_overallPct.toStringAsFixed(1)}%  ($_totalPresent/$_totalHeld)'
                                 : '—',
                       ),
                       _tile(Icons.home_outlined, 'Address', _str('address')),
@@ -782,7 +782,7 @@ class _StudentCardState extends State<_StudentCard> {
                   _pctChip(_overallPct),
                   const SizedBox(width: 4),
                   Text(
-                    '${_totalPresent}/${_totalHeld} classes',
+                    '$_totalPresent/$_totalHeld classes',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],

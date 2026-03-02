@@ -438,7 +438,9 @@ class _CoursePreferenceDetailScreenState
 
   void _handleMoveDown() {
     if (_selectedChosenIndex == null ||
-        _selectedChosenIndex == _selectedCourses.length - 1) return;
+        _selectedChosenIndex == _selectedCourses.length - 1) {
+      return;
+    }
     final i = _selectedChosenIndex!;
     setState(() {
       final item = _selectedCourses.removeAt(i);

@@ -207,7 +207,9 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
 
   @override
   void dispose() {
-    for (final c in _extCtrl.values) c.dispose();
+    for (final c in _extCtrl.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
