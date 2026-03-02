@@ -58,13 +58,19 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
         return;
       }
 
-      // 1. Fetch all assignments for this faculty
+      // 1. Fetch all active assignments for this faculty
       final assignSnap = await _fs
           .collection('facultyAssignments')
           .where('facultyId', isEqualTo: _facultyId)
           .get();
 
-      if (assignSnap.docs.isEmpty) {
+      // Filter by isActive to exclude courses from previous semesters
+      final activeDocs = assignSnap.docs.where((doc) {
+        final d = doc.data();
+        return (d['isActive'] ?? true) == true;
+      }).toList();
+
+      if (activeDocs.isEmpty) {
         setState(() {
           _batches = [];
           _loading = false;
@@ -74,7 +80,7 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
 
       // 2. Group assignments into batches keyed by year-sem-branch-section
       final batchMap = <String, _Batch>{};
-      for (final doc in assignSnap.docs) {
+      for (final doc in activeDocs) {
         final d = doc.data();
         final year = d['year']?.toString() ?? '';
         final sem = d['semester']?.toString() ?? '';

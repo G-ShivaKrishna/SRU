@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../faculty/screens/mentor_student_access_screen.dart';
 
 class MentorDetailsScreen extends StatelessWidget {
   final String mentorName;
@@ -29,17 +28,6 @@ class MentorDetailsScreen extends StatelessWidget {
             Text('Email: $mentorEmail', style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 12),
             Text('Phone: $mentorPhone', style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const MentorStudentAccessScreen(),
-                  ),
-                );
-              },
-              child: const Text('View All Student Details'),
-            ),
           ],
         ),
       ),

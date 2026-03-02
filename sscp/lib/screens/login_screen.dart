@@ -179,20 +179,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                 );
               },
-              const SizedBox(height: 16),
+              const SizedBox(height = 16),
               TextButton(
-                onPressed: () {},
-                child: const Text('Forgot Password?'),
+                onPressed = () {},
+                child = const Text('Forgot Password?'),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height = 32),
               Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
+                padding = const EdgeInsets.all(12),
+                decoration = BoxDecoration(
                   color: Colors.blue[50],
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.blue),
                 ),
-                child: const Text(
+                child = const Text(
                   '💡 Use your Hall Ticket Number (HTNOS) as username for login',
                   style: TextStyle(fontSize: 12),
                   textAlign: TextAlign.center,

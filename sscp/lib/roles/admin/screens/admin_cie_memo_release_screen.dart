@@ -433,7 +433,7 @@ class _AdminCieMemoReleaseScreenState extends State<AdminCieMemoReleaseScreen> {
                 color: Color(0xFF1e3a5f))),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           decoration: InputDecoration(
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

@@ -236,6 +236,15 @@ class _MultiBatchAttendanceScreenState
 
     setState(() => _submitting = true);
     try {
+      // Validate that assignment is still active before submitting attendance
+      final assignDoc = await _firestore
+          .collection('facultyAssignments')
+          .doc(assignment.docId)
+          .get();
+      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      }
+      
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
       final studentRecords = _students
           .map((s) => {
@@ -368,7 +377,7 @@ class _MultiBatchAttendanceScreenState
           const Text('Subject', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           DropdownButtonFormField<_Assign>(
-            value: _selectedAssignment,
+            initialValue: _selectedAssignment,
             isExpanded: true,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
@@ -663,7 +672,7 @@ class _MultiBatchAttendanceScreenState
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: _ltpType,
+                initialValue: _ltpType,
                 decoration: inputDec,
                 hint: const Text('Select'),
                 items: const ['L', 'T', 'P']
@@ -699,7 +708,7 @@ class _MultiBatchAttendanceScreenState
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
-                value: _unitExpNo,
+                initialValue: _unitExpNo,
                 decoration: inputDec,
                 hint: const Text('Select'),
                 items: List.generate(
@@ -740,9 +749,9 @@ class _MultiBatchAttendanceScreenState
                         Container(
                           width: 82,
                           padding: const EdgeInsets.symmetric(vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1e3a5f),
-                            borderRadius: const BorderRadius.vertical(
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF1e3a5f),
+                            borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(4)),
                           ),
                           child: Text(

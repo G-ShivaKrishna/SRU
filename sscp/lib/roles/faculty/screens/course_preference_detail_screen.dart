@@ -76,22 +76,47 @@ class _CoursePreferenceDetailScreenState
 
     final preSelected =
         existing != null ? existing.courses : widget.initialSelectedCourses;
-    final selectedCodes = preSelected.map((s) => s.code).toSet();
+    
+    // Create a set of currently active subject codes from Subject Management
+    final activeSubjectCodes = allSubjects.map((s) => s.code).toSet();
+    
+    // Filter previously selected courses to only include those that are still active
+    final validatedSelectedCourses = preSelected
+        .where((s) => activeSubjectCodes.contains(s.code))
+        .toList();
+    
+    // Check if any subjects were removed due to being inactive
+    final removedSubjects = preSelected
+        .where((s) => !activeSubjectCodes.contains(s.code))
+        .toList();
+    
+    final selectedCodes = validatedSelectedCourses.map((s) => s.code).toSet();
 
     setState(() {
-      _selectedCourses = List<SubjectItem>.from(preSelected);
+      _selectedCourses = validatedSelectedCourses;
       _availableCourses =
           allSubjects.where((s) => !selectedCodes.contains(s.code)).toList();
       _isLoading = false;
     });
 
-    // Show a non-blocking warning if subjects failed (previous selection is still visible).
+    // Show warning if subjects were removed
+    if (removedSubjects.isNotEmpty && mounted) {
+      final removedNames = removedSubjects.map((s) => s.name).join(', ');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            'Note: ${removedSubjects.length} previously selected subject(s) have been removed by admin and are no longer available: $removedNames'),
+        duration: const Duration(seconds: 8),
+        backgroundColor: Colors.orange[800],
+      ));
+    }
+
+    // Show a non-blocking warning if subjects failed to load.
     if (subjectLoadError != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
             'Could not load available subjects: $subjectLoadError\nYour previous selection is shown on the right.'),
         duration: const Duration(seconds: 6),
-        backgroundColor: Colors.orange[800],
+        backgroundColor: Colors.red[800],
       ));
     }
   }
@@ -123,6 +148,40 @@ class _CoursePreferenceDetailScreenState
                                         fontSize: 28,
                                         fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                        color: Colors.blue.shade200),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.info_outline,
+                                          size: 16, color: Colors.blue.shade700),
+                                      const SizedBox(width: 8),
+                                      const Flexible(
+                                        child: Text(
+                                          'Subjects are managed by admin in Subject Management. Only active subjects are shown.',
+                                          style: TextStyle(fontSize: 12),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: const Icon(Icons.refresh, size: 18),
+                                        tooltip: 'Refresh subjects',
+                                        onPressed: _loadData,
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
                                 const Text(
                                   'Select a minimum of 4 and a maximum of 7 courses in preference order',
                                   style: TextStyle(
@@ -379,7 +438,9 @@ class _CoursePreferenceDetailScreenState
 
   void _handleMoveDown() {
     if (_selectedChosenIndex == null ||
-        _selectedChosenIndex == _selectedCourses.length - 1) return;
+        _selectedChosenIndex == _selectedCourses.length - 1) {
+      return;
+    }
     final i = _selectedChosenIndex!;
     setState(() {
       final item = _selectedCourses.removeAt(i);

@@ -87,11 +87,11 @@ class _AdminCourseManagementScreenState
             else ...[
               Container(
                 color: const Color(0xFF1e3a5f),
-                child: TabBar(
+                child: const TabBar(
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.white70,
                   indicatorColor: Colors.yellow,
-                  tabs: const [
+                  tabs: [
                     Tab(text: 'Registration Settings'),
                     Tab(text: 'Subject Requirements'),
                     Tab(text: 'Student Submissions'),
@@ -653,7 +653,7 @@ class _AdminCourseManagementScreenState
         // Key format: "year_semester" e.g., "1_I", "1_II", "2_I", etc.
         final Map<String, Map<SubjectType, int>> yearSemTypeCount = {};
         final Map<String, List<Subject>> yearSemSubjects = {};
-        
+
         // Initialize structure for all year+semester combinations
         for (int year = 1; year <= 4; year++) {
           for (String sem in ['I', 'II', '1', '2']) {
@@ -684,26 +684,26 @@ class _AdminCourseManagementScreenState
             // Also check numeric semester format
             final altKey = '${year}_${sem == 'I' ? '1' : '2'}';
             final counts = yearSemTypeCount[key] ?? yearSemTypeCount[altKey];
-            
+
             if (counts == null) continue;
-            
+
             // Merge counts from both key formats
-            final coreCount = (yearSemTypeCount[key]?[SubjectType.core] ?? 0) + 
-                              (yearSemTypeCount[altKey]?[SubjectType.core] ?? 0);
-            final oeCount = (yearSemTypeCount[key]?[SubjectType.oe] ?? 0) + 
-                            (yearSemTypeCount[altKey]?[SubjectType.oe] ?? 0);
-            final peCount = (yearSemTypeCount[key]?[SubjectType.pe] ?? 0) + 
-                            (yearSemTypeCount[altKey]?[SubjectType.pe] ?? 0);
-            
+            final coreCount = (yearSemTypeCount[key]?[SubjectType.core] ?? 0) +
+                (yearSemTypeCount[altKey]?[SubjectType.core] ?? 0);
+            final oeCount = (yearSemTypeCount[key]?[SubjectType.oe] ?? 0) +
+                (yearSemTypeCount[altKey]?[SubjectType.oe] ?? 0);
+            final peCount = (yearSemTypeCount[key]?[SubjectType.pe] ?? 0) +
+                (yearSemTypeCount[altKey]?[SubjectType.pe] ?? 0);
+
             // Merge subjects from both key formats
             final List<Subject> subjectsForYearSem = [
               ...(yearSemSubjects[key] ?? <Subject>[]),
               ...(yearSemSubjects[altKey] ?? <Subject>[]),
             ];
-            
+
             // Only show if there are subjects
             if (coreCount == 0 && oeCount == 0 && peCount == 0) continue;
-            
+
             displayList.add(
               _buildExpandableSubjectRow(
                 context: context,
@@ -768,7 +768,8 @@ class _AdminCourseManagementScreenState
               child: Text('No subjects in this semester'),
             )
           else
-            ...subjects.map((subject) => _buildSubjectListItem(context, subject)),
+            ...subjects
+                .map((subject) => _buildSubjectListItem(context, subject)),
         ],
       ),
     );
@@ -853,13 +854,25 @@ class _AdminCourseManagementScreenState
   void _showEditSubjectDialog(BuildContext context, Subject subject) {
     final codeController = TextEditingController(text: subject.code);
     final nameController = TextEditingController(text: subject.name);
-    final creditsController = TextEditingController(text: subject.credits.toString());
+    final creditsController =
+        TextEditingController(text: subject.credits.toString());
     String selectedDepartment = subject.department;
     int selectedYear = subject.year;
     String selectedSemester = subject.semester;
     SubjectType selectedSubjectType = subject.subjectType;
 
-    final departments = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'AIDS', 'AIML', 'CSM', 'CSD'];
+    final departments = [
+      'CSE',
+      'ECE',
+      'EEE',
+      'MECH',
+      'CIVIL',
+      'IT',
+      'AIDS',
+      'AIML',
+      'CSM',
+      'CSD'
+    ];
 
     showDialog(
       context: context,
@@ -906,9 +919,12 @@ class _AdminCourseManagementScreenState
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.business),
                         ),
-                        value: departments.contains(selectedDepartment) ? selectedDepartment : departments.first,
+                        initialValue: departments.contains(selectedDepartment)
+                            ? selectedDepartment
+                            : departments.first,
                         items: departments.map((dept) {
-                          return DropdownMenuItem(value: dept, child: Text(dept));
+                          return DropdownMenuItem(
+                              value: dept, child: Text(dept));
                         }).toList(),
                         onChanged: (value) {
                           setDialogState(() {
@@ -923,7 +939,7 @@ class _AdminCourseManagementScreenState
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.category),
                         ),
-                        value: selectedSubjectType,
+                        initialValue: selectedSubjectType,
                         items: SubjectType.values.map((type) {
                           return DropdownMenuItem(
                             value: type,
@@ -945,7 +961,7 @@ class _AdminCourseManagementScreenState
                                 labelText: 'Year *',
                                 border: OutlineInputBorder(),
                               ),
-                              value: selectedYear,
+                              initialValue: selectedYear,
                               items: [1, 2, 3, 4].map((year) {
                                 return DropdownMenuItem(
                                   value: year,
@@ -966,7 +982,10 @@ class _AdminCourseManagementScreenState
                                 labelText: 'Semester *',
                                 border: OutlineInputBorder(),
                               ),
-                              value: ['I', 'II'].contains(selectedSemester) ? selectedSemester : 'I',
+                              initialValue:
+                                  ['I', 'II'].contains(selectedSemester)
+                                      ? selectedSemester
+                                      : 'I',
                               items: ['I', 'II'].map((sem) {
                                 return DropdownMenuItem(
                                   value: sem,
@@ -1081,7 +1100,7 @@ class _AdminCourseManagementScreenState
                 await _subjectService.deleteSubject(subject.id);
                 Navigator.pop(context);
                 setState(() {}); // Refresh the list
-                
+
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -1298,7 +1317,7 @@ class _AdminCourseManagementScreenState
                     const SizedBox(height: 12),
                     if (isMobile) ...[
                       DropdownButtonFormField<String>(
-                        value: selectedYear,
+                        initialValue: selectedYear,
                         items: years
                             .map((y) => DropdownMenuItem(
                                   value: y,
@@ -1306,8 +1325,9 @@ class _AdminCourseManagementScreenState
                                 ))
                             .toList(),
                         onChanged: (value) {
-                          if (value != null)
+                          if (value != null) {
                             setState(() => selectedYear = value);
+                          }
                         },
                         decoration: InputDecoration(
                           labelText: 'Year',
@@ -1317,7 +1337,7 @@ class _AdminCourseManagementScreenState
                       ),
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
-                        value: selectedSemester,
+                        initialValue: selectedSemester,
                         items: ['1', '2']
                             .map((s) => DropdownMenuItem(
                                   value: s,
@@ -1325,8 +1345,9 @@ class _AdminCourseManagementScreenState
                                 ))
                             .toList(),
                         onChanged: (value) {
-                          if (value != null)
+                          if (value != null) {
                             setState(() => selectedSemester = value);
+                          }
                         },
                         decoration: InputDecoration(
                           labelText: 'Semester',
@@ -1336,14 +1357,15 @@ class _AdminCourseManagementScreenState
                       ),
                       const SizedBox(height: 10),
                       DropdownButtonFormField<String>(
-                        value: selectedBranch,
+                        initialValue: selectedBranch,
                         items: branches
                             .map((b) =>
                                 DropdownMenuItem(value: b, child: Text(b)))
                             .toList(),
                         onChanged: (value) {
-                          if (value != null)
+                          if (value != null) {
                             setState(() => selectedBranch = value);
+                          }
                         },
                         decoration: InputDecoration(
                           labelText: 'Branch',
@@ -1356,7 +1378,7 @@ class _AdminCourseManagementScreenState
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedYear,
+                              initialValue: selectedYear,
                               items: years
                                   .map((year) => DropdownMenuItem(
                                         value: year,
@@ -1379,7 +1401,7 @@ class _AdminCourseManagementScreenState
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedSemester,
+                              initialValue: selectedSemester,
                               items: ['1', '2']
                                   .map((s) => DropdownMenuItem(
                                         value: s,
@@ -1402,7 +1424,7 @@ class _AdminCourseManagementScreenState
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedBranch,
+                              initialValue: selectedBranch,
                               items: branches
                                   .map((branch) => DropdownMenuItem(
                                         value: branch,
@@ -1647,8 +1669,9 @@ class _AdminCourseManagementScreenState
                 FutureBuilder<List<Subject>>(
                   future: _getSubjectsByIds(selectedOEIds),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData)
+                    if (!snapshot.hasData) {
                       return const CircularProgressIndicator();
+                    }
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: snapshot.data!
@@ -1670,8 +1693,9 @@ class _AdminCourseManagementScreenState
                 FutureBuilder<List<Subject>>(
                   future: _getSubjectsByIds(selectedPEIds),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData)
+                    if (!snapshot.hasData) {
                       return const CircularProgressIndicator();
+                    }
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: snapshot.data!
@@ -1733,9 +1757,9 @@ class _AdminCourseManagementScreenState
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(isMobile ? 12 : 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1e3a5f),
-              borderRadius: const BorderRadius.only(
+            decoration: const BoxDecoration(
+              color: Color(0xFF1e3a5f),
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(7),
                 topRight: Radius.circular(7),
               ),
@@ -1781,7 +1805,7 @@ class _AdminCourseManagementScreenState
         ),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: value,
+          initialValue: value,
           items: items.map((item) {
             return DropdownMenuItem(
               value: item,

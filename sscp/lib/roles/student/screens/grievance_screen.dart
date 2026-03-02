@@ -189,7 +189,7 @@ class _SubmitGrievanceTabState extends State<_SubmitGrievanceTab> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedType,
+                  initialValue: _selectedType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(6)),

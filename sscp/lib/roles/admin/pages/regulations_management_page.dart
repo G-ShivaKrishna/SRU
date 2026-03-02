@@ -324,9 +324,9 @@ class _RegulationsManagementPageState extends State<RegulationsManagementPage> {
                     children: [
                       // Header
                       Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1e3a5f),
-                          borderRadius: const BorderRadius.vertical(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF1e3a5f),
+                          borderRadius: BorderRadius.vertical(
                               top: Radius.circular(4)),
                         ),
                         child: Row(

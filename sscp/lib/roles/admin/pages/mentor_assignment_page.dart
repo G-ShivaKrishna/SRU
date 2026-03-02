@@ -11,9 +11,11 @@ class MentorAssignmentPage extends StatefulWidget {
 class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
   String? selectedBatch;
   String? selectedFaculty;
+  int? selectedYear;
   String? editingDocId;
   List<String> batches = [];
   List<String> faculties = [];
+  Map<int, List<String>> batchesByYear = {};
   bool isLoading = true;
 
   @override
@@ -24,17 +26,31 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
 
   Future<void> _fetchData() async {
     try {
-      // Get unique batch numbers from students collection
+      // Get batches grouped by year from students collection
       final studentSnap = await FirebaseFirestore.instance.collection('students').get();
-      final batchSet = <String>{};
+      final tempBatchesByYear = <int, Set<String>>{};
+      
       for (var doc in studentSnap.docs) {
-        final batchNum = doc.data()['batchNumber']?.toString();
-        if (batchNum != null && batchNum.isNotEmpty) {
-          batchSet.add(batchNum);
+        final data = doc.data();
+        final batchNum = data['batchNumber']?.toString();
+        final year = data['year'];
+        
+        if (batchNum != null && batchNum.isNotEmpty && year != null) {
+          final yearInt = year is int ? year : int.tryParse(year.toString());
+          if (yearInt != null) {
+            tempBatchesByYear.putIfAbsent(yearInt, () => <String>{});
+            tempBatchesByYear[yearInt]!.add(batchNum);
+          }
         }
       }
 
-      // Get faculty names from faculty collection (field is 'name', not 'facultyName')
+      // Convert to sorted lists
+      final sortedBatchesByYear = <int, List<String>>{};
+      for (var entry in tempBatchesByYear.entries) {
+        sortedBatchesByYear[entry.key] = entry.value.toList()..sort();
+      }
+
+      // Get faculty names from faculty collection
       final facultySnap = await FirebaseFirestore.instance.collection('faculty').get();
       final facultyList = facultySnap.docs
           .map((doc) => doc.data()['name']?.toString() ?? '')
@@ -42,19 +58,25 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
           .toList();
 
       setState(() {
-        batches = batchSet.toList()..sort();
+        batchesByYear = sortedBatchesByYear;
         faculties = facultyList..sort();
         isLoading = false;
       });
     } catch (e) {
-      setState(() { isLoading = false; });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading data: $e')),
-      );
+      setState(() { 
+        batchesByYear = {};
+        faculties = [];
+        isLoading = false; 
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading data: $e')),
+        );
+      }
     }
   }
 
-  Future<void> _saveAssignment(String batchNumber, String facultyName) async {
+  Future<void> _saveAssignment(int year, String batchNumber, String facultyName) async {
     try {
       if (editingDocId != null) {
         // Update existing assignment
@@ -66,9 +88,10 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
           'updatedAt': FieldValue.serverTimestamp(),
         });
       } else {
-        // Check if assignment already exists for this batch
+        // Check if assignment already exists for this year+batch combination
         final existingSnap = await FirebaseFirestore.instance
             .collection('mentorAssignments')
+            .where('year', isEqualTo: year)
             .where('batchNumber', isEqualTo: batchNumber)
             .limit(1)
             .get();
@@ -84,6 +107,7 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
           await FirebaseFirestore.instance
               .collection('mentorAssignments')
               .add({
+            'year': year,
             'batchNumber': batchNumber,
             'facultyName': facultyName,
             'createdAt': FieldValue.serverTimestamp(),
@@ -95,12 +119,13 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Mentor "$facultyName" assigned to batch "$batchNumber" successfully!'),
+                'Mentor "$facultyName" assigned to Year $year - Batch $batchNumber successfully!'),
             duration: const Duration(seconds: 2),
           ),
         );
         // Clear selections
         setState(() {
+          selectedYear = null;
           selectedBatch = null;
           selectedFaculty = null;
           editingDocId = null;
@@ -139,9 +164,10 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
     }
   }
 
-  void _editAssignment(String docId, String batchNumber, String facultyName) {
+  void _editAssignment(String docId, int year, String batchNumber, String facultyName) {
     setState(() {
       editingDocId = docId;
+      selectedYear = year;
       selectedBatch = batchNumber;
       selectedFaculty = facultyName;
     });
@@ -150,6 +176,7 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
   void _cancelEdit() {
     setState(() {
       editingDocId = null;
+      selectedYear = null;
       selectedBatch = null;
       selectedFaculty = null;
     });
@@ -181,11 +208,48 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 16),
+                            
+                            // Year Dropdown
+                            DropdownButtonFormField<int>(
+                              decoration: const InputDecoration(
+                                labelText: 'Select Year',
+                                border: OutlineInputBorder(),
+                              ),
+                              initialValue: selectedYear,
+                              items: batchesByYear.keys.isEmpty
+                                  ? [
+                                      const DropdownMenuItem(
+                                        value: null,
+                                        child: Text('No years available'),
+                                      )
+                                    ]
+                                  : (batchesByYear.keys.toList()..sort())
+                                      .map((year) {
+                                        return DropdownMenuItem(
+                                          value: year,
+                                          child: Text('Year $year'),
+                                        );
+                                      }).toList(),
+                              onChanged: batchesByYear.keys.isEmpty
+                                  ? null
+                                  : (val) {
+                                      setState(() {
+                                        selectedYear = val;
+                                        selectedBatch = null; // Reset batch when year changes
+                                      });
+                                    },
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // Batch Dropdown (filtered by selected year)
                             DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(labelText: 'Select Batch'),
-                              value: selectedBatch,
-                              items: batches.isNotEmpty
-                                  ? batches
+                              decoration: const InputDecoration(
+                                labelText: 'Select Batch',
+                                border: OutlineInputBorder(),
+                              ),
+                              initialValue: selectedBatch,
+                              items: selectedYear != null && batchesByYear[selectedYear] != null && batchesByYear[selectedYear]!.isNotEmpty
+                                  ? batchesByYear[selectedYear]!
                                       .map((batch) => DropdownMenuItem(
                                             value: batch,
                                             child: Text(batch),
@@ -194,17 +258,20 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                   : [
                                       const DropdownMenuItem(
                                         value: null,
-                                        child: Text('No batches found'),
+                                        child: Text('Select year first'),
                                       )
                                     ],
-                              onChanged: batches.isNotEmpty
+                              onChanged: selectedYear != null && batchesByYear[selectedYear] != null
                                   ? (val) => setState(() => selectedBatch = val)
                                   : null,
                             ),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(labelText: 'Select Faculty'),
-                              value: selectedFaculty,
+                              decoration: const InputDecoration(
+                                labelText: 'Select Faculty',
+                                border: OutlineInputBorder(),
+                              ),
+                              initialValue: selectedFaculty,
                               items: faculties.isNotEmpty
                                   ? faculties
                                       .map((faculty) => DropdownMenuItem(
@@ -227,13 +294,13 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                               children: [
                                 Expanded(
                                   child: ElevatedButton(
-                                    onPressed: selectedBatch != null &&
+                                    onPressed: selectedYear != null &&
+                                            selectedBatch != null &&
                                             selectedFaculty != null &&
-                                            batches.isNotEmpty &&
                                             faculties.isNotEmpty
                                         ? () {
                                             _saveAssignment(
-                                                selectedBatch!, selectedFaculty!);
+                                                selectedYear!, selectedBatch!, selectedFaculty!);
                                           }
                                         : null,
                                     child: Text(editingDocId != null
@@ -289,16 +356,16 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                           itemCount: assignments.length,
                           itemBuilder: (context, index) {
                             final assignment = assignments[index];
-                            final batchNumber =
-                                assignment['batchNumber'] ?? '';
-                            final facultyName =
-                                assignment['facultyName'] ?? '';
+                            final data = assignment.data() as Map<String, dynamic>;
+                            final year = data['year'] ?? 'N/A';
+                            final batchNumber = data['batchNumber'] ?? '';
+                            final facultyName = data['facultyName'] ?? '';
                             final docId = assignment.id;
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
                               child: ListTile(
-                                title: Text('Batch: $batchNumber'),
+                                title: Text('Year $year - Batch $batchNumber'),
                                 subtitle: Text('Mentor: $facultyName'),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -307,8 +374,8 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                       icon: const Icon(Icons.edit),
                                       color: Colors.blue,
                                       onPressed: () {
-                                        _editAssignment(docId, batchNumber,
-                                            facultyName);
+                                        final yearInt = year is int ? year : int.tryParse(year.toString()) ?? 1;
+                                        _editAssignment(docId, yearInt, batchNumber, facultyName);
                                         // Scroll to top to see form
                                         Scrollable.ensureVisible(
                                           context,
@@ -329,7 +396,7 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                             return AlertDialog(
                                               title: const Text('Delete Assignment'),
                                               content: Text(
-                                                  'Are you sure you want to delete the assignment of Batch $batchNumber from mentor $facultyName?'),
+                                                  'Are you sure you want to delete the assignment of Year $year - Batch $batchNumber from mentor $facultyName?'),
                                               actions: [
                                                 TextButton(
                                                   onPressed: () {

@@ -541,7 +541,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.business),
                         ),
-                        value: selectedDepartment,
+                        initialValue: selectedDepartment,
                         items: _departments.map((dept) {
                           return DropdownMenuItem(
                               value: dept, child: Text(dept));
@@ -587,7 +587,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                                 )
                               : null,
                         ),
-                        value: selectedFacultyId,
+                        initialValue: selectedFacultyId,
                         items: filteredFaculty.map((faculty) {
                           return DropdownMenuItem(
                             value: faculty['facultyId'] as String,
@@ -743,7 +743,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                                     : null,
                                 errorStyle: const TextStyle(fontSize: 10),
                               ),
-                              value: selectedYear,
+                              initialValue: selectedYear,
                               items: [1, 2, 3, 4].map((year) {
                                 final isAssigned = facultyYearSubjectMap.containsKey(year);
                                 return DropdownMenuItem(
@@ -782,7 +782,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                                 labelText: 'Semester *',
                                 border: OutlineInputBorder(),
                               ),
-                              value: selectedSemester,
+                              initialValue: selectedSemester,
                               items: ['I', 'II'].map((sem) {
                                 return DropdownMenuItem(
                                   value: sem,
@@ -842,7 +842,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                               : null,
                           errorStyle: const TextStyle(fontSize: 10),
                         ),
-                        value: selectedSubjectCode,
+                        initialValue: selectedSubjectCode,
                         items: filteredSubjects.map((pref) {
                           final assignedTo = subjectFacultyMap[pref.code];
                           final isAssignedToOther = assignedTo != null && assignedTo != selectedFacultyName;
@@ -1114,7 +1114,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                           labelText: 'Semester',
                           border: OutlineInputBorder(),
                         ),
-                        value: selectedSemester,
+                        initialValue: selectedSemester,
                         items: ['I', 'II'].map((sem) {
                           return DropdownMenuItem(
                             value: sem,

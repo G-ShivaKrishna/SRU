@@ -111,14 +111,23 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
         return;
       }
 
-      final batchNumber =
-          (assignSnap.docs.first.data()['batchNumber'] ?? '').toString().trim();
+      // Faculty may have multiple assignments (different years), take first one
+      final assignmentData = assignSnap.docs.first.data();
+      final batchNumber = (assignmentData['batchNumber'] ?? '').toString().trim();
+      final year = assignmentData['year'];
+      final yearInt = year is int ? year : int.tryParse(year.toString());
 
-      // Step 4: fetch all students in that batch
-      final studentsSnap = await _firestore
+      // Step 4: fetch all students in that year+batch combination
+      Query<Map<String, dynamic>> studentsQuery = _firestore
           .collection('students')
-          .where('batchNumber', isEqualTo: batchNumber)
-          .get();
+          .where('batchNumber', isEqualTo: batchNumber);
+      
+      // Add year filter if available
+      if (yearInt != null) {
+        studentsQuery = studentsQuery.where('year', isEqualTo: yearInt);
+      }
+      
+      final studentsSnap = await studentsQuery.get();
 
       final studentsList = studentsSnap.docs.map((doc) {
         final data = doc.data();
@@ -132,7 +141,7 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
 
       setState(() {
         _facultyName = facultyName;
-        _assignedBatch = batchNumber;
+        _assignedBatch = yearInt != null ? 'Year $yearInt - $batchNumber' : batchNumber;
         _students = studentsList;
         _filteredStudents = List.from(studentsList);
         _isLoading = false;
@@ -505,6 +514,19 @@ class _StudentCardState extends State<_StudentCard> {
     if (roll == '—' || batch == '—') return;
     setState(() => _attendanceLoading = true);
     try {
+      // Get promotion date to filter attendance records
+      DateTime? sinceDate;
+      try {
+        final lastPromotedTs = widget.student['lastPromotedAt'];
+        if (lastPromotedTs != null) {
+          final dt = (lastPromotedTs as dynamic).toDate() as DateTime;
+          // Normalize to start of day to avoid time comparison issues
+          sinceDate = DateTime(dt.year, dt.month, dt.day);
+        }
+      } catch (_) {
+        // If no promotion date, show all records
+      }
+
       final snap = await _fs
           .collection('attendance')
           .where('batches', arrayContains: batch)
@@ -514,6 +536,30 @@ class _StudentCardState extends State<_StudentCard> {
       final Map<String, Map<String, dynamic>> subjectMap = {};
       for (final doc in snap.docs) {
         final data = doc.data();
+        
+        // Filter by promotion date if available
+        if (sinceDate != null) {
+          final dateStr = data['dateStr'] as String? ?? '';
+          if (dateStr.isNotEmpty) {
+            try {
+              final p = dateStr.split('-');
+              if (p.length == 3) {
+                final day = int.parse(p[0]);
+                final month = int.parse(p[1]);
+                final year = int.parse(p[2]);
+                final recDate = DateTime(year, month, day);
+                
+                // Skip records before promotion date
+                if (recDate.isBefore(sinceDate)) {
+                  continue;
+                }
+              }
+            } catch (_) {
+              // If date parsing fails, include the record
+            }
+          }
+        }
+
         final subjectCode = data['subjectCode'] as String? ?? '';
         final subjectName = data['subjectName'] as String? ?? '';
         final key = subjectCode.isNotEmpty ? subjectCode : subjectName;
@@ -667,7 +713,7 @@ class _StudentCardState extends State<_StudentCard> {
                         _attendanceLoading
                             ? '…'
                             : _attendanceLoaded && _totalHeld > 0
-                                ? '${_overallPct.toStringAsFixed(1)}%  (${_totalPresent}/${_totalHeld})'
+                                ? '${_overallPct.toStringAsFixed(1)}%  ($_totalPresent/$_totalHeld)'
                                 : '—',
                       ),
                       _tile(Icons.home_outlined, 'Address', _str('address')),
@@ -736,7 +782,7 @@ class _StudentCardState extends State<_StudentCard> {
                   _pctChip(_overallPct),
                   const SizedBox(width: 4),
                   Text(
-                    '${_totalPresent}/${_totalHeld} classes',
+                    '$_totalPresent/$_totalHeld classes',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],

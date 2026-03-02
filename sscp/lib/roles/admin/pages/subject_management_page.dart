@@ -208,7 +208,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
-      value: _selectedDepartment,
+      initialValue: _selectedDepartment,
       items: [
         const DropdownMenuItem(value: null, child: Text('All Departments')),
         ..._departments.map((dept) {
@@ -230,7 +230,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
-      value: _selectedSemester,
+      initialValue: _selectedSemester,
       items: const [
         DropdownMenuItem(value: null, child: Text('All Semesters')),
         DropdownMenuItem(value: 'I', child: Text('Semester I')),
@@ -517,7 +517,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.business),
                         ),
-                        value: selectedDepartment,
+                        initialValue: selectedDepartment,
                         items: _departments.map((dept) {
                           return DropdownMenuItem(value: dept, child: Text(dept));
                         }).toList(),
@@ -536,7 +536,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.category),
                         ),
-                        value: selectedSubjectType,
+                        initialValue: selectedSubjectType,
                         items: SubjectType.values.map((type) {
                           return DropdownMenuItem(
                             value: type,
@@ -560,7 +560,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                                 labelText: 'Year *',
                                 border: OutlineInputBorder(),
                               ),
-                              value: selectedYear,
+                              initialValue: selectedYear,
                               items: [1, 2, 3, 4].map((year) {
                                 return DropdownMenuItem(
                                   value: year,
@@ -581,7 +581,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                                 labelText: 'Semester *',
                                 border: OutlineInputBorder(),
                               ),
-                              value: selectedSemester,
+                              initialValue: selectedSemester,
                               items: ['I', 'II'].map((sem) {
                                 return DropdownMenuItem(
                                   value: sem,
@@ -733,7 +733,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.business),
                         ),
-                        value: selectedDepartment,
+                        initialValue: selectedDepartment,
                         items: _departments.map((dept) {
                           return DropdownMenuItem(value: dept, child: Text(dept));
                         }).toList(),
@@ -751,7 +751,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.category),
                         ),
-                        value: selectedSubjectType,
+                        initialValue: selectedSubjectType,
                         items: SubjectType.values.map((type) {
                           return DropdownMenuItem(
                             value: type,
@@ -773,7 +773,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                                 labelText: 'Year *',
                                 border: OutlineInputBorder(),
                               ),
-                              value: selectedYear,
+                              initialValue: selectedYear,
                               items: [1, 2, 3, 4].map((year) {
                                 return DropdownMenuItem(
                                   value: year,
@@ -794,7 +794,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                                 labelText: 'Semester *',
                                 border: OutlineInputBorder(),
                               ),
-                              value: selectedSemester,
+                              initialValue: selectedSemester,
                               items: ['I', 'II'].map((sem) {
                                 return DropdownMenuItem(
                                   value: sem,
