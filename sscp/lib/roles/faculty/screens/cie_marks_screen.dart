@@ -247,13 +247,13 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             ? d['year'] as int
             : int.tryParse(d['year'].toString()) ?? 0;
         final status = (d['status'] ?? 'active').toString();
-        
+
         // Match if batchNumber OR section equals the batch identifier
-        final batchMatch = bn == batchNumber || 
-                           section == batchNumber || 
-                           bn == batch || 
-                           section == batch;
-        
+        final batchMatch = bn == batchNumber ||
+            section == batchNumber ||
+            bn == batch ||
+            section == batch;
+
         return batchMatch &&
             yr == assignment.year &&
             status != 'graduated' &&
@@ -329,13 +329,18 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     setState(() => row.isSaving = true);
     try {
       final facultyId = _auth.currentUser!.email!.split('@')[0].toUpperCase();
-      
+
       // Validate that assignment is still active before saving
-      final assignDoc = await _fs.collection('facultyAssignments').doc(assignment.docId).get();
-      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
-        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      final assignDoc = await _fs
+          .collection('facultyAssignments')
+          .doc(assignment.docId)
+          .get();
+      if (!assignDoc.exists ||
+          (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception(
+            'This course is no longer active. Students may have been promoted. Please refresh the page.');
       }
-      
+
       final compMarks = <String, int>{};
       for (final c in _components) {
         compMarks[c.name] =
@@ -416,11 +421,16 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
     try {
       // Validate that assignment is still active before saving
-      final assignDoc = await _fs.collection('facultyAssignments').doc(assignment.docId).get();
-      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
-        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      final assignDoc = await _fs
+          .collection('facultyAssignments')
+          .doc(assignment.docId)
+          .get();
+      if (!assignDoc.exists ||
+          (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception(
+            'This course is no longer active. Students may have been promoted. Please refresh the page.');
       }
-      
+
       final wb = _fs.batch();
       for (final row in _studentRows) {
         final compMarks = <String, int>{};
@@ -484,7 +494,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     sheetObject.appendRow([
       excel_package.TextCellValue('Student ID'),
       excel_package.TextCellValue('Student Name'),
-      ..._components.map((c) => excel_package.TextCellValue('${c.name} /${c.maxMarks}')),
+      ..._components
+          .map((c) => excel_package.TextCellValue('${c.name} /${c.maxMarks}')),
     ]);
 
     // Add student data
@@ -513,7 +524,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
     try {
       final assignment = _selectedAssignment!;
-      final bytes = _createExcelTemplate(assignment.subjectName, _selectedBatch!);
+      final bytes =
+          _createExcelTemplate(assignment.subjectName, _selectedBatch!);
       final fileName =
           '${assignment.subjectCode}_${_selectedBatch}_Marks_Template.xlsx'
               .replaceAll(' ', '_')
@@ -525,8 +537,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         try {
           final blob = html.Blob([bytes]);
           final url = html.Url.createObjectUrlFromBlob(blob);
-          (html.AnchorElement(href: url)
-                ..setAttribute('download', fileName))
+          (html.AnchorElement(href: url)..setAttribute('download', fileName))
               .click();
           html.Url.revokeObjectUrl(url);
 
@@ -555,13 +566,13 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         try {
           // Android: /storage/emulated/0/Download or /sdcard/Download
           Directory downloadsDir = Directory('/storage/emulated/0/Download');
-          
+
           // Check if the primary downloads directory exists
           if (!await downloadsDir.exists()) {
             // Try alternative path
             downloadsDir = Directory('/sdcard/Download');
           }
-          
+
           if (!await downloadsDir.exists()) {
             // Create Downloads directory if it doesn't exist
             await downloadsDir.create(recursive: true);
@@ -747,7 +758,6 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -861,10 +871,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed:
-                          (_selectedAssignment != null && _selectedBatch != null)
-                              ? _loadMarksEntry
-                              : null,
+                      onPressed: (_selectedAssignment != null &&
+                              _selectedBatch != null)
+                          ? _loadMarksEntry
+                          : null,
                       icon: const Icon(Icons.search),
                       label: const Text('Load Students'),
                       style: ElevatedButton.styleFrom(
@@ -883,12 +893,11 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                             backgroundColor: Colors.green,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          onPressed:
-                              (_selectedAssignment != null &&
-                                      _selectedBatch != null &&
-                                      _marksLoaded)
-                                  ? _downloadExcelTemplate
-                                  : null,
+                          onPressed: (_selectedAssignment != null &&
+                                  _selectedBatch != null &&
+                                  _marksLoaded)
+                              ? _downloadExcelTemplate
+                              : null,
                           icon: const Icon(Icons.download),
                           label: const Text(
                             'Download Template',
@@ -907,7 +916,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                             backgroundColor: Colors.orange,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          onPressed: _isUploadingExcel ? null : _uploadAndParseExcel,
+                          onPressed:
+                              _isUploadingExcel ? null : _uploadAndParseExcel,
                           icon: const Icon(Icons.upload_file),
                           label: Text(
                             _isUploadingExcel ? 'Uploading...' : 'Upload Excel',
@@ -928,10 +938,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed:
-                          (_selectedAssignment != null && _selectedBatch != null)
-                              ? _loadMarksEntry
-                              : null,
+                      onPressed: (_selectedAssignment != null &&
+                              _selectedBatch != null)
+                          ? _loadMarksEntry
+                          : null,
                       icon: const Icon(Icons.search),
                       label: const Text('Load Students'),
                       style: ElevatedButton.styleFrom(
@@ -948,12 +958,11 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                         backgroundColor: Colors.green,
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
-                      onPressed:
-                          (_selectedAssignment != null &&
-                                  _selectedBatch != null &&
-                                  _marksLoaded)
-                              ? _downloadExcelTemplate
-                              : null,
+                      onPressed: (_selectedAssignment != null &&
+                              _selectedBatch != null &&
+                              _marksLoaded)
+                          ? _downloadExcelTemplate
+                          : null,
                       icon: const Icon(Icons.download),
                       label: const Text(
                         'Download Template',
@@ -971,7 +980,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                         backgroundColor: Colors.orange,
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
-                      onPressed: _isUploadingExcel ? null : _uploadAndParseExcel,
+                      onPressed:
+                          _isUploadingExcel ? null : _uploadAndParseExcel,
                       icon: const Icon(Icons.upload_file),
                       label: Text(
                         _isUploadingExcel ? 'Uploading...' : 'Upload Excel',
@@ -1067,7 +1077,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                 color: Color(0xFF1e3a5f))),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          initialValue: batches.contains(_selectedBatch) ? _selectedBatch : null,
+          initialValue:
+              batches.contains(_selectedBatch) ? _selectedBatch : null,
           isExpanded: true,
           decoration: const InputDecoration(
               border: OutlineInputBorder(),

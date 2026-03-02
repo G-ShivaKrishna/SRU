@@ -133,12 +133,11 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
                           backgroundColor: Colors.green,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        onPressed:
-                            selectedCourse != null &&
-                                    selectedSection != null &&
-                                    selectedExamType != null
-                                ? _downloadExcelTemplate
-                                : null,
+                        onPressed: selectedCourse != null &&
+                                selectedSection != null &&
+                                selectedExamType != null
+                            ? _downloadExcelTemplate
+                            : null,
                         icon: const Icon(Icons.download),
                         label: const Text(
                           'Download Template',
@@ -156,9 +155,8 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
                           backgroundColor: Colors.orange,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        onPressed: isUploadingExcel
-                            ? null
-                            : _uploadAndParseExcel,
+                        onPressed:
+                            isUploadingExcel ? null : _uploadAndParseExcel,
                         icon: const Icon(Icons.upload_file),
                         label: Text(
                           isUploadingExcel ? 'Uploading...' : 'Upload Excel',
@@ -227,12 +225,11 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
                           backgroundColor: Colors.green,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        onPressed:
-                            selectedCourse != null &&
-                                    selectedSection != null &&
-                                    selectedExamType != null
-                                ? _downloadExcelTemplate
-                                : null,
+                        onPressed: selectedCourse != null &&
+                                selectedSection != null &&
+                                selectedExamType != null
+                            ? _downloadExcelTemplate
+                            : null,
                         icon: const Icon(Icons.download),
                         label: const Text(
                           'Download Template',
@@ -250,9 +247,8 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
                           backgroundColor: Colors.orange,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        onPressed: isUploadingExcel
-                            ? null
-                            : _uploadAndParseExcel,
+                        onPressed:
+                            isUploadingExcel ? null : _uploadAndParseExcel,
                         icon: const Icon(Icons.upload_file),
                         label: Text(
                           isUploadingExcel ? 'Uploading...' : 'Upload Excel',
@@ -474,7 +470,8 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
       sheetObject.appendRow([
         excel_package.TextCellValue(student['rollNo']),
         excel_package.TextCellValue(student['name']),
-        excel_package.TextCellValue(''), // Empty marks column for faculty to fill
+        excel_package.TextCellValue(
+            ''), // Empty marks column for faculty to fill
       ]);
     }
 
@@ -497,8 +494,7 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
         try {
           final blob = html.Blob([bytes]);
           final url = html.Url.createObjectUrlFromBlob(blob);
-          (html.AnchorElement(href: url)
-                ..setAttribute('download', fileName))
+          (html.AnchorElement(href: url)..setAttribute('download', fileName))
               .click();
           html.Url.revokeObjectUrl(url);
 
@@ -527,13 +523,13 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
         try {
           // Android: /storage/emulated/0/Download or /sdcard/Download
           Directory downloadsDir = Directory('/storage/emulated/0/Download');
-          
+
           // Check if the primary downloads directory exists
           if (!await downloadsDir.exists()) {
             // Try alternative path
             downloadsDir = Directory('/sdcard/Download');
           }
-          
+
           if (!await downloadsDir.exists()) {
             // Create Downloads directory if it doesn't exist
             await downloadsDir.create(recursive: true);
