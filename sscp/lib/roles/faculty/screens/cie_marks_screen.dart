@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as excel_package;
 import 'dart:io' show Directory, File, Platform;
 import 'dart:typed_data';
+import 'dart:convert' show utf8;
 import '../../../widgets/app_header.dart';
 
 // Web-only import for file download
@@ -691,40 +692,346 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
       if (result != null && result.files.single.bytes != null) {
         var bytes = result.files.single.bytes!;
-        var excelFile = excel_package.Excel.decodeBytes(bytes);
+        print('DEBUG: File picked, bytes length: ${bytes.length}');
+        
+        try {
+          // Try to decode the Excel file
+          excel_package.Excel excelFile;
+          try {
+            excelFile = excel_package.Excel.decodeBytes(bytes);
+            print('DEBUG: Excel file decoded successfully');
+          } catch (e) {
+            print('DEBUG: Decode failed, retrying: $e');
+            // Retry once more
+            try {
+              excelFile = excel_package.Excel.decodeBytes(bytes);
+              print('DEBUG: Excel file decoded on retry');
+            } catch (e2) {
+              print('DEBUG: Final decode failure: $e2');
+              rethrow;
+            }
+          }
+          
+          print('DEBUG: Tables count: ${excelFile.tables.length}');
 
-        excel_package.Sheet? sheet = excelFile.tables.values.first;
-        bool isFirstRow = true;
-        Map<int, String> componentColumns = {};
+          if (excelFile.tables.isEmpty) {
+            throw Exception('Excel file has no sheets');
+          }
 
-        // Parse Excel data
-        for (var rows in sheet.rows) {
-          if (isFirstRow) {
-            // Find column indices for components
-            for (int i = 0; i < rows.length; i++) {
-              String cellValue = rows[i]?.value.toString().toLowerCase() ?? '';
-              for (final comp in _components) {
-                if (cellValue.contains(comp.name.toLowerCase())) {
-                  componentColumns[i] = comp.name;
-                  break;
+          excel_package.Sheet? sheet = excelFile.tables.values.first;
+          print('DEBUG: Sheet rows count: ${sheet.rows.length}');
+
+          if (sheet.rows.isEmpty) {
+            throw Exception('Excel sheet is empty');
+          }
+
+          bool isFirstRow = true;
+          Map<int, String> componentColumns = {};
+          List<String> headerNames = [];
+
+          // Parse Excel data
+          for (var rows in sheet.rows) {
+            if (isFirstRow) {
+              // Find column indices for components
+              for (int i = 0; i < rows.length; i++) {
+                String cellValue = rows[i]?.value.toString().toLowerCase() ?? '';
+                headerNames.add(cellValue);
+                for (final comp in _components) {
+                  if (cellValue.contains(comp.name.toLowerCase())) {
+                    componentColumns[i] = comp.name;
+                    print('DEBUG: Found column $i for ${comp.name}');
+                    break;
+                  }
+                }
+              }
+              print('DEBUG: Headers found: $headerNames');
+              print('DEBUG: Component columns mapped: $componentColumns');
+              isFirstRow = false;
+              continue;
+            }
+
+            if (rows.isNotEmpty && componentColumns.isNotEmpty) {
+              String studentId = rows[0]?.value.toString().trim() ?? '';
+
+              if (studentId.isNotEmpty) {
+                // Find and update matching student row
+                for (var studentRow in _studentRows) {
+                  if (studentRow.studentId == studentId) {
+                    // Update marks from Excel
+                    componentColumns.forEach((colIndex, componentName) {
+                      if (colIndex < rows.length) {
+                        String value = rows[colIndex]?.value.toString().trim() ?? '';
+                        // Only update if value is not empty and is numeric
+                        if (value.isNotEmpty && 
+                            int.tryParse(value) != null) {
+                          studentRow.controllers[componentName]?.text = value;
+                        }
+                      }
+                    });
+                    break;
+                  }
                 }
               }
             }
-            isFirstRow = false;
-            continue;
           }
 
-          if (rows.length > 0 && componentColumns.isNotEmpty) {
-            String studentId = rows[0]?.value.toString() ?? '';
+          if (componentColumns.isEmpty) {
+            throw Exception('No component columns found. Headers found: $headerNames\n'
+                'Expected headers containing: ${_components.map((c) => c.name).join(", ")}');
+          }
 
-            // Find and update matching student row
+          setState(() {
+            _isUploadingExcel = false;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Excel file uploaded successfully!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } catch (parseError) {
+          // If Excel parsing fails, show user-friendly error
+          print('DEBUG: Parse error: $parseError');
+          setState(() => _isUploadingExcel = false);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('❌ Excel parsing failed. Microsoft Excel adds formatting that causes this error.\n\n'
+                    '✅ RECOMMENDED SOLUTIONS:\n'
+                    '1. Use "Download CSV" + "Upload CSV" instead (works perfectly)\n'
+                    '2. Use the "Download Excel" template from this app (not your own Excel file)\n\n'
+                    'The app-generated template and CSV format work reliably!'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 8),
+              ),
+            );
+          }
+        }
+      } else {
+        setState(() => _isUploadingExcel = false);
+      }
+    } catch (e) {
+      setState(() => _isUploadingExcel = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // ─── CSV Methods ────────────────────────────────────────────────────────────
+
+  String _createCsvTemplate(String assignmentName, String batchName) {
+    // Create CSV header
+    List<String> headers = ['Student ID', 'Student Name'];
+    headers.addAll(_components.map((c) => '${c.name} /${c.maxMarks}'));
+    
+    StringBuffer csvContent = StringBuffer();
+    csvContent.writeln(headers.join(','));
+    
+    // Add student data rows
+    for (var student in _studentRows) {
+      List<String> row = [student.studentId, student.studentName];
+      row.addAll(List.filled(_components.length, ''));
+      csvContent.writeln(row.join(','));
+    }
+    
+    return csvContent.toString();
+  }
+
+  Future<void> _downloadCsvTemplate() async {
+    if (_selectedAssignment == null || _selectedBatch == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select assignment and batch first'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_studentRows.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No students found to export'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      String csvContent = _createCsvTemplate(
+        _selectedAssignment!.subjectName,
+        _selectedBatch!,
+      );
+      
+      final bytes = utf8.encode(csvContent);
+      final fileName = 'CIE_${_selectedAssignment!.subjectName}_${_selectedBatch}_Template.csv';
+
+      if (kIsWeb) {
+        // Web: Use browser download
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click();
+        html.Url.revokeObjectUrl(url);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('CSV template downloaded successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else if (Platform.isAndroid || Platform.isIOS) {
+        // Mobile: Save to Downloads folder
+        Directory? downloadsDir;
+        try {
+          downloadsDir = Directory('/storage/emulated/0/Download');
+          if (!await downloadsDir.exists()) {
+            downloadsDir = Directory('/sdcard/Download');
+          }
+        } catch (e) {
+          downloadsDir = Directory.systemTemp;
+        }
+
+        if (downloadsDir != null) {
+          final filePath = '${downloadsDir.path}/$fileName';
+          final file = File(filePath);
+          await file.writeAsBytes(bytes);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('CSV saved to: $filePath'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      } else {
+        // Desktop: Show save dialog
+        String? outputPath = await FilePicker.platform.saveFile(
+          dialogTitle: 'Save CSV Template',
+          fileName: fileName,
+          type: FileType.custom,
+          allowedExtensions: ['csv'],
+        );
+
+        if (outputPath != null) {
+          final file = File(outputPath);
+          await file.writeAsBytes(bytes);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('CSV saved to: $outputPath'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating CSV: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadAndParseCsv() async {
+    if (_studentRows.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please load students first'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isUploadingExcel = true);
+
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        var bytes = result.files.single.bytes!;
+        String csvContent = utf8.decode(bytes);
+        print('DEBUG: CSV content length: ${csvContent.length}');
+        
+        List<String> lines = csvContent.split('\n')
+            .where((line) => line.trim().isNotEmpty)
+            .toList();
+        
+        if (lines.isEmpty) {
+          throw Exception('CSV file is empty');
+        }
+
+        // Parse header row
+        List<String> headers = lines[0].split(',').map((h) => h.trim()).toList();
+        Map<int, String> componentColumns = {};
+        
+        print('DEBUG: CSV headers: $headers');
+        
+        // Map component columns
+        for (int i = 0; i < headers.length; i++) {
+          String headerLower = headers[i].toLowerCase();
+          for (final comp in _components) {
+            if (headerLower.contains(comp.name.toLowerCase())) {
+              componentColumns[i] = comp.name;
+              print('DEBUG: Found CSV column $i for ${comp.name}');
+              break;
+            }
+          }
+        }
+        
+        if (componentColumns.isEmpty) {
+          throw Exception('No component columns found. Headers found: $headers\n'
+              'Expected headers containing: ${_components.map((c) => c.name).join(", ")}');
+        }
+
+        // Parse data rows
+        int updatedCount = 0;
+        for (int rowIndex = 1; rowIndex < lines.length; rowIndex++) {
+          List<String> values = lines[rowIndex].split(',').map((v) => v.trim()).toList();
+          
+          if (values.isEmpty) continue;
+          
+          String studentId = values[0];
+          
+          if (studentId.isNotEmpty) {
+            // Find matching student
             for (var studentRow in _studentRows) {
               if (studentRow.studentId == studentId) {
-                // Update marks from Excel
+                // Update marks from CSV
                 componentColumns.forEach((colIndex, componentName) {
-                  if (colIndex < rows.length) {
-                    String value = rows[colIndex]?.value.toString() ?? '';
-                    studentRow.controllers[componentName]?.text = value;
+                  if (colIndex < values.length) {
+                    String value = values[colIndex].trim();
+                    if (value.isNotEmpty && int.tryParse(value) != null) {
+                      studentRow.controllers[componentName]?.text = value;
+                      updatedCount++;
+                    }
                   }
                 });
                 break;
@@ -733,28 +1040,32 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           }
         }
 
-        setState(() {
-          _isUploadingExcel = false;
-        });
+        setState(() => _isUploadingExcel = false);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Excel file uploaded successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('CSV uploaded! Updated $updatedCount mark(s).'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       } else {
         setState(() => _isUploadingExcel = false);
       }
     } catch (e) {
+      print('DEBUG: CSV parse error: $e');
       setState(() => _isUploadingExcel = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error uploading Excel: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error parsing CSV: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 
@@ -884,7 +1195,19 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      'Excel Format:',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       Expanded(
@@ -898,13 +1221,13 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                                   _marksLoaded)
                               ? _downloadExcelTemplate
                               : null,
-                          icon: const Icon(Icons.download),
+                          icon: const Icon(Icons.download, size: 18),
                           label: const Text(
-                            'Download Template',
+                            'Download Excel',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                              fontSize: 11,
                             ),
                           ),
                         ),
@@ -918,13 +1241,72 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                           ),
                           onPressed:
                               _isUploadingExcel ? null : _uploadAndParseExcel,
-                          icon: const Icon(Icons.upload_file),
+                          icon: const Icon(Icons.upload_file, size: 18),
                           label: Text(
                             _isUploadingExcel ? 'Uploading...' : 'Upload Excel',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      'CSV Format (Recommended if Excel has errors):',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: (_selectedAssignment != null &&
+                                  _selectedBatch != null &&
+                                  _marksLoaded)
+                              ? _downloadCsvTemplate
+                              : null,
+                          icon: const Icon(Icons.download, size: 18),
+                          label: const Text(
+                            'Download CSV',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepOrange,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed:
+                              _isUploadingExcel ? null : _uploadAndParseCsv,
+                          icon: const Icon(Icons.upload_file, size: 18),
+                          label: Text(
+                            _isUploadingExcel ? 'Uploading...' : 'Upload CSV',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
                             ),
                           ),
                         ),
@@ -934,63 +1316,126 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                 ],
               )
             else
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: (_selectedAssignment != null &&
-                              _selectedBatch != null)
-                          ? _loadMarksEntry
-                          : null,
-                      icon: const Icon(Icons.search),
-                      label: const Text('Load Students'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1e3a5f),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 13),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: (_selectedAssignment != null &&
+                                  _selectedBatch != null)
+                              ? _loadMarksEntry
+                              : null,
+                          icon: const Icon(Icons.search),
+                          label: const Text('Load Students'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1e3a5f),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                          ),
+                          onPressed: (_selectedAssignment != null &&
+                                  _selectedBatch != null &&
+                                  _marksLoaded)
+                              ? _downloadExcelTemplate
+                              : null,
+                          icon: const Icon(Icons.download),
+                          label: const Text(
+                            'Download Excel',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                          ),
+                          onPressed:
+                              _isUploadingExcel ? null : _uploadAndParseExcel,
+                          icon: const Icon(Icons.upload_file),
+                          label: Text(
+                            _isUploadingExcel ? 'Uploading...' : 'Upload Excel',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.only(left: 4),
+                    child: Text(
+                      'Or use CSV (Recommended if Excel has parsing errors):',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                      ),
-                      onPressed: (_selectedAssignment != null &&
-                              _selectedBatch != null &&
-                              _marksLoaded)
-                          ? _downloadExcelTemplate
-                          : null,
-                      icon: const Icon(Icons.download),
-                      label: const Text(
-                        'Download Template',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Expanded(child: SizedBox()),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                          ),
+                          onPressed: (_selectedAssignment != null &&
+                                  _selectedBatch != null &&
+                                  _marksLoaded)
+                              ? _downloadCsvTemplate
+                              : null,
+                          icon: const Icon(Icons.download),
+                          label: const Text(
+                            'Download CSV',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                      ),
-                      onPressed:
-                          _isUploadingExcel ? null : _uploadAndParseExcel,
-                      icon: const Icon(Icons.upload_file),
-                      label: Text(
-                        _isUploadingExcel ? 'Uploading...' : 'Upload Excel',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepOrange,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                          ),
+                          onPressed:
+                              _isUploadingExcel ? null : _uploadAndParseCsv,
+                          icon: const Icon(Icons.upload_file),
+                          label: Text(
+                            _isUploadingExcel ? 'Uploading...' : 'Upload CSV',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),

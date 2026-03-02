@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as excel_package;
 import 'dart:io' show Directory, File, Platform;
 import 'dart:typed_data';
+import 'dart:convert' show utf8;
 import '../../../widgets/app_header.dart';
 
 // Web-only import for file download
@@ -639,41 +640,308 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
 
       if (result != null && result.files.single.bytes != null) {
         var bytes = result.files.single.bytes!;
-        var excelFile = excel_package.Excel.decodeBytes(bytes);
-
-        excel_package.Sheet? sheet = excelFile.tables.values.first;
-        bool isFirstRow = true;
-        int marksColumnIndex = -1;
-        int rollNoColumnIndex = -1;
-
-        // Parse Excel data
-        for (var rows in sheet.rows) {
-          if (isFirstRow) {
-            // Find column indices from headers
-            for (int i = 0; i < rows.length; i++) {
-              String cellValue = rows[i]?.value.toString().toLowerCase() ?? '';
-              if (cellValue.contains('id') || cellValue.contains('roll')) {
-                rollNoColumnIndex = i;
-              }
-              if (cellValue.contains('mark')) {
-                marksColumnIndex = i;
-              }
+        print('DEBUG: File picked, bytes length: ${bytes.length}');
+        
+        try {
+          // Try to decode the Excel file
+          excel_package.Excel excelFile;
+          try {
+            excelFile = excel_package.Excel.decodeBytes(bytes);
+            print('DEBUG: Excel file decoded successfully');
+          } catch (e) {
+            print('DEBUG: Decode failed, retrying: $e');
+            // Retry once more
+            try {
+              excelFile = excel_package.Excel.decodeBytes(bytes);
+              print('DEBUG: Excel file decoded on retry');
+            } catch (e2) {
+              print('DEBUG: Final decode failure: $e2');
+              rethrow;
             }
-            isFirstRow = false;
-            continue;
+          }
+          
+          print('DEBUG: Tables count: ${excelFile.tables.length}');
+
+          if (excelFile.tables.isEmpty) {
+            throw Exception('Excel file has no sheets');
           }
 
-          if (rollNoColumnIndex >= 0 &&
-              marksColumnIndex >= 0 &&
-              rows.length > marksColumnIndex) {
-            String rollNo = rows[rollNoColumnIndex]?.value.toString() ?? '';
-            String marks = rows[marksColumnIndex]?.value.toString() ?? '';
+          excel_package.Sheet? sheet = excelFile.tables.values.first;
+          print('DEBUG: Sheet rows count: ${sheet.rows.length}');
 
-            // Update student marks
-            for (var student in students) {
-              if (student['rollNo'] == rollNo && marks.isNotEmpty) {
-                student['marks'] = marks;
-                break;
+          if (sheet.rows.isEmpty) {
+            throw Exception('Excel sheet is empty');
+          }
+
+          bool isFirstRow = true;
+          int marksColumnIndex = -1;
+          int rollNoColumnIndex = -1;
+          List<String> headerNames = [];
+
+          // Parse Excel data
+          for (var rows in sheet.rows) {
+            if (isFirstRow) {
+              // Find column indices from headers
+              for (int i = 0; i < rows.length; i++) {
+                String cellValue = rows[i]?.value.toString().toLowerCase() ?? '';
+                headerNames.add(cellValue);
+                if (cellValue.contains('id') || cellValue.contains('roll')) {
+                  rollNoColumnIndex = i;
+                  print('DEBUG: Found Roll No column at index $i');
+                }
+                if (cellValue.contains('mark')) {
+                  marksColumnIndex = i;
+                  print('DEBUG: Found Marks column at index $i');
+                }
+              }
+              print('DEBUG: Headers found: $headerNames');
+              isFirstRow = false;
+              continue;
+            }
+
+            if (rollNoColumnIndex >= 0 &&
+                marksColumnIndex >= 0 &&
+                rows.length > marksColumnIndex) {
+              String rollNo = rows[rollNoColumnIndex]?.value.toString().trim() ?? '';
+              String marks = rows[marksColumnIndex]?.value.toString().trim() ?? '';
+
+              // Update student marks only if valid
+              if (rollNo.isNotEmpty && marks.isNotEmpty && 
+                  int.tryParse(marks) != null) {
+                for (var student in students) {
+                  if (student['rollNo'] == rollNo) {
+                    student['marks'] = marks;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+
+          if (rollNoColumnIndex < 0 || marksColumnIndex < 0) {
+            throw Exception('Required columns not found. Headers found: $headerNames\n'
+                'Looking for columns containing "roll" or "id" and "mark"');
+          }
+
+          setState(() {
+            isStudentListLoaded = true;
+            isUploadingExcel = false;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Excel file uploaded and parsed successfully!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } catch (parseError) {
+          // If Excel parsing fails, show user-friendly error
+          print('DEBUG: Parse error: $parseError');
+          setState(() => isUploadingExcel = false);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('❌ Excel parsing failed. Microsoft Excel adds formatting that causes this error.\n\n'
+                    '✅ RECOMMENDED SOLUTIONS:\n'
+                    '1. Use "Download CSV" + "Upload CSV" instead (works perfectly)\n'
+                    '2. Use the "Download Excel" template from this app (not your own Excel file)\n\n'
+                    'The app-generated template and CSV format work reliably!'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 8),
+              ),
+            );
+          }
+        }
+      } else {
+        setState(() => isUploadingExcel = false);
+      }
+    } catch (e) {
+      setState(() => isUploadingExcel = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // ─── CSV Methods ────────────────────────────────────────────────────────────
+
+  String _createCsvTemplate() {
+    // Create CSV header
+    StringBuffer csvContent = StringBuffer();
+    csvContent.writeln('Student ID,Student Name,Marks');
+    
+    // Add student data rows
+    for (var student in students) {
+      csvContent.writeln('${student['rollNo']},${student['studentName']},');
+    }
+    
+    return csvContent.toString();
+  }
+
+  Future<void> _downloadCsvTemplate() async {
+    if (students.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No students found to export'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      String csvContent = _createCsvTemplate();
+      final bytes = utf8.encode(csvContent);
+      final fileName = 'Results_Template.csv';
+
+      if (kIsWeb) {
+        // Web: Use browser download
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click();
+        html.Url.revokeObjectUrl(url);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('CSV template downloaded successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else if (Platform.isAndroid || Platform.isIOS) {
+        // Mobile: Save to Downloads folder
+        Directory? downloadsDir;
+        try {
+          downloadsDir = Directory('/storage/emulated/0/Download');
+          if (!await downloadsDir.exists()) {
+            downloadsDir = Directory('/sdcard/Download');
+          }
+        } catch (e) {
+          downloadsDir = Directory.systemTemp;
+        }
+
+        if (downloadsDir != null) {
+          final filePath = '${downloadsDir.path}/$fileName';
+          final file = File(filePath);
+          await file.writeAsBytes(bytes);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('CSV saved to: $filePath'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      } else {
+        // Desktop: Show save dialog
+        String? outputPath = await FilePicker.platform.saveFile(
+          dialogTitle: 'Save CSV Template',
+          fileName: fileName,
+          type: FileType.custom,
+          allowedExtensions: ['csv'],
+        );
+
+        if (outputPath != null) {
+          final file = File(outputPath);
+          await file.writeAsBytes(bytes);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('CSV saved to: $outputPath'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating CSV: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadAndParseCsv() async {
+    try {
+      setState(() => isUploadingExcel = true);
+
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        var bytes = result.files.single.bytes!;
+        String csvContent = utf8.decode(bytes);
+        print('DEBUG: CSV content length: ${csvContent.length}');
+        
+        List<String> lines = csvContent.split('\n')
+            .where((line) => line.trim().isNotEmpty)
+            .toList();
+        
+        if (lines.isEmpty) {
+          throw Exception('CSV file is empty');
+        }
+
+        // Parse header row
+        List<String> headers = lines[0].split(',').map((h) => h.trim()).toList();
+        int rollNoIndex = -1;
+        int marksIndex = -1;
+        
+        print('DEBUG: CSV headers: $headers');
+        
+        // Find column indices
+        for (int i = 0; i < headers.length; i++) {
+          String headerLower = headers[i].toLowerCase();
+          if (headerLower.contains('id') || headerLower.contains('roll')) {
+            rollNoIndex = i;
+          }
+          if (headerLower.contains('mark')) {
+            marksIndex = i;
+          }
+        }
+        
+        if (rollNoIndex < 0 || marksIndex < 0) {
+          throw Exception('Required columns not found. Headers: $headers\n'
+              'Looking for columns containing "roll" or "id" and "mark"');
+        }
+
+        // Parse data rows
+        int updatedCount = 0;
+        for (int rowIndex = 1; rowIndex < lines.length; rowIndex++) {
+          List<String> values = lines[rowIndex].split(',').map((v) => v.trim()).toList();
+          
+          if (values.length > rollNoIndex && values.length > marksIndex) {
+            String rollNo = values[rollNoIndex];
+            String marks = values[marksIndex];
+            
+            if (rollNo.isNotEmpty && marks.isNotEmpty && int.tryParse(marks) != null) {
+              for (var student in students) {
+                if (student['rollNo'] == rollNo) {
+                  student['marks'] = marks;
+                  updatedCount++;
+                  break;
+                }
               }
             }
           }
@@ -684,24 +952,30 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
           isUploadingExcel = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Excel file uploaded and parsed successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('CSV uploaded! Updated $updatedCount student(s).'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       } else {
         setState(() => isUploadingExcel = false);
       }
     } catch (e) {
+      print('DEBUG: CSV parse error: $e');
       setState(() => isUploadingExcel = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error uploading Excel: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error parsing CSV: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 }
