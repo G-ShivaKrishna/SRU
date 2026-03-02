@@ -693,7 +693,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       if (result != null && result.files.single.bytes != null) {
         var bytes = result.files.single.bytes!;
         print('DEBUG: File picked, bytes length: ${bytes.length}');
-        
+
         try {
           // Try to decode the Excel file
           excel_package.Excel excelFile;
@@ -711,7 +711,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
               rethrow;
             }
           }
-          
+
           print('DEBUG: Tables count: ${excelFile.tables.length}');
 
           if (excelFile.tables.isEmpty) {
@@ -734,7 +734,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             if (isFirstRow) {
               // Find column indices for components
               for (int i = 0; i < rows.length; i++) {
-                String cellValue = rows[i]?.value.toString().toLowerCase() ?? '';
+                String cellValue =
+                    rows[i]?.value.toString().toLowerCase() ?? '';
                 headerNames.add(cellValue);
                 for (final comp in _components) {
                   if (cellValue.contains(comp.name.toLowerCase())) {
@@ -760,10 +761,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                     // Update marks from Excel
                     componentColumns.forEach((colIndex, componentName) {
                       if (colIndex < rows.length) {
-                        String value = rows[colIndex]?.value.toString().trim() ?? '';
+                        String value =
+                            rows[colIndex]?.value.toString().trim() ?? '';
                         // Only update if value is not empty and is numeric
-                        if (value.isNotEmpty && 
-                            int.tryParse(value) != null) {
+                        if (value.isNotEmpty && int.tryParse(value) != null) {
                           studentRow.controllers[componentName]?.text = value;
                         }
                       }
@@ -776,7 +777,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           }
 
           if (componentColumns.isEmpty) {
-            throw Exception('No component columns found. Headers found: $headerNames\n'
+            throw Exception(
+                'No component columns found. Headers found: $headerNames\n'
                 'Expected headers containing: ${_components.map((c) => c.name).join(", ")}');
           }
 
@@ -797,11 +799,12 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           // If Excel parsing fails, show user-friendly error
           print('DEBUG: Parse error: $parseError');
           setState(() => _isUploadingExcel = false);
-          
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('❌ Excel parsing failed. Microsoft Excel adds formatting that causes this error.\n\n'
+                content: Text(
+                    '❌ Excel parsing failed. Microsoft Excel adds formatting that causes this error.\n\n'
                     '✅ RECOMMENDED SOLUTIONS:\n'
                     '1. Use "Download CSV" + "Upload CSV" instead (works perfectly)\n'
                     '2. Use the "Download Excel" template from this app (not your own Excel file)\n\n'
@@ -834,17 +837,17 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     // Create CSV header
     List<String> headers = ['Student ID', 'Student Name'];
     headers.addAll(_components.map((c) => '${c.name} /${c.maxMarks}'));
-    
+
     StringBuffer csvContent = StringBuffer();
     csvContent.writeln(headers.join(','));
-    
+
     // Add student data rows
     for (var student in _studentRows) {
       List<String> row = [student.studentId, student.studentName];
       row.addAll(List.filled(_components.length, ''));
       csvContent.writeln(row.join(','));
     }
-    
+
     return csvContent.toString();
   }
 
@@ -874,9 +877,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         _selectedAssignment!.subjectName,
         _selectedBatch!,
       );
-      
+
       final bytes = utf8.encode(csvContent);
-      final fileName = 'CIE_${_selectedAssignment!.subjectName}_${_selectedBatch}_Template.csv';
+      final fileName =
+          'CIE_${_selectedAssignment!.subjectName}_${_selectedBatch}_Template.csv';
 
       if (kIsWeb) {
         // Web: Use browser download
@@ -979,21 +983,23 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         var bytes = result.files.single.bytes!;
         String csvContent = utf8.decode(bytes);
         print('DEBUG: CSV content length: ${csvContent.length}');
-        
-        List<String> lines = csvContent.split('\n')
+
+        List<String> lines = csvContent
+            .split('\n')
             .where((line) => line.trim().isNotEmpty)
             .toList();
-        
+
         if (lines.isEmpty) {
           throw Exception('CSV file is empty');
         }
 
         // Parse header row
-        List<String> headers = lines[0].split(',').map((h) => h.trim()).toList();
+        List<String> headers =
+            lines[0].split(',').map((h) => h.trim()).toList();
         Map<int, String> componentColumns = {};
-        
+
         print('DEBUG: CSV headers: $headers');
-        
+
         // Map component columns
         for (int i = 0; i < headers.length; i++) {
           String headerLower = headers[i].toLowerCase();
@@ -1005,21 +1011,23 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             }
           }
         }
-        
+
         if (componentColumns.isEmpty) {
-          throw Exception('No component columns found. Headers found: $headers\n'
+          throw Exception(
+              'No component columns found. Headers found: $headers\n'
               'Expected headers containing: ${_components.map((c) => c.name).join(", ")}');
         }
 
         // Parse data rows
         int updatedCount = 0;
         for (int rowIndex = 1; rowIndex < lines.length; rowIndex++) {
-          List<String> values = lines[rowIndex].split(',').map((v) => v.trim()).toList();
-          
+          List<String> values =
+              lines[rowIndex].split(',').map((v) => v.trim()).toList();
+
           if (values.isEmpty) continue;
-          
+
           String studentId = values[0];
-          
+
           if (studentId.isNotEmpty) {
             // Find matching student
             for (var studentRow in _studentRows) {
