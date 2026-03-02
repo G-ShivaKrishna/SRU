@@ -184,7 +184,9 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
       setState(() {
         _students = students;
         _attendance.clear();
-        for (final s in students) _attendance[s['rollNo']] = true;
+        for (final s in students) {
+          _attendance[s['rollNo']] = true;
+        }
         _formVisible = true;
         _loadingStudents = false;
       });
@@ -269,6 +271,16 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     try {
       final user = _auth.currentUser!;
       final facultyId = user.email!.split('@')[0].toUpperCase();
+      
+      // Validate that assignment is still active before submitting attendance
+      final assignDoc = await _firestore
+          .collection('facultyAssignments')
+          .doc(assignment.docId)
+          .get();
+      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      }
+      
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
       final batches = _selectedBatch != null
           ? [_selectedBatch!]
@@ -394,7 +406,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<_Assignment>(
-                    value: _selectedAssignment,
+                    initialValue: _selectedAssignment,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -424,7 +436,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
-                    value: _selectedBatch,
+                    initialValue: _selectedBatch,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
@@ -597,7 +609,9 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                   backgroundColor: const Color(0xFF1565C0),
                   foregroundColor: Colors.white),
               onPressed: () => setState(() {
-                for (final k in _attendance.keys) _attendance[k] = true;
+                for (final k in _attendance.keys) {
+                  _attendance[k] = true;
+                }
               }),
               child: const Text('Check all'),
             ),
@@ -609,7 +623,9 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
               style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red, foregroundColor: Colors.white),
               onPressed: () => setState(() {
-                for (final k in _attendance.keys) _attendance[k] = false;
+                for (final k in _attendance.keys) {
+                  _attendance[k] = false;
+                }
               }),
               child: const Text('UnCheck all'),
             ),
@@ -684,7 +700,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
       fieldRow(
         'L-T-P Type',
         DropdownButtonFormField<String>(
-          value: _ltpType,
+          initialValue: _ltpType,
           isExpanded: true,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
@@ -715,7 +731,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
       fieldRow(
         isLab ? 'Exp No' : 'Unit/Exp No',
         DropdownButtonFormField<String>(
-          value: _unitExpNo,
+          initialValue: _unitExpNo,
           isExpanded: true,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
@@ -788,7 +804,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                           'Period $periodNum already marked by another faculty',
                       child: Container(
                         color: Colors.grey[200],
-                        child: Center(
+                        child: const Center(
                           child: Checkbox(
                             value: true,
                             onChanged: null, // disabled – permanently checked

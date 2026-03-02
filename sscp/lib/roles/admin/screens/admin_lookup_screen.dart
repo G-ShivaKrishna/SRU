@@ -269,7 +269,7 @@ class _StudentLookupTabState extends State<_StudentLookupTab> {
             final dept = s['department']?.toString() ?? '';
             return ListTile(
               leading:
-                  const CircleAvatar(child: Icon(Icons.person), radius: 20),
+                  const CircleAvatar(radius: 20, child: Icon(Icons.person)),
               title: Text(name),
               subtitle: Text('$roll  •  $dept'),
               onTap: () => _selectStudent(s),
@@ -486,9 +486,10 @@ class _StudentMarksTabState extends State<_StudentMarksTab> {
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _ErrorView(message: _error!);
-    if (_marks.isEmpty)
+    if (_marks.isEmpty) {
       return const _EmptyView(
           icon: Icons.grade_outlined, message: 'No marks records found.');
+    }
 
     // Group by year-semester
     final grouped = <String, List<Map<String, dynamic>>>{};
@@ -780,10 +781,11 @@ class _StudentMemosTabState extends State<_StudentMemosTab> {
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _ErrorView(message: _error!);
-    if (_memos.isEmpty)
+    if (_memos.isEmpty) {
       return const _EmptyView(
           icon: Icons.description_outlined,
           message: 'No memos released for this student\'s branch.');
+    }
 
     return ListView(
       padding: const EdgeInsets.all(12),
@@ -898,7 +900,7 @@ class _AdminMemoMarksViewState extends State<_AdminMemoMarksView> {
         return yearMatch && semMatch;
       }).toList();
 
-      bool _isEte(String name) {
+      bool isEte(String name) {
         final l = name.toLowerCase();
         return l.contains('end term') ||
             l.contains('ete') ||
@@ -915,10 +917,11 @@ class _AdminMemoMarksViewState extends State<_AdminMemoMarksView> {
           final val = v is int
               ? v
               : (v is num ? v.floor() : int.tryParse(v.toString()) ?? 0);
-          if (_isEte(e.key))
+          if (isEte(e.key)) {
             eteSum += val;
-          else
+          } else {
             cieSum += val;
+          }
         }
         final maxAll = d['maxMarks'] is int
             ? d['maxMarks'] as int
@@ -1332,7 +1335,8 @@ class _FacultyLookupTabState extends State<_FacultyLookupTab> {
             final dept = f['department']?.toString() ?? '';
             return ListTile(
               leading: const CircleAvatar(
-                  child: Icon(Icons.person_outline), radius: 20),
+                  radius: 20,
+                  child: Icon(Icons.person_outline)),
               title: Text(name),
               subtitle: Text('$id  •  $dept'),
               onTap: () => _selectFaculty(f),
@@ -1522,10 +1526,11 @@ class _FacultyAssignmentsTabState extends State<_FacultyAssignmentsTab> {
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _ErrorView(message: _error!);
-    if (_docs.isEmpty)
+    if (_docs.isEmpty) {
       return const _EmptyView(
           icon: Icons.assignment_outlined,
           message: 'No faculty assignments found.');
+    }
 
     return ListView.separated(
       padding: const EdgeInsets.all(12),
@@ -1594,10 +1599,11 @@ class _FacultyMarksEnteredTabState extends State<_FacultyMarksEnteredTab> {
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _ErrorView(message: _error!);
-    if (_marks.isEmpty)
+    if (_marks.isEmpty) {
       return const _EmptyView(
           icon: Icons.grade_outlined,
           message: 'No marks entered by this faculty member.');
+    }
 
     // Group by subject+year+sem
     final grouped = <String, List<Map<String, dynamic>>>{};

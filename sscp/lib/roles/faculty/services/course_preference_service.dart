@@ -61,7 +61,10 @@ class CoursePreferenceService {
 
   // ─── Subjects (admin-uploaded) ────────────────────────────────────────────
 
-  /// Fetch active subjects from Firestore, optionally filtered by department.
+  /// Fetch active subjects from Firestore (Subject Management).
+  /// Only returns subjects where isActive=true, ensuring faculty only see
+  /// subjects that admin has currently enabled in Subject Management.
+  /// When admin deletes/deactivates a subject, it automatically disappears here.
   /// Dept filtering is done in Dart to avoid requiring a composite Firestore index.
   /// Throws on Firestore errors so callers can surface them.
   Future<List<SubjectItem>> getSubjects({String? dept}) async {

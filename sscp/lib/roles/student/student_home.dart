@@ -16,7 +16,7 @@ import 'screens/student_cie_memo_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
 import 'screens/central_library_screen.dart';
-import 'screens/mentor_details_screen.dart';
+
 import 'screens/grievance_screen.dart';
 
 class StudentHome extends StatefulWidget {
@@ -41,6 +41,8 @@ class _StudentHomeState extends State<StudentHome> {
   List<Map<String, dynamic>> _courseWiseStats = []; // {code,name,held,present}
   Map<String, List<int>> _dailyHeldPresent =
       {}; // key=dd-MM-yyyy, value=[held,present]
+  int _backlogCount = 0;
+  bool _backlogLoaded = false;
 
   @override
   void initState() {
@@ -102,7 +104,22 @@ class _StudentHomeState extends State<StudentHome> {
         // Compute CGPA from marks in the background
         _computeCgpa(rollNumber);
         // Compute live attendance % from the attendance collection
-        _computeAttendancePct(rollNumber);
+        // Only count records after the last promotion date so the new
+        // semester starts fresh at 0%.
+        final lastPromotedTs =
+            studentData['lastPromotedAt'] as dynamic; // Timestamp?
+        DateTime? sinceDate;
+        try {
+          if (lastPromotedTs != null) {
+            final dt = (lastPromotedTs as dynamic).toDate() as DateTime;
+            // Normalize to start of day to avoid time comparison issues
+            sinceDate = DateTime(dt.year, dt.month, dt.day);
+          }
+        } catch (_) {
+          debugPrint('[Attendance] Error parsing lastPromotedAt timestamp');
+        }
+        _computeAttendancePct(rollNumber, sinceDate: sinceDate);
+        _computeBacklogs(rollNumber);
       } else {
         setState(() => _isLoading = false);
       }
@@ -111,19 +128,146 @@ class _StudentHomeState extends State<StudentHome> {
     }
   }
 
-  /// Fetch mentor information from backend based on batch assignment
+  /// Counts active backlogs by reading `studentMarks`, `cieMemoReleases`,
+  /// and `supplyMarks` — mirrors the logic in results_screen.dart.
+  Future<void> _computeBacklogs(String rollNumber) async {
+    try {
+      // 1. Release map: year_sem -> minPassMarks
+      final relSnap = await _firestore.collection('cieMemoReleases').get();
+      String normSem(String s) {
+        const m = {'i': '1', 'ii': '2', 'iii': '3', 'iv': '4'};
+        return m[s.toLowerCase().trim()] ?? s.trim();
+      }
+
+      final releaseMap = <String, int>{};
+      for (final d in relSnap.docs) {
+        final r = d.data();
+        final key = '${r['year']}_${normSem(r['semester']?.toString() ?? '')}';
+        releaseMap[key] = (r['minPassMarks'] is int)
+            ? r['minPassMarks'] as int
+            : int.tryParse(r['minPassMarks']?.toString() ?? '') ?? 40;
+      }
+
+      // 2. Supply PASS map: subjectCode -> true
+      final supplySnap = await _firestore
+          .collection('supplyMarks')
+          .where('rollNo', isEqualTo: rollNumber)
+          .get();
+      final supplyPassSet = <String>{};
+      for (final d in supplySnap.docs) {
+        final data = d.data();
+        if ((data['result'] as String? ?? '') == 'PASS') {
+          final code = data['subjectCode']?.toString() ?? '';
+          if (code.isNotEmpty) supplyPassSet.add(code);
+        }
+      }
+
+      // 3. All marks for this student
+      final marksSnap = await _firestore
+          .collection('studentMarks')
+          .where('studentId', isEqualTo: rollNumber)
+          .get();
+
+      if (marksSnap.docs.isEmpty) {
+        if (mounted) setState(() => _backlogLoaded = true);
+        return;
+      }
+
+      // 4. Group by subjectCode
+      final bySubject = <String, List<Map<String, dynamic>>>{};
+      for (final doc in marksSnap.docs) {
+        final d = Map<String, dynamic>.from(doc.data());
+        final code = d['subjectCode']?.toString() ?? '';
+        if (code.isEmpty) continue;
+        bySubject.putIfAbsent(code, () => []).add(d);
+      }
+
+      // 5. Determine active backlogs
+      int active = 0;
+      for (final entries in bySubject.values) {
+        // Sort chronologically
+        entries.sort((a, b) {
+          final ya = int.tryParse(a['year']?.toString() ?? '') ?? 0;
+          final yb = int.tryParse(b['year']?.toString() ?? '') ?? 0;
+          if (ya != yb) return ya.compareTo(yb);
+          return normSem(a['semester']?.toString() ?? '')
+              .compareTo(normSem(b['semester']?.toString() ?? ''));
+        });
+
+        for (int i = 0; i < entries.length; i++) {
+          final e = entries[i];
+          final key =
+              '${e['year']}_${normSem(e['semester']?.toString() ?? '')}';
+          final minPass = releaseMap[key] ?? 40;
+          final raw = e['componentMarks'] as Map<String, dynamic>? ?? {};
+          int total = 0;
+          for (final v in raw.values) {
+            total += (v is int) ? v : int.tryParse(v.toString()) ?? 0;
+          }
+          if (total >= minPass) continue; // passed — not a backlog
+
+          // Failed — check if cleared later
+          final code = e['subjectCode']?.toString() ?? '';
+          bool clearedLater = false;
+          for (int j = i + 1; j < entries.length; j++) {
+            final later = entries[j];
+            final lKey =
+                '${later['year']}_${normSem(later['semester']?.toString() ?? '')}';
+            final lMin = releaseMap[lKey] ?? 40;
+            final lRaw = later['componentMarks'] as Map<String, dynamic>? ?? {};
+            int lTotal = 0;
+            for (final v in lRaw.values) {
+              lTotal += (v is int) ? v : int.tryParse(v.toString()) ?? 0;
+            }
+            if (lTotal >= lMin) {
+              clearedLater = true;
+              break;
+            }
+          }
+          if (!clearedLater && supplyPassSet.contains(code)) {
+            clearedLater = true;
+          }
+          if (!clearedLater) active++;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _backlogCount = active;
+          _backlogLoaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _backlogLoaded = true);
+    }
+  }
+
+  /// Fetch mentor information from backend based on year and batch assignment
   Future<void> _fetchMentorData(
       Map<String, dynamic> studentData, String batchNumber) async {
     try {
-      // Look for mentor assignment for this batch
+      // Get student's year
+      final year = studentData['year'];
+      final yearInt = year is int ? year : int.tryParse(year.toString());
+      
+      if (yearInt == null) {
+        // No valid year found
+        studentData['mentorName'] = 'Not Assigned';
+        studentData['mentorPhone'] = 'N/A';
+        studentData['mentorEmail'] = 'N/A';
+        return;
+      }
+
+      // Look for mentor assignment for this year+batch combination
       final assignmentSnap = await _firestore
           .collection('mentorAssignments')
+          .where('year', isEqualTo: yearInt)
           .where('batchNumber', isEqualTo: batchNumber)
           .limit(1)
           .get();
 
       if (assignmentSnap.docs.isEmpty) {
-        // No mentor assigned for this batch
+        // No mentor assigned for this year+batch
         studentData['mentorName'] = 'Not Assigned';
         studentData['mentorPhone'] = 'N/A';
         studentData['mentorEmail'] = 'N/A';
@@ -171,7 +315,8 @@ class _StudentHomeState extends State<StudentHome> {
   ///  • Overall attendance %
   ///  • Per-subject stats (for Course Wise chart)
   ///  • Per-day stats (for Last Week chart)
-  Future<void> _computeAttendancePct(String rollNumber) async {
+  Future<void> _computeAttendancePct(String rollNumber,
+      {DateTime? sinceDate}) async {
     try {
       final snap = await _firestore.collection('attendance').get();
       int held = 0;
@@ -197,6 +342,27 @@ class _StudentHomeState extends State<StudentHome> {
         final name = (d['subjectName'] as String? ?? code).trim();
         final dateStr = (d['dateStr'] as String? ?? '');
 
+        // Skip records before the last semester promotion date
+        if (sinceDate != null && dateStr.isNotEmpty) {
+          try {
+            final p = dateStr.split('-');
+            if (p.length == 3) {
+              // Parse dd-MM-yyyy format
+              final day = int.parse(p[0]);
+              final month = int.parse(p[1]);
+              final year = int.parse(p[2]);
+              final recDate = DateTime(year, month, day);
+              
+              // Only include records from sinceDate onwards (inclusive)
+              if (recDate.isBefore(sinceDate)) {
+                continue; // Skip this old record
+              }
+            }
+          } catch (e) {
+            debugPrint('[Attendance] Error parsing date "$dateStr": $e');
+          }
+        }
+
         held += count;
         if (isPresent) present += count;
 
@@ -204,8 +370,9 @@ class _StudentHomeState extends State<StudentHome> {
         cwMap.putIfAbsent(
             code, () => {'code': code, 'name': name, 'held': 0, 'present': 0});
         cwMap[code]!['held'] = (cwMap[code]!['held'] as int) + count;
-        if (isPresent)
+        if (isPresent) {
           cwMap[code]!['present'] = (cwMap[code]!['present'] as int) + count;
+        }
 
         // Daily accumulation
         if (dateStr.isNotEmpty) {
@@ -356,11 +523,12 @@ class _StudentHomeState extends State<StudentHome> {
       });
     } catch (e) {
       debugPrint('[CGPA] computation error: $e');
-      if (mounted)
+      if (mounted) {
         setState(() {
           _computedCgpa = 0.0;
           _cgpaLoaded = true;
         });
+      }
     }
   }
 
@@ -679,16 +847,16 @@ class _StudentHomeState extends State<StudentHome> {
                   if (value == 'Calendar') {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                          builder: (context) => AcademicsScreen()),
+                          builder: (context) => const AcademicsScreen()),
                     );
                   } else if (value == 'Handbook') {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                          builder: (context) => StudentHandbookScreen()),
+                          builder: (context) => const StudentHandbookScreen()),
                     );
                   } else if (value == 'Syllabus') {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => SyllabusScreen()),
+                      MaterialPageRoute(builder: (context) => const SyllabusScreen()),
                     );
                   } else {
                     _navigateToPage(context, value);
@@ -711,11 +879,11 @@ class _StudentHomeState extends State<StudentHome> {
                         Text('Syllabus', style: TextStyle(color: Colors.white)),
                   ),
                 ],
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
                         'Academics',
                         style: TextStyle(
@@ -760,11 +928,11 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                 ],
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
                         'Results',
                         style: TextStyle(
@@ -799,11 +967,11 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                 ],
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
                         'Grievance',
                         style: TextStyle(
@@ -850,9 +1018,9 @@ class _StudentHomeState extends State<StudentHome> {
         horizontal: isMobile ? 12 : 16,
         vertical: 8,
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Text(
+          Text(
             'No Due',
             style: TextStyle(color: Colors.white, fontSize: 12),
           ),
@@ -1022,7 +1190,9 @@ class _StudentHomeState extends State<StudentHome> {
       },
       {
         'label': 'Backlogs',
-        'value': '${_studentData?['backlogs'] ?? '0'}',
+        'value': _backlogLoaded
+            ? '$_backlogCount'
+            : (_studentData?['backlogs']?.toString() ?? '...'),
         'color': Colors.red,
       },
     ];
@@ -1140,21 +1310,6 @@ class _StudentHomeState extends State<StudentHome> {
                   fontWeight: FontWeight.bold,
                   color: Colors.amber.shade900,
                 ),
-              ),
-              const Spacer(),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => MentorDetailsScreen(
-                        mentorName: mentorName,
-                        mentorEmail: mentorEmail,
-                        mentorPhone: mentorPhone,
-                      ),
-                    ),
-                  );
-                },
-                child: const Text('View Mentor'),
               ),
             ],
           ),

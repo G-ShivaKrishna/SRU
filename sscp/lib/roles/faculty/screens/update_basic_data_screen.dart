@@ -531,7 +531,7 @@ class _UpdateBasicDataScreenState extends State<UpdateBasicDataScreen> {
   Widget _dropdownField(String label, List<String> items, String? value,
       ValueChanged<String?> onChanged, {bool required = false}) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       decoration: InputDecoration(
         labelText: label,

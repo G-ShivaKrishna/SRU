@@ -826,9 +826,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             width: double.infinity,
             padding: EdgeInsets.all(isMobile ? 12 : 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1e3a5f),
-              borderRadius: const BorderRadius.only(
+            decoration: const BoxDecoration(
+              color: Color(0xFF1e3a5f),
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(7),
                 topRight: Radius.circular(7),
               ),
@@ -949,7 +949,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
-            value: _editControllers['bloodGroup']!.text.isEmpty
+            initialValue: _editControllers['bloodGroup']!.text.isEmpty
                 ? null
                 : _editControllers['bloodGroup']!.text,
             decoration: InputDecoration(
@@ -1001,7 +1001,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
-            value: _editControllers['gender']!.text.isEmpty
+            initialValue: _editControllers['gender']!.text.isEmpty
                 ? null
                 : _editControllers['gender']!.text,
             decoration: InputDecoration(

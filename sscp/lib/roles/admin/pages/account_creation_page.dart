@@ -531,7 +531,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       ),
       child: Row(
         children: [
-          Icon(Icons.check_circle, color: Colors.green, size: 24),
+          const Icon(Icons.check_circle, color: Colors.green, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

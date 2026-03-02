@@ -631,9 +631,9 @@ class _ExamTimetableScreenState extends State<ExamTimetableScreen> {
                   child: const Text('Previous'),
                 )
               else
-                TextButton(
+                const TextButton(
                   onPressed: null,
-                  child: const Text('Previous'),
+                  child: Text('Previous'),
                 ),
               const SizedBox(width: 8),
               Container(
@@ -655,9 +655,9 @@ class _ExamTimetableScreenState extends State<ExamTimetableScreen> {
                   child: const Text('Next'),
                 )
               else
-                TextButton(
+                const TextButton(
                   onPressed: null,
-                  child: const Text('Next'),
+                  child: Text('Next'),
                 ),
             ],
           ),

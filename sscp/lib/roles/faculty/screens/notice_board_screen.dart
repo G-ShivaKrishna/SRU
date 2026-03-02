@@ -230,8 +230,8 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                 child: Column(
                   children: [
                     // Title
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 24),
                       child: Text(
                         'Day & Session Wise Notice Board Report',
                         style: TextStyle(
@@ -593,9 +593,9 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                   child: const Text('Previous'),
                 )
               else
-                TextButton(
+                const TextButton(
                   onPressed: null,
-                  child: const Text('Previous'),
+                  child: Text('Previous'),
                 ),
               const SizedBox(width: 8),
               Container(
@@ -617,9 +617,9 @@ class _NoticeBoardScreenState extends State<NoticeBoardScreen> {
                   child: const Text('Next'),
                 )
               else
-                TextButton(
+                const TextButton(
                   onPressed: null,
-                  child: const Text('Next'),
+                  child: Text('Next'),
                 ),
             ],
           ),

@@ -18,7 +18,7 @@ class _LabTutorialAttendanceScreenState
   String _attendanceType = 'Lab'; // Lab or Tutorial
   String? _selectedCourse;
   String? _selectedSection;
-  DateTime _selectedDate = DateTime.now();
+  final DateTime _selectedDate = DateTime.now();
   String? _selectedSlot;
 
   List<Map<String, dynamic>> _students = [];
@@ -162,7 +162,7 @@ class _LabTutorialAttendanceScreenState
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedCourse,
+                    initialValue: _selectedCourse,
                     decoration: const InputDecoration(
                       labelText: 'Course',
                       border: OutlineInputBorder(),
@@ -184,7 +184,7 @@ class _LabTutorialAttendanceScreenState
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedSection,
+                    initialValue: _selectedSection,
                     decoration: const InputDecoration(
                       labelText: 'Section',
                       border: OutlineInputBorder(),
@@ -207,7 +207,7 @@ class _LabTutorialAttendanceScreenState
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedSlot,
+              initialValue: _selectedSlot,
               decoration: InputDecoration(
                 labelText: _attendanceType == 'Lab' ? 'Lab Slot' : 'Tutorial',
                 border: const OutlineInputBorder(),
@@ -361,7 +361,7 @@ class _LabTutorialAttendanceScreenState
                   _attendanceStatus[studentId] = value;
                 });
               },
-              activeColor: Colors.green,
+              activeThumbColor: Colors.green,
             ),
           );
         },

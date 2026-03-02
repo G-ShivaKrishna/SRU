@@ -648,7 +648,7 @@ class _RecordCardState extends State<_RecordCard> {
 
   Widget _ltpDropdown() {
     return DropdownButtonFormField<String>(
-      value: ['L', 'T', 'P'].contains(_ltpType) ? _ltpType : null,
+      initialValue: ['L', 'T', 'P'].contains(_ltpType) ? _ltpType : null,
       decoration: const InputDecoration(
           labelText: 'L/T/P', border: OutlineInputBorder(), isDense: true),
       items: const ['L', 'T', 'P']
@@ -660,7 +660,7 @@ class _RecordCardState extends State<_RecordCard> {
 
   Widget _unitDropdown() {
     return DropdownButtonFormField<String>(
-      value: (int.tryParse(_unitExpNo ?? '') != null &&
+      initialValue: (int.tryParse(_unitExpNo ?? '') != null &&
               int.parse(_unitExpNo!) >= 1 &&
               int.parse(_unitExpNo!) <= 6)
           ? _unitExpNo
@@ -752,24 +752,24 @@ class _RecordCardState extends State<_RecordCard> {
         Container(
           color: const Color(0xFF1e3a5f),
           child: Row(children: [
-            SizedBox(
+            const SizedBox(
                 width: 36,
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('#', style: hStyle))),
-            SizedBox(
+            const SizedBox(
                 width: 100,
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('Roll No.', style: hStyle))),
-            Expanded(
+            const Expanded(
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('Name', style: hStyle))),
-            SizedBox(
+            const SizedBox(
                 width: 110,
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('Hall Ticket', style: hStyle))),
             SizedBox(
                 width: 70,
@@ -1186,40 +1186,40 @@ class _StudentTabState extends State<_StudentTab> {
       children: [
         Container(
           color: const Color(0xFF1e3a5f),
-          child: Row(children: [
+          child: const Row(children: [
             SizedBox(
                 width: 30,
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('#', style: hStyle))),
             SizedBox(
                 width: 90,
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('Date', style: hStyle))),
             SizedBox(
                 width: 80,
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('Subject', style: hStyle))),
             SizedBox(
                 width: 40,
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('L/T', style: hStyle))),
             Expanded(
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('Topic', style: hStyle))),
             SizedBox(
                 width: 60,
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('Status', style: hStyle))),
             SizedBox(
                 width: 44,
                 child: Padding(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(6),
                     child: Text('Edit', style: hStyle))),
           ]),
         ),
@@ -1418,7 +1418,7 @@ class _StudentTabState extends State<_StudentTab> {
                   const SizedBox(height: 6),
                   if (assignments.isNotEmpty) ...[
                     DropdownButtonFormField<Map<String, dynamic>>(
-                      value: selectedAssignment,
+                      initialValue: selectedAssignment,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
@@ -1519,7 +1519,7 @@ class _StudentTabState extends State<_StudentTab> {
                               style: TextStyle(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
-                            value: ltpType,
+                            initialValue: ltpType,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               isDense: true,
@@ -1545,7 +1545,7 @@ class _StudentTabState extends State<_StudentTab> {
                               style: TextStyle(fontWeight: FontWeight.bold)),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
-                            value: unitExpNo,
+                            initialValue: unitExpNo,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               isDense: true,

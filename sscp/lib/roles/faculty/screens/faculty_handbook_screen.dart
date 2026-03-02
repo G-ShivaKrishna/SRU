@@ -1774,7 +1774,7 @@ class _FacultyHandbookScreenState extends State<FacultyHandbookScreen> {
                       ))
                   .toList(),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
