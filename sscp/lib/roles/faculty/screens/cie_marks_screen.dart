@@ -802,7 +802,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text(
                     '❌ Excel parsing failed. Microsoft Excel adds formatting that causes this error.\n\n'
                     '✅ RECOMMENDED SOLUTIONS:\n'
@@ -810,7 +810,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                     '2. Use the "Download Excel" template from this app (not your own Excel file)\n\n'
                     'The app-generated template and CSV format work reliably!'),
                 backgroundColor: Colors.red,
-                duration: const Duration(seconds: 8),
+                duration: Duration(seconds: 8),
               ),
             );
           }
@@ -911,21 +911,19 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           downloadsDir = Directory.systemTemp;
         }
 
-        if (downloadsDir != null) {
-          final filePath = '${downloadsDir.path}/$fileName';
-          final file = File(filePath);
-          await file.writeAsBytes(bytes);
+        final filePath = '${downloadsDir.path}/$fileName';
+        final file = File(filePath);
+        await file.writeAsBytes(bytes);
 
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('CSV saved to: $filePath'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('CSV saved to: $filePath'),
+              backgroundColor: Colors.green,
+            ),
+          );
         }
-      } else {
+            } else {
         // Desktop: Show save dialog
         String? outputPath = await FilePicker.platform.saveFile(
           dialogTitle: 'Save CSV Template',

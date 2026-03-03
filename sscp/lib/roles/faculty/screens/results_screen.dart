@@ -749,7 +749,7 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text(
                     '❌ Excel parsing failed. Microsoft Excel adds formatting that causes this error.\n\n'
                     '✅ RECOMMENDED SOLUTIONS:\n'
@@ -757,7 +757,7 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
                     '2. Use the "Download Excel" template from this app (not your own Excel file)\n\n'
                     'The app-generated template and CSV format work reliably!'),
                 backgroundColor: Colors.red,
-                duration: const Duration(seconds: 8),
+                duration: Duration(seconds: 8),
               ),
             );
           }
@@ -807,7 +807,7 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
     try {
       String csvContent = _createCsvTemplate();
       final bytes = utf8.encode(csvContent);
-      final fileName = 'Results_Template.csv';
+      const fileName = 'Results_Template.csv';
 
       if (kIsWeb) {
         // Web: Use browser download
@@ -838,21 +838,19 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
           downloadsDir = Directory.systemTemp;
         }
 
-        if (downloadsDir != null) {
-          final filePath = '${downloadsDir.path}/$fileName';
-          final file = File(filePath);
-          await file.writeAsBytes(bytes);
+        final filePath = '${downloadsDir.path}/$fileName';
+        final file = File(filePath);
+        await file.writeAsBytes(bytes);
 
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('CSV saved to: $filePath'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('CSV saved to: $filePath'),
+              backgroundColor: Colors.green,
+            ),
+          );
         }
-      } else {
+            } else {
         // Desktop: Show save dialog
         String? outputPath = await FilePicker.platform.saveFile(
           dialogTitle: 'Save CSV Template',
