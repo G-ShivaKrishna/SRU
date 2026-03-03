@@ -9,9 +9,9 @@ import 'dart:typed_data';
 import 'dart:convert' show utf8;
 import '../../../widgets/app_header.dart';
 import '../../../utils/web_download_stub.dart'
-  if (dart.library.html) '../../../utils/web_download_web.dart';
+    if (dart.library.html) '../../../utils/web_download_web.dart';
 import '../../../utils/file_save_stub.dart'
-  if (dart.library.io) '../../../utils/file_save_io.dart';
+    if (dart.library.io) '../../../utils/file_save_io.dart';
 
 // ─── Models ────────────────────────────────────────────────────────────────────
 
@@ -518,7 +518,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
   }
 
   Future<void> _downloadExcelTemplate() async {
-    if (_selectedAssignment == null || _selectedBatch == null || !_marksLoaded) {
+    if (_selectedAssignment == null ||
+        _selectedBatch == null ||
+        !_marksLoaded) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select subject/batch and load students first'),
@@ -685,7 +687,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
   }
 
   Future<void> _downloadCsvTemplate() async {
-    if (_selectedAssignment == null || _selectedBatch == null || !_marksLoaded) {
+    if (_selectedAssignment == null ||
+        _selectedBatch == null ||
+        !_marksLoaded) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select subject/batch and load students first'),
@@ -968,10 +972,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed:
-                          (_selectedAssignment != null && _selectedBatch != null)
-                              ? _loadMarksEntry
-                              : null,
+                      onPressed: (_selectedAssignment != null &&
+                              _selectedBatch != null)
+                          ? _loadMarksEntry
+                          : null,
                       icon: const Icon(Icons.search),
                       label: const Text('Load Students'),
                       style: ElevatedButton.styleFrom(
