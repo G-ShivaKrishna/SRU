@@ -78,7 +78,7 @@ class _AttendanceRegisterScreenState extends State<AttendanceRegisterScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedSession,
+                    initialValue: _selectedSession,
                     decoration: const InputDecoration(
                       labelText: 'Academic Session',
                       border: OutlineInputBorder(),
@@ -102,7 +102,7 @@ class _AttendanceRegisterScreenState extends State<AttendanceRegisterScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedSemester,
+                    initialValue: _selectedSemester,
                     decoration: const InputDecoration(
                       labelText: 'Semester',
                       border: OutlineInputBorder(),
@@ -308,7 +308,7 @@ class _AttendanceRegisterScreenState extends State<AttendanceRegisterScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        course['courseName'] ?? 'Course ${index}',
+                        course['courseName'] ?? 'Course $index',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

@@ -407,8 +407,8 @@ class _AdminBacklogCard extends StatelessWidget {
                 tooltip: 'Manually mark as cleared',
                 onPressed: () => _manualClear(context),
               )
-            : Chip(
-                label: const Text('Cleared',
+            : const Chip(
+                label: Text('Cleared',
                     style: TextStyle(fontSize: 10, color: Colors.white)),
                 backgroundColor: Colors.green),
       ),
@@ -600,7 +600,7 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
                 title: const Text('Active (visible to students)'),
                 value: isActive,
                 onChanged: (v) => setS(() => isActive = v),
-                activeColor: Colors.green,
+                activeThumbColor: Colors.green,
                 dense: true,
               ),
             ],
@@ -735,7 +735,7 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
                       ),
                       const SizedBox(height: 6),
                       DropdownButtonFormField<String>(
-                        value: selections[entry.key],
+                        initialValue: selections[entry.key],
                         decoration: const InputDecoration(
                             labelText: 'Select Faculty',
                             border: OutlineInputBorder(),
@@ -1059,7 +1059,7 @@ class _RegistrationsTabState extends State<_RegistrationsTab> {
                     style: TextStyle(color: Colors.grey));
               }
               return DropdownButtonFormField<String>(
-                value: _selectedWindowId,
+                initialValue: _selectedWindowId,
                 decoration: const InputDecoration(
                     labelText: 'Select Supply Window',
                     border: OutlineInputBorder()),
@@ -1320,7 +1320,7 @@ class _SupplyMarksTabState extends State<_SupplyMarksTab> {
                       EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   isDense: true,
                 ),
-                value: _selectedWindowId,
+                initialValue: _selectedWindowId,
                 isExpanded: true,
                 items: windows.map((doc) {
                   final d = doc.data() as Map<String, dynamic>;

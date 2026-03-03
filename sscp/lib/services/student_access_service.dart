@@ -23,7 +23,7 @@ class StudentAccessService {
           .collection('students')
           .where('hallTicketNumber',
               isGreaterThanOrEqualTo: query.toUpperCase())
-          .where('hallTicketNumber', isLessThan: query.toUpperCase() + 'z')
+          .where('hallTicketNumber', isLessThan: '${query.toUpperCase()}z')
           .limit(20)
           .get();
 

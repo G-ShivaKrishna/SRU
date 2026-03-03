@@ -683,11 +683,11 @@ class _FacultyHomeState extends State<FacultyHome> {
         ];
         return entries;
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Text('Professional Outline',
                 style: TextStyle(
                     color: Colors.white,
@@ -824,9 +824,9 @@ class _FacultyHomeState extends State<FacultyHome> {
                 width: double.infinity,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
                       'Regular Exams',
                       style: TextStyle(
@@ -844,13 +844,14 @@ class _FacultyHomeState extends State<FacultyHome> {
               ),
             ),
           ),
+
         ];
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 8),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Text(
               'Marks Entry',
               style: TextStyle(
@@ -1051,11 +1052,11 @@ class _DownloadSubMenu extends StatelessWidget {
                     style: const TextStyle(color: Colors.white, fontSize: 13)),
               ))
           .toList(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         child: Row(
           mainAxisSize: MainAxisSize.max,
-          children: const [
+          children: [
             Expanded(
               child: Text('Download',
                   style: TextStyle(color: Colors.white, fontSize: 13)),

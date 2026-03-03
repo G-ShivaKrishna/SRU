@@ -307,14 +307,14 @@ class _InvigilatorDutiesScreenState extends State<InvigilatorDutiesScreen> {
                 child: Column(
                   children: [
                     // Title
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 24),
                       child: Text(
                         'Emp Exams Invigilation Duties',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1976D2),
+                          color: Color(0xFF1976D2),
                         ),
                       ),
                     ),
@@ -654,9 +654,9 @@ class _InvigilatorDutiesScreenState extends State<InvigilatorDutiesScreen> {
                   child: const Text('Previous'),
                 )
               else
-                TextButton(
+                const TextButton(
                   onPressed: null,
-                  child: const Text('Previous'),
+                  child: Text('Previous'),
                 ),
               const SizedBox(width: 8),
               Container(
@@ -678,9 +678,9 @@ class _InvigilatorDutiesScreenState extends State<InvigilatorDutiesScreen> {
                   child: const Text('Next'),
                 )
               else
-                TextButton(
+                const TextButton(
                   onPressed: null,
-                  child: const Text('Next'),
+                  child: Text('Next'),
                 ),
             ],
           ),

@@ -111,8 +111,14 @@ class _StudentHomeState extends State<StudentHome> {
             studentData['lastPromotedAt'] as dynamic; // Timestamp?
         DateTime? sinceDate;
         try {
-          sinceDate = (lastPromotedTs as dynamic)?.toDate() as DateTime?;
-        } catch (_) {}
+          if (lastPromotedTs != null) {
+            final dt = (lastPromotedTs as dynamic).toDate() as DateTime;
+            // Normalize to start of day to avoid time comparison issues
+            sinceDate = DateTime(dt.year, dt.month, dt.day);
+          }
+        } catch (_) {
+          debugPrint('[Attendance] Error parsing lastPromotedAt timestamp');
+        }
         _computeAttendancePct(rollNumber, sinceDate: sinceDate);
         _computeBacklogs(rollNumber);
       } else {
@@ -237,19 +243,32 @@ class _StudentHomeState extends State<StudentHome> {
     }
   }
 
-  /// Fetch mentor information from backend based on batch assignment
+  /// Fetch mentor information from backend based on year and batch assignment
   Future<void> _fetchMentorData(
       Map<String, dynamic> studentData, String batchNumber) async {
     try {
-      // Look for mentor assignment for this batch
+      // Get student's year
+      final year = studentData['year'];
+      final yearInt = year is int ? year : int.tryParse(year.toString());
+      
+      if (yearInt == null) {
+        // No valid year found
+        studentData['mentorName'] = 'Not Assigned';
+        studentData['mentorPhone'] = 'N/A';
+        studentData['mentorEmail'] = 'N/A';
+        return;
+      }
+
+      // Look for mentor assignment for this year+batch combination
       final assignmentSnap = await _firestore
           .collection('mentorAssignments')
+          .where('year', isEqualTo: yearInt)
           .where('batchNumber', isEqualTo: batchNumber)
           .limit(1)
           .get();
 
       if (assignmentSnap.docs.isEmpty) {
-        // No mentor assigned for this batch
+        // No mentor assigned for this year+batch
         studentData['mentorName'] = 'Not Assigned';
         studentData['mentorPhone'] = 'N/A';
         studentData['mentorEmail'] = 'N/A';
@@ -329,11 +348,20 @@ class _StudentHomeState extends State<StudentHome> {
           try {
             final p = dateStr.split('-');
             if (p.length == 3) {
-              final recDate =
-                  DateTime(int.parse(p[2]), int.parse(p[1]), int.parse(p[0]));
-              if (recDate.isBefore(sinceDate)) continue;
+              // Parse dd-MM-yyyy format
+              final day = int.parse(p[0]);
+              final month = int.parse(p[1]);
+              final year = int.parse(p[2]);
+              final recDate = DateTime(year, month, day);
+              
+              // Only include records from sinceDate onwards (inclusive)
+              if (recDate.isBefore(sinceDate)) {
+                continue; // Skip this old record
+              }
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('[Attendance] Error parsing date "$dateStr": $e');
+          }
         }
 
         held += count;
@@ -343,8 +371,9 @@ class _StudentHomeState extends State<StudentHome> {
         cwMap.putIfAbsent(
             code, () => {'code': code, 'name': name, 'held': 0, 'present': 0});
         cwMap[code]!['held'] = (cwMap[code]!['held'] as int) + count;
-        if (isPresent)
+        if (isPresent) {
           cwMap[code]!['present'] = (cwMap[code]!['present'] as int) + count;
+        }
 
         // Daily accumulation
         if (dateStr.isNotEmpty) {
@@ -495,11 +524,12 @@ class _StudentHomeState extends State<StudentHome> {
       });
     } catch (e) {
       debugPrint('[CGPA] computation error: $e');
-      if (mounted)
+      if (mounted) {
         setState(() {
           _computedCgpa = 0.0;
           _cgpaLoaded = true;
         });
+      }
     }
   }
 
@@ -829,16 +859,16 @@ class _StudentHomeState extends State<StudentHome> {
                   if (value == 'Calendar') {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                          builder: (context) => AcademicsScreen()),
+                          builder: (context) => const AcademicsScreen()),
                     );
                   } else if (value == 'Handbook') {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                          builder: (context) => StudentHandbookScreen()),
+                          builder: (context) => const StudentHandbookScreen()),
                     );
                   } else if (value == 'Syllabus') {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => SyllabusScreen()),
+                      MaterialPageRoute(builder: (context) => const SyllabusScreen()),
                     );
                   } else {
                     _navigateToPage(context, value);
@@ -861,11 +891,11 @@ class _StudentHomeState extends State<StudentHome> {
                         Text('Syllabus', style: TextStyle(color: Colors.white)),
                   ),
                 ],
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
                         'Academics',
                         style: TextStyle(
@@ -915,11 +945,11 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                 ],
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
                         'Results',
                         style: TextStyle(
@@ -954,11 +984,11 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                 ],
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
-                    children: const [
+                    children: [
                       Text(
                         'Grievance',
                         style: TextStyle(
@@ -1005,9 +1035,9 @@ class _StudentHomeState extends State<StudentHome> {
         horizontal: isMobile ? 12 : 16,
         vertical: 8,
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Text(
+          Text(
             'No Due',
             style: TextStyle(color: Colors.white, fontSize: 12),
           ),

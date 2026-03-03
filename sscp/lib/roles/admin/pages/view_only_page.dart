@@ -773,7 +773,7 @@ class _ViewOnlyPageState extends State<ViewOnlyPage>
           ...data.entries
               .where((e) => e.key != 'Status')
               .map((e) => _buildInfoRow(e.key, e.value, isMobile))
-              .toList(),
+              ,
         ],
       ),
     );
