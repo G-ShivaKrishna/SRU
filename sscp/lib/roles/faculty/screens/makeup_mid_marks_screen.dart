@@ -318,40 +318,40 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
     // with makeup marks if makeup marks are higher
     final updates = <String>[];
     final noMarks = <String>[]; // Students where CIE marks weren't found
-    
+
     for (final entry in validEntries) {
       final rollNo = entry['rollNo'] as String;
       final makeupMark = entry['marks'] as double;
-      
+
       final smSnap = await widget.firestore
           .collection('studentMarks')
           .where('studentId', isEqualTo: rollNo)
           .where('subjectCode', isEqualTo: _subjectCode)
           .get();
-      
+
       // If no CIE marks exist for this subject, skip (student may not have enrolled)
       if (smSnap.docs.isEmpty) {
         noMarks.add(rollNo);
         continue;
       }
-      
+
       // Try to update the CIE marks
       for (final smDoc in smSnap.docs) {
         try {
           final smData = smDoc.data();
           final compMarks =
               Map<String, dynamic>.from(smData['componentMarks'] ?? {});
-          
+
           // Find all keys that contain 'mid' (case-insensitive)
           final midKeys = compMarks.keys
               .where((k) => k.toLowerCase().contains('mid'))
               .toList();
-          
+
           if (midKeys.isEmpty) {
             // No mid components found - skip this student
             continue;
           }
-          
+
           // Find the key with the lowest current value
           String? lowestKey;
           double lowestVal = double.infinity;
@@ -362,14 +362,14 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
               lowestKey = key;
             }
           }
-          
+
           // Update if makeup mark is higher
           if (lowestKey != null && makeupMark > lowestVal) {
             compMarks[lowestKey] = makeupMark.toInt();
             final newTotal = compMarks.values
                 .fold<num>(0, (s, v) => s + ((v is num) ? v : 0))
                 .toInt();
-            
+
             await widget.firestore
                 .collection('studentMarks')
                 .doc(smDoc.id)
@@ -378,7 +378,7 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
               'totalMarks': newTotal,
               'updatedAt': FieldValue.serverTimestamp(),
             });
-            
+
             // Mark makeup exam doc as having updated CIE
             final makeupDocId = '${_windowId}_${_subjectCode}_$rollNo';
             await widget.firestore
@@ -390,7 +390,7 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
               'oldValue': lowestVal.toInt(),
               'newValue': makeupMark.toInt(),
             });
-            
+
             updates.add(
                 '$rollNo: $lowestKey ${lowestVal.toInt()}→${makeupMark.toInt()}');
           }
@@ -405,20 +405,20 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
       String updateMsg = updates.isEmpty
           ? 'No CIE marks needed update'
           : 'CIE Updated (${updates.length}): ${updates.take(3).join(", ")}${updates.length > 3 ? "..." : ""}';
-      
+
       String noMarksMsg = noMarks.isEmpty
           ? ''
           : '\n⚠️ ${noMarks.length} student(s) have no CIE marks yet (${noMarks.join(", ")})';
-      
+
       final message = saved > 0
           ? 'Saved makeup marks for $saved student(s).\n$updateMsg$noMarksMsg'
           : 'No marks to save.';
-      
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(message),
           backgroundColor: updates.isNotEmpty ? Colors.green : Colors.orange,
           duration: const Duration(seconds: 6)));
-      
+
       // Show detailed dialog if updates or no-marks exist
       if (updates.length > 3 || noMarks.isNotEmpty) {
         showDialog(
@@ -495,7 +495,7 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
           ),
         );
       }
-      
+
       _loadStudents();
     }
   }
