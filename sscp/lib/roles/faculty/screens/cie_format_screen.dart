@@ -553,8 +553,7 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
       final existing = _definitions[a.docId];
       bool componentsChanged = false;
       if (existing != null) {
-        final oldKeys =
-            existing.components.map((c) => c.name).toSet();
+        final oldKeys = existing.components.map((c) => c.name).toSet();
         final newKeys = def.components.map((c) => c.name).toSet();
         componentsChanged = oldKeys.length != newKeys.length ||
             !oldKeys.every((k) => newKeys.contains(k));
@@ -565,8 +564,7 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
         final confirm = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            title:
-                const Text('Format Changed — Clear Existing Marks?'),
+            title: const Text('Format Changed — Clear Existing Marks?'),
             content: const Text(
               'The component structure has changed.\n\n'
               'All previously entered marks for this subject will be deleted '
@@ -579,8 +577,7 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
                   child: const Text('Cancel')),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white),
+                    backgroundColor: Colors.red, foregroundColor: Colors.white),
                 onPressed: () => Navigator.pop(context, true),
                 child: const Text('Clear & Save'),
               ),

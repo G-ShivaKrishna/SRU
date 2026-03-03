@@ -363,7 +363,8 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Saved marks for $saved student(s). CIE marks updated where applicable.'),
+          content: Text(
+              'Saved marks for $saved student(s). CIE marks updated where applicable.'),
           backgroundColor: Colors.green));
       _loadStudents();
     }

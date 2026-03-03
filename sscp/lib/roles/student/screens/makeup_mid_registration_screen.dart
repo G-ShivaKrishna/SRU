@@ -6,7 +6,16 @@ import 'package:intl/intl.dart';
 /// Normalises semester values so numeric ("1") and Roman ("I") match.
 String _normSem(String? s) {
   if (s == null || s.isEmpty) return '';
-  const roman = {'I': '1', 'II': '2', 'III': '3', 'IV': '4', 'V': '5', 'VI': '6', 'VII': '7', 'VIII': '8'};
+  const roman = {
+    'I': '1',
+    'II': '2',
+    'III': '3',
+    'IV': '4',
+    'V': '5',
+    'VI': '6',
+    'VII': '7',
+    'VIII': '8'
+  };
   final up = s.trim().toUpperCase();
   return roman[up] ?? s.trim();
 }
@@ -231,7 +240,8 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
       final docSem = d['semester']?.toString();
       // Only show subjects matching the window's target year & semester
       if (targetYear != null && docYear != targetYear) continue;
-      if (targetSemester != null && _normSem(docSem) != _normSem(targetSemester)) continue;
+      if (targetSemester != null &&
+          _normSem(docSem) != _normSem(targetSemester)) continue;
       subjects.add({
         'subjectCode': d['subjectCode']?.toString() ?? '',
         'subjectName': d['subjectName']?.toString() ?? '',

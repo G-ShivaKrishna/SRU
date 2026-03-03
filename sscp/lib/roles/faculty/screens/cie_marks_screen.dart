@@ -96,7 +96,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
   List<_StudentRow> _studentRows = [];
   int _maxTotalMarks = 0;
   bool _marksLoaded = false;
-  bool _hasStaleData = false; // true when existing marks have outdated component keys
+  bool _hasStaleData =
+      false; // true when existing marks have outdated component keys
 
   // save-all state
   bool _savingAll = false;
@@ -236,13 +237,13 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             ? d['year'] as int
             : int.tryParse(d['year'].toString()) ?? 0;
         final status = (d['status'] ?? 'active').toString();
-        
+
         // Match if batchNumber OR section equals the batch identifier
-        final batchMatch = bn == batchNumber || 
-                           section == batchNumber || 
-                           bn == batch || 
-                           section == batch;
-        
+        final batchMatch = bn == batchNumber ||
+            section == batchNumber ||
+            bn == batch ||
+            section == batch;
+
         return batchMatch &&
             yr == assignment.year &&
             status != 'graduated' &&
@@ -265,8 +266,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         final d = doc.data();
         if ((d['batch'] ?? '') == batch) {
           final sid = (d['studentId'] ?? '').toString();
-          final rawComp =
-              Map<String, dynamic>.from(d['componentMarks'] ?? {});
+          final rawComp = Map<String, dynamic>.from(d['componentMarks'] ?? {});
           existingMarks[sid] = rawComp;
           // Detect stale: saved has keys not in current format
           if (!staleDetected &&
@@ -327,13 +327,18 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     setState(() => row.isSaving = true);
     try {
       final facultyId = _auth.currentUser!.email!.split('@')[0].toUpperCase();
-      
+
       // Validate that assignment is still active before saving
-      final assignDoc = await _fs.collection('facultyAssignments').doc(assignment.docId).get();
-      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
-        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      final assignDoc = await _fs
+          .collection('facultyAssignments')
+          .doc(assignment.docId)
+          .get();
+      if (!assignDoc.exists ||
+          (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception(
+            'This course is no longer active. Students may have been promoted. Please refresh the page.');
       }
-      
+
       final compMarks = <String, int>{};
       for (final c in _components) {
         compMarks[c.name] =
@@ -414,11 +419,16 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
     try {
       // Validate that assignment is still active before saving
-      final assignDoc = await _fs.collection('facultyAssignments').doc(assignment.docId).get();
-      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
-        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      final assignDoc = await _fs
+          .collection('facultyAssignments')
+          .doc(assignment.docId)
+          .get();
+      if (!assignDoc.exists ||
+          (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception(
+            'This course is no longer active. Students may have been promoted. Please refresh the page.');
       }
-      
+
       final wb = _fs.batch();
       for (final row in _studentRows) {
         final compMarks = <String, int>{};
@@ -548,8 +558,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                     decoration: BoxDecoration(
                       color: Colors.orange.shade50,
                       borderRadius: BorderRadius.circular(8),
-                      border:
-                          Border.all(color: Colors.orange.shade300),
+                      border: Border.all(color: Colors.orange.shade300),
                     ),
                     child: Row(
                       children: [
@@ -561,8 +570,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                             'Some marks were saved with an old format and have stale data. '
                             'Click "Save All Marks" below to update all students to the current format.',
                             style: TextStyle(
-                                color: Colors.orange.shade800,
-                                fontSize: 13),
+                                color: Colors.orange.shade800, fontSize: 13),
                           ),
                         ),
                       ],
@@ -708,7 +716,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                 color: Color(0xFF1e3a5f))),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          initialValue: batches.contains(_selectedBatch) ? _selectedBatch : null,
+          initialValue:
+              batches.contains(_selectedBatch) ? _selectedBatch : null,
           isExpanded: true,
           decoration: const InputDecoration(
               border: OutlineInputBorder(),
