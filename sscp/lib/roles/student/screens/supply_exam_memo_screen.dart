@@ -61,11 +61,14 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
         _branch = data['department']?.toString().toUpperCase() ?? 'CSE';
         _memoNumber = 'SEM-${widget.rollNo}-SUPPLY-${widget.examSession}';
         _serialNumber = widget.rollNo;
-        
+
         // Calculate totals
         _passed = widget.subjects.where((s) => s['result'] == 'PASS').length;
-        _totalCredits = widget.subjects.fold(0, (sum, s) => sum + (int.tryParse(s['credits']?.toString() ?? '0') ?? 0));
-        
+        _totalCredits = widget.subjects.fold(
+            0,
+            (sum, s) =>
+                sum + (int.tryParse(s['credits']?.toString() ?? '0') ?? 0));
+
         // For supply, calculate simple average based on grade points
         int gradeSum = 0;
         int gradeCount = 0;
@@ -79,7 +82,7 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
         }
         _sgpa = gradeCount > 0 ? gradeSum / gradeCount : 0.0;
         _totalCreditPoints = _sgpa * _totalCredits;
-        
+
         _loading = false;
       });
     } catch (e) {
@@ -92,14 +95,22 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
 
   int _gradeToPoint(String grade) {
     switch (grade.toUpperCase()) {
-      case 'O': return 10;
-      case 'A+': return 9;
-      case 'A': return 8;
-      case 'B+': return 7;
-      case 'B': return 6;
-      case 'C': return 5;
-      case 'P': return 4;
-      default: return 0;
+      case 'O':
+        return 10;
+      case 'A+':
+        return 9;
+      case 'A':
+        return 8;
+      case 'B+':
+        return 7;
+      case 'B':
+        return 6;
+      case 'C':
+        return 5;
+      case 'P':
+        return 4;
+      default:
+        return 0;
     }
   }
 
@@ -389,7 +400,7 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
-        
+
         const headerDecoration = BoxDecoration(
           color: Color(0xFF1e3a5f),
         );
@@ -400,74 +411,83 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
         );
         final cellText = TextStyle(fontSize: isMobile ? 10 : 12);
         final rowPad = EdgeInsets.symmetric(
-          horizontal: isMobile ? 3 : 8, 
+          horizontal: isMobile ? 3 : 8,
           vertical: isMobile ? 4 : 6,
         );
 
         return Table(
           border: TableBorder.all(color: Colors.grey.shade500, width: 0.8),
-          columnWidths: isMobile 
-            ? const {
-                0: FlexColumnWidth(1.2),
-                1: FlexColumnWidth(2.5),
-                2: FlexColumnWidth(5),
-                3: FlexColumnWidth(1.5),
-                4: FlexColumnWidth(1.5),
-                5: FlexColumnWidth(2),
-                6: FlexColumnWidth(1.5),
-                7: FlexColumnWidth(1.8),
-              }
-            : const {
-                0: FixedColumnWidth(36),
-                1: FixedColumnWidth(90),
-                2: FlexColumnWidth(3),
-                3: FixedColumnWidth(60),
-                4: FixedColumnWidth(60),
-                5: FixedColumnWidth(60),
-                6: FixedColumnWidth(60),
-                7: FixedColumnWidth(60),
-              },
+          columnWidths: isMobile
+              ? const {
+                  0: FlexColumnWidth(1.2),
+                  1: FlexColumnWidth(2.5),
+                  2: FlexColumnWidth(5),
+                  3: FlexColumnWidth(1.5),
+                  4: FlexColumnWidth(1.5),
+                  5: FlexColumnWidth(2),
+                  6: FlexColumnWidth(1.5),
+                  7: FlexColumnWidth(1.8),
+                }
+              : const {
+                  0: FixedColumnWidth(36),
+                  1: FixedColumnWidth(90),
+                  2: FlexColumnWidth(3),
+                  3: FixedColumnWidth(60),
+                  4: FixedColumnWidth(60),
+                  5: FixedColumnWidth(60),
+                  6: FixedColumnWidth(60),
+                  7: FixedColumnWidth(60),
+                },
           children: [
             TableRow(
               decoration: headerDecoration,
-              children: isMobile 
-                ? [
-                    _cell('S.NO', headerText, rowPad),
-                    _cell('CODE', headerText, rowPad),
-                    _cell('SUBJECT', headerText, rowPad),
-                    _cell('INT', headerText, rowPad, align: TextAlign.center),
-                    _cell('EXT', headerText, rowPad, align: TextAlign.center),
-                    _cell('TOT', headerText, rowPad, align: TextAlign.center),
-                    _cell('GR', headerText, rowPad, align: TextAlign.center),
-                    _cell('STATUS', headerText, rowPad, align: TextAlign.center),
-                  ]
-                : [
-                    _cell('S.NO', headerText, rowPad),
-                    _cell('COURSE\nCODE', headerText, rowPad),
-                    _cell('COURSE TITLE', headerText, rowPad),
-                    _cell('INTERNAL', headerText, rowPad, align: TextAlign.center),
-                    _cell('EXTERNAL', headerText, rowPad, align: TextAlign.center),
-                    _cell('TOTAL', headerText, rowPad, align: TextAlign.center),
-                    _cell('GRADE', headerText, rowPad, align: TextAlign.center),
-                    _cell('STATUS', headerText, rowPad, align: TextAlign.center),
-                  ],
+              children: isMobile
+                  ? [
+                      _cell('S.NO', headerText, rowPad),
+                      _cell('CODE', headerText, rowPad),
+                      _cell('SUBJECT', headerText, rowPad),
+                      _cell('INT', headerText, rowPad, align: TextAlign.center),
+                      _cell('EXT', headerText, rowPad, align: TextAlign.center),
+                      _cell('TOT', headerText, rowPad, align: TextAlign.center),
+                      _cell('GR', headerText, rowPad, align: TextAlign.center),
+                      _cell('STATUS', headerText, rowPad,
+                          align: TextAlign.center),
+                    ]
+                  : [
+                      _cell('S.NO', headerText, rowPad),
+                      _cell('COURSE\nCODE', headerText, rowPad),
+                      _cell('COURSE TITLE', headerText, rowPad),
+                      _cell('INTERNAL', headerText, rowPad,
+                          align: TextAlign.center),
+                      _cell('EXTERNAL', headerText, rowPad,
+                          align: TextAlign.center),
+                      _cell('TOTAL', headerText, rowPad,
+                          align: TextAlign.center),
+                      _cell('GRADE', headerText, rowPad,
+                          align: TextAlign.center),
+                      _cell('STATUS', headerText, rowPad,
+                          align: TextAlign.center),
+                    ],
             ),
             ...widget.subjects.asMap().entries.map((e) {
               final idx = e.key;
               final s = e.value;
               final isEven = idx % 2 == 0;
               final passed = s['result'] == 'PASS';
-              
+
               return TableRow(
                 decoration: BoxDecoration(
                   color: isEven ? Colors.white : Colors.grey.shade50,
                 ),
                 children: [
-                  _cell('${idx + 1}', cellText, rowPad, align: TextAlign.center),
+                  _cell('${idx + 1}', cellText, rowPad,
+                      align: TextAlign.center),
                   _cell(s['subjectCode'] ?? '', cellText, rowPad),
                   _cell(s['subjectName'] ?? '', cellText, rowPad),
-                  _cell('${s['internalMarks'] ?? '-'}', cellText, rowPad, align: TextAlign.center),
-                  _cell('${s['externalMarks'] ?? '-'}', cellText, rowPad, align: TextAlign.center),
+                  _cell('${s['internalMarks'] ?? '-'}', cellText, rowPad,
+                      align: TextAlign.center),
+                  _cell('${s['externalMarks'] ?? '-'}', cellText, rowPad,
+                      align: TextAlign.center),
                   _cell(
                     '${s['totalMarks'] ?? '-'}',
                     cellText.copyWith(fontWeight: FontWeight.bold),
@@ -483,7 +503,8 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
                   _cell(
                     passed ? 'PASS' : 'FAIL',
                     cellText.copyWith(
-                      color: passed ? Colors.green.shade700 : Colors.red.shade700,
+                      color:
+                          passed ? Colors.green.shade700 : Colors.red.shade700,
                       fontWeight: FontWeight.bold,
                     ),
                     rowPad,
@@ -518,7 +539,7 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 600;
-        
+
         return Table(
           border: TableBorder.all(color: Colors.grey.shade500, width: 0.8),
           columnWidths: const {
@@ -532,20 +553,31 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
             TableRow(
               decoration: const BoxDecoration(color: Color(0xFFF5F5F5)),
               children: isMobile
-                ? [
-                    _summaryCell('REG\n$total', Colors.black, isMobile),
-                    _summaryCell('APP\n$total', Colors.black, isMobile),
-                    _summaryCell('PASS\n$_passed', Colors.green.shade700, isMobile),
-                    _summaryCell('TOT CR\n$_totalCredits', Colors.black, isMobile),
-                    _summaryCell('CR PTS\n${_totalCreditPoints.toStringAsFixed(1)}', Colors.black, isMobile),
-                  ]
-                : [
-                    _summaryCell('SUBJECTS\nREGISTERED\n$total', Colors.black, isMobile),
-                    _summaryCell('APPEARED\n$total', Colors.black, isMobile),
-                    _summaryCell('PASSED\n$_passed', Colors.green.shade700, isMobile),
-                    _summaryCell('TOTAL\nCREDITS\n$_totalCredits', Colors.black, isMobile),
-                    _summaryCell('TOTAL CREDIT\nPOINTS\n${_totalCreditPoints.toStringAsFixed(3)}', Colors.black, isMobile),
-                  ],
+                  ? [
+                      _summaryCell('REG\n$total', Colors.black, isMobile),
+                      _summaryCell('APP\n$total', Colors.black, isMobile),
+                      _summaryCell(
+                          'PASS\n$_passed', Colors.green.shade700, isMobile),
+                      _summaryCell(
+                          'TOT CR\n$_totalCredits', Colors.black, isMobile),
+                      _summaryCell(
+                          'CR PTS\n${_totalCreditPoints.toStringAsFixed(1)}',
+                          Colors.black,
+                          isMobile),
+                    ]
+                  : [
+                      _summaryCell('SUBJECTS\nREGISTERED\n$total', Colors.black,
+                          isMobile),
+                      _summaryCell('APPEARED\n$total', Colors.black, isMobile),
+                      _summaryCell(
+                          'PASSED\n$_passed', Colors.green.shade700, isMobile),
+                      _summaryCell('TOTAL\nCREDITS\n$_totalCredits',
+                          Colors.black, isMobile),
+                      _summaryCell(
+                          'TOTAL CREDIT\nPOINTS\n${_totalCreditPoints.toStringAsFixed(3)}',
+                          Colors.black,
+                          isMobile),
+                    ],
             ),
           ],
         );
@@ -556,14 +588,14 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
   Widget _summaryCell(String text, Color color, bool isMobile) {
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 4 : 8, 
+        horizontal: isMobile ? 4 : 8,
         vertical: isMobile ? 6 : 8,
       ),
       child: Text(
         text,
         style: TextStyle(
-          fontSize: isMobile ? 9 : 11, 
-          fontWeight: FontWeight.bold, 
+          fontSize: isMobile ? 9 : 11,
+          fontWeight: FontWeight.bold,
           color: color,
         ),
         textAlign: TextAlign.center,

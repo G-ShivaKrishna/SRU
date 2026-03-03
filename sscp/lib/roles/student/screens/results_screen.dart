@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../widgets/app_header.dart';
 import '../../../utils/html_preview_screen.dart';
-import 'supply_exam_memo_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Student Results Screen – Results / Backlogs / Supply Exam tabs
@@ -685,13 +684,19 @@ class _SupplyWindowWidget extends StatefulWidget {
 class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
   List<Map<String, dynamic>> _backlogs = [];
   Map<String, dynamic>? _existing;
+  bool _feePaid = false;
   bool _loading = true;
   final Set<int> _selected = {};
   bool _saving = false;
+  late Stream<DocumentSnapshot<Map<String, dynamic>>> _paymentStream;
 
   @override
   void initState() {
     super.initState();
+    _paymentStream = FirebaseFirestore.instance
+        .collection('feePayments')
+        .doc('supply_${widget.windowDoc.id}_${widget.rollNo}')
+        .snapshots();
     _load();
   }
 
@@ -726,8 +731,52 @@ class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
     });
   }
 
+  Future<bool> _ensurePaymentConfirmed() async {
+    final paymentDocId = 'supply_${widget.windowDoc.id}_${widget.rollNo}';
+    final doc = await FirebaseFirestore.instance
+        .collection('feePayments')
+        .doc(paymentDocId)
+        .get();
+    final paid =
+        (doc.data()?['status']?.toString().toLowerCase() ?? '') == 'paid';
+    return paid;
+  }
+
+  Future<void> _refreshPaymentStatus() async {
+    setState(() => _loading = true);
+    await Future.delayed(const Duration(milliseconds: 500));
+    setState(() => _loading = false);
+  }
+
+  Future<void> _showFeePendingDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Fee Payment Required'),
+        content: const Text(
+          'Please pay the required fee at the office. Registration will be enabled only after Fee Payment staff marks your payment as PAID.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _register() async {
     if (_selected.isEmpty) return;
+
+    final paid = await _ensurePaymentConfirmed();
+    if (!paid) {
+      if (mounted) {
+        await _showFeePendingDialog();
+      }
+      return;
+    }
+
     final winData = widget.windowDoc.data() as Map<String, dynamic>;
     final fee = (winData['fee'] as num?)?.toInt() ?? 0;
     final subjects = _selected
@@ -752,9 +801,6 @@ class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
                 (s) => Text('• ${s['subjectCode']} — ${s['subjectName']}')),
             const SizedBox(height: 8),
             Text('Total fee: ₹$total'),
-            const SizedBox(height: 8),
-            const Text('Payment will be marked as pending until cleared.',
-                style: TextStyle(fontSize: 12)),
           ],
         ),
         actions: [
@@ -780,8 +826,8 @@ class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
         'subjects': subjects,
         'totalFee': total,
         'feePerSubject': fee,
-        'paymentStatus': 'pending',
-        'paymentId': null,
+        'paymentStatus': 'paid',
+        'paymentId': 'supply_${widget.windowDoc.id}_${widget.rollNo}',
         'status': 'registered',
         'registeredAt': FieldValue.serverTimestamp(),
       });
@@ -801,13 +847,28 @@ class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
     final fee = (winData['fee'] as num?)?.toInt() ?? 0;
     final end = (winData['endDate'] as Timestamp?)?.toDate();
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      elevation: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: _paymentStream,
+      builder: (ctx, paymentSnap) {
+        if (paymentSnap.hasData) {
+          final paid =
+              (paymentSnap.data?.data()?['status']?.toString().toLowerCase() ?? '') ==
+                  'paid';
+          if (mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_feePaid != paid) {
+                setState(() => _feePaid = paid);
+              }
+            });
+          }
+        }
+        return Card(
+          margin: const EdgeInsets.only(bottom: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
           // Window header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -905,6 +966,55 @@ class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
                 ),
               ),
             )
+          else if (!_feePaid)
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded,
+                            color: Colors.orange, size: 18),
+                        SizedBox(width: 6),
+                        Text('Fee not confirmed',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Pay fee at the office. This page will work only after Fee Payment staff updates your payment to PAID.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _showFeePendingDialog,
+                            icon: const Icon(Icons.info_outline),
+                            label: const Text('Show Payment Info'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: _refreshPaymentStatus,
+                          icon: const Icon(Icons.refresh, size: 16),
+                          label: const Text('Check'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
           else
             // Show selection
             Column(
@@ -956,8 +1066,10 @@ class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
                 ),
               ],
             ),
-        ],
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1146,8 +1258,6 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
             final windowSubjects = byWindow[windowKeys[wi]]!;
             final examSession =
                 windowSubjects.first['examSession'] as String? ?? '—';
-            final studentName =
-                windowSubjects.first['studentName'] as String? ?? '';
             final allPass = windowSubjects.every((s) => s['result'] == 'PASS');
 
             return Card(
@@ -1424,15 +1534,11 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SupplyExamMemoScreen(
-                                rollNo: widget.rollNo,
-                                examSession: examSession,
-                                subjects: windowSubjects,
-                              ),
-                            ),
+                          _openMemo(
+                            widget.rollNo,
+                            (windowSubjects.first['studentName'] as String?) ?? '',
+                            examSession,
+                            List<Map<String, dynamic>>.from(windowSubjects),
                           );
                         },
                         icon: const Icon(Icons.description_outlined),
@@ -1468,21 +1574,6 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
         overflow: TextOverflow.ellipsis,
         maxLines: 3,
       ),
-    );
-  }
-
-  Widget _miniChip(String label, dynamic value, {bool highlight = false}) {
-    return Column(
-      children: [
-        Text(
-          '${value ?? '—'}',
-          style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: highlight ? const Color(0xFF1e3a5f) : Colors.black87),
-        ),
-        Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
-      ],
     );
   }
 }
