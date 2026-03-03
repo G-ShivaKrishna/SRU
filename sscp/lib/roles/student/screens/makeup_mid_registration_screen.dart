@@ -3,6 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
+/// Normalises semester values so numeric ("1") and Roman ("I") match.
+String _normSem(String? s) {
+  if (s == null || s.isEmpty) return '';
+  const roman = {'I': '1', 'II': '2', 'III': '3', 'IV': '4', 'V': '5', 'VI': '6', 'VII': '7', 'VIII': '8'};
+  final up = s.trim().toUpperCase();
+  return roman[up] ?? s.trim();
+}
+
 /// Student: Makeup Mid Exam Registration & Results
 /// - Shows active makeup mid windows
 /// - Student registers for subjects from their enrolled courses
@@ -130,7 +138,7 @@ class _RegistrationTab extends StatelessWidget {
             if (ty.toString() != studentYear) return false;
           }
           if (ts != null && studentSemester != null) {
-            if (ts != studentSemester) return false;
+            if (_normSem(ts) != _normSem(studentSemester)) return false;
           }
           return true;
         }).toList();
@@ -223,7 +231,7 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
       final docSem = d['semester']?.toString();
       // Only show subjects matching the window's target year & semester
       if (targetYear != null && docYear != targetYear) continue;
-      if (targetSemester != null && docSem != targetSemester) continue;
+      if (targetSemester != null && _normSem(docSem) != _normSem(targetSemester)) continue;
       subjects.add({
         'subjectCode': d['subjectCode']?.toString() ?? '',
         'subjectName': d['subjectName']?.toString() ?? '',
@@ -501,7 +509,6 @@ class _ResultsTabState extends State<_ResultsTab> {
     _marksStream = FirebaseFirestore.instance
         .collection('makeupMidMarks')
         .where('rollNo', isEqualTo: widget.rollNo)
-        .where('resultsReleased', isEqualTo: true)
         .snapshots();
   }
 
@@ -520,7 +527,7 @@ class _ResultsTabState extends State<_ResultsTab> {
               padding: EdgeInsets.all(24),
               child: Text(
                 'No makeup mid results available yet.\n'
-                'Results will appear here once released by the admin.',
+                'Results will appear here once your faculty has entered marks.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
@@ -616,7 +623,7 @@ class _ResultsTabState extends State<_ResultsTab> {
                 const Spacer(),
                 const Icon(Icons.check_circle, size: 14, color: Colors.green),
                 const SizedBox(width: 4),
-                const Text('Result Released',
+                const Text('CIE Updated',
                     style: TextStyle(fontSize: 11, color: Colors.green)),
               ],
             ),

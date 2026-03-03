@@ -549,6 +549,63 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
       final facultyId = user.email!.split('@')[0].toUpperCase();
       final now = Timestamp.now();
 
+      // ── Check if components changed vs existing definition ──────────────
+      final existing = _definitions[a.docId];
+      bool componentsChanged = false;
+      if (existing != null) {
+        final oldKeys =
+            existing.components.map((c) => c.name).toSet();
+        final newKeys = def.components.map((c) => c.name).toSet();
+        componentsChanged = oldKeys.length != newKeys.length ||
+            !oldKeys.every((k) => newKeys.contains(k));
+      }
+
+      // ── If components changed, confirm and wipe old studentMarks ────────
+      if (componentsChanged) {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title:
+                const Text('Format Changed — Clear Existing Marks?'),
+            content: const Text(
+              'The component structure has changed.\n\n'
+              'All previously entered marks for this subject will be deleted '
+              'so faculty can re-enter them with the new format.\n\n'
+              'This cannot be undone.',
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel')),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Clear & Save'),
+              ),
+            ],
+          ),
+        );
+        if (confirm != true) return;
+
+        // Delete all studentMarks for this assignment in batches
+        QuerySnapshot toDelete;
+        do {
+          toDelete = await _fs
+              .collection('studentMarks')
+              .where('assignmentId', isEqualTo: a.docId)
+              .limit(400)
+              .get();
+          if (toDelete.docs.isEmpty) break;
+          final batch = _fs.batch();
+          for (final doc in toDelete.docs) {
+            batch.delete(doc.reference);
+          }
+          await batch.commit();
+        } while (toDelete.docs.length == 400);
+      }
+
       await _fs.collection('marksDefinition').doc(a.docId).set({
         'facultyId': facultyId,
         'assignmentId': a.docId,
@@ -560,9 +617,9 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
         'batches': a.batches,
         'totalMarks': def.totalMarks,
         'components': def.components.map((c) => c.toMap()).toList(),
-        'definedAt': _definitions.containsKey(a.docId)
-            ? (_definitions[a.docId]!.updatedAt != null
-                ? Timestamp.fromDate(_definitions[a.docId]!.updatedAt!)
+        'definedAt': existing != null
+            ? (existing.updatedAt != null
+                ? Timestamp.fromDate(existing.updatedAt!)
                 : now)
             : now,
         'updatedAt': now,
@@ -579,9 +636,12 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
           );
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Marks format saved successfully'),
-              backgroundColor: Colors.green),
+          SnackBar(
+              content: Text(componentsChanged
+                  ? 'Format updated & old marks cleared. Please re-enter marks.'
+                  : 'Marks format saved successfully'),
+              backgroundColor:
+                  componentsChanged ? Colors.orange[700] : Colors.green),
         );
       }
     } catch (e) {

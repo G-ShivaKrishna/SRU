@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -72,70 +73,83 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
   bool _loading = true;
   String? _error;
   List<_CieEntry> _entries = [];
+  StreamSubscription<QuerySnapshot>? _sub;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _subscribe();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final user = _auth.currentUser;
-      if (user == null) throw Exception('Not logged in');
-      final studentId = user.email!.split('@')[0].toUpperCase();
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 
-      final snap = await _fs
-          .collection('studentMarks')
-          .where('studentId', isEqualTo: studentId)
-          .get();
-
-      final entries = snap.docs.map((doc) {
-        final d = doc.data();
-        final rawMarks = d['componentMarks'] as Map<String, dynamic>? ?? {};
-        final marks = rawMarks.map((k, v) =>
-            MapEntry(k, (v is int) ? v : int.tryParse(v.toString()) ?? 0));
-        return _CieEntry(
-          docId: doc.id,
-          subjectCode: (d['subjectCode'] ?? '').toString(),
-          subjectName: (d['subjectName'] ?? '').toString(),
-          yearNum: (d['year'] is int)
-              ? d['year'] as int
-              : int.tryParse(d['year'].toString()) ?? 0,
-          semester: (d['semester'] ?? '').toString(),
-          academicYear: (d['academicYear'] ?? '').toString(),
-          componentMarks: marks,
-          maxMarks: (d['maxMarks'] is int)
-              ? d['maxMarks'] as int
-              : int.tryParse(d['maxMarks'].toString()) ?? 0,
-        );
-      }).toList();
-
-      // Sort: latest year+semester first, then by subjectCode
-      entries.sort((a, b) {
-        final yCmp = b.yearNum.compareTo(a.yearNum);
-        if (yCmp != 0) return yCmp;
-        final sCmp = b.semester.compareTo(a.semester);
-        if (sCmp != 0) return sCmp;
-        return a.subjectCode.compareTo(b.subjectCode);
-      });
-
-      if (!mounted) return;
+  void _subscribe() {
+    final user = _auth.currentUser;
+    if (user == null) {
       setState(() {
-        _entries = entries;
+        _error = 'Not logged in';
         _loading = false;
       });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      return;
     }
+    final studentId = user.email!.split('@')[0].toUpperCase();
+
+    _sub?.cancel();
+    _sub = _fs
+        .collection('studentMarks')
+        .where('studentId', isEqualTo: studentId)
+        .snapshots()
+        .listen(
+      (snap) {
+        final entries = snap.docs.map((doc) {
+          final d = doc.data();
+          final rawMarks = d['componentMarks'] as Map<String, dynamic>? ?? {};
+          final marks = rawMarks.map((k, v) =>
+              MapEntry(k, (v is int) ? v : int.tryParse(v.toString()) ?? 0));
+          return _CieEntry(
+            docId: doc.id,
+            subjectCode: (d['subjectCode'] ?? '').toString(),
+            subjectName: (d['subjectName'] ?? '').toString(),
+            yearNum: (d['year'] is int)
+                ? d['year'] as int
+                : int.tryParse(d['year'].toString()) ?? 0,
+            semester: (d['semester'] ?? '').toString(),
+            academicYear: (d['academicYear'] ?? '').toString(),
+            componentMarks: marks,
+            maxMarks: (d['maxMarks'] is int)
+                ? d['maxMarks'] as int
+                : int.tryParse(d['maxMarks'].toString()) ?? 0,
+          );
+        }).toList();
+
+        // Sort: latest year+semester first, then by subjectCode
+        entries.sort((a, b) {
+          final yCmp = b.yearNum.compareTo(a.yearNum);
+          if (yCmp != 0) return yCmp;
+          final sCmp = b.semester.compareTo(a.semester);
+          if (sCmp != 0) return sCmp;
+          return a.subjectCode.compareTo(b.subjectCode);
+        });
+
+        if (!mounted) return;
+        setState(() {
+          _entries = entries;
+          _loading = false;
+          _error = null;
+        });
+      },
+      onError: (e) {
+        if (!mounted) return;
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      },
+    );
   }
 
   // ─── Build ─────────────────────────────────────────────────────────────────
@@ -171,7 +185,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: _load, child: const Text('Retry')),
+            ElevatedButton(onPressed: _subscribe, child: const Text('Retry')),
           ],
         ),
       );

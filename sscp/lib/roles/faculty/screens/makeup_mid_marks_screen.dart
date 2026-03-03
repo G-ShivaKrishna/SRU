@@ -283,6 +283,7 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
 
     final batch = widget.firestore.batch();
     int saved = 0;
+    final validEntries = <Map<String, dynamic>>[];
 
     for (final student in _students) {
       final txt = _marksCtrl[student.rollNo]?.text.trim() ?? '';
@@ -302,19 +303,67 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
           'studentName': student.name,
           'midMarks': marks,
           'maxMarks': _maxMarks,
-          'resultsReleased': false,
           'facultyId': widget.facultyId,
           'uploadedAt': FieldValue.serverTimestamp(),
         },
       );
+      validEntries.add({'rollNo': student.rollNo, 'marks': marks});
       saved++;
     }
 
     await batch.commit();
 
+    // Auto-update CIE studentMarks: replace the lowest mid component
+    // with makeup marks if makeup marks are higher
+    for (final entry in validEntries) {
+      final rollNo = entry['rollNo'] as String;
+      final makeupMark = entry['marks'] as double;
+      try {
+        final smSnap = await widget.firestore
+            .collection('studentMarks')
+            .where('studentId', isEqualTo: rollNo)
+            .where('subjectCode', isEqualTo: _subjectCode)
+            .get();
+        for (final smDoc in smSnap.docs) {
+          final smData = smDoc.data();
+          final compMarks =
+              Map<String, dynamic>.from(smData['componentMarks'] ?? {});
+          // Find all keys that contain 'mid' (case-insensitive)
+          final midKeys = compMarks.keys
+              .where((k) => k.toLowerCase().contains('mid'))
+              .toList();
+          if (midKeys.isEmpty) continue;
+          // Find the key with the lowest current value
+          String? lowestKey;
+          double lowestVal = double.infinity;
+          for (final key in midKeys) {
+            final val = (compMarks[key] as num?)?.toDouble() ?? 0;
+            if (val < lowestVal) {
+              lowestVal = val;
+              lowestKey = key;
+            }
+          }
+          if (lowestKey != null && makeupMark > lowestVal) {
+            compMarks[lowestKey] = makeupMark.toInt();
+            final newTotal = compMarks.values
+                .fold<num>(0, (s, v) => s + ((v is num) ? v : 0))
+                .toInt();
+            await widget.firestore
+                .collection('studentMarks')
+                .doc(smDoc.id)
+                .update({
+              'componentMarks': compMarks,
+              'totalMarks': newTotal,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
+      } catch (_) {}
+    }
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Saved marks for $saved student(s).'),
+          content: Text('Saved marks for $saved student(s). CIE marks updated where applicable.'),
           backgroundColor: Colors.green));
       _loadStudents();
     }

@@ -990,7 +990,6 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
   late final Stream<QuerySnapshot> _windowsStream;
   String? _selectedWindowId;
   final _searchCtrl = TextEditingController();
-  bool _releasing = false;
 
   @override
   void initState() {
@@ -1003,74 +1002,6 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _toggleRelease(String windowId, bool currentlyReleased) async {
-    final newValue = !currentlyReleased;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(newValue ? 'Release Results?' : 'Withdraw Release?'),
-        content: Text(newValue
-            ? 'Students will immediately see their makeup mid marks.'
-            : 'Results will be hidden from students until released again.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    newValue ? Colors.green[700] : Colors.orange[700]),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(newValue ? 'Release' : 'Withdraw',
-                style: const TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true || !mounted) return;
-    setState(() => _releasing = true);
-    try {
-      await widget.firestore
-          .collection('makeupMidWindows')
-          .doc(windowId)
-          .update({
-        'resultsReleased': newValue,
-        if (newValue)
-          'resultsReleasedAt': FieldValue.serverTimestamp()
-        else
-          'resultsReleasedAt': FieldValue.delete(),
-      });
-      // Batch-update all marks docs
-      final markDocs = await widget.firestore
-          .collection('makeupMidMarks')
-          .where('windowId', isEqualTo: windowId)
-          .get();
-      const batchSize = 400;
-      for (var start = 0; start < markDocs.docs.length; start += batchSize) {
-        final batch = widget.firestore.batch();
-        final end = (start + batchSize).clamp(0, markDocs.docs.length);
-        for (final doc in markDocs.docs.sublist(start, end)) {
-          batch.update(doc.reference, {'resultsReleased': newValue});
-        }
-        await batch.commit();
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(newValue
-              ? 'Marks released — students can now view makeup mid results.'
-              : 'Results withdrawn from student view.'),
-          backgroundColor: newValue ? Colors.green[700] : Colors.orange[700],
-        ));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
-      }
-    }
-    if (mounted) setState(() => _releasing = false);
   }
 
   @override
@@ -1089,16 +1020,6 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
           );
         }
 
-        Map<String, dynamic>? selectedWindowData;
-        if (_selectedWindowId != null) {
-          final found = windows.where((d) => d.id == _selectedWindowId);
-          if (found.isNotEmpty) {
-            selectedWindowData = found.first.data() as Map<String, dynamic>;
-          }
-        }
-        final isReleased =
-            selectedWindowData?['resultsReleased'] as bool? ?? false;
-
         return Column(
           children: [
             Padding(
@@ -1116,56 +1037,6 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
               ),
             ),
             if (_selectedWindowId != null) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color:
-                              isReleased ? Colors.green[50] : Colors.orange[50],
-                          border: Border.all(
-                              color: isReleased ? Colors.green : Colors.orange),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          isReleased
-                              ? 'Results RELEASED — visible to students'
-                              : 'Results HELD — not visible to students',
-                          style: TextStyle(
-                              color: isReleased
-                                  ? Colors.green[800]
-                                  : Colors.orange[800],
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: _releasing
-                          ? null
-                          : () =>
-                              _toggleRelease(_selectedWindowId!, isReleased),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isReleased ? Colors.orange[700] : Colors.green[700],
-                        foregroundColor: Colors.white,
-                      ),
-                      child: _releasing
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2))
-                          : Text(isReleased ? 'Withdraw' : 'Release'),
-                    ),
-                  ],
-                ),
-              ),
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: TextField(
@@ -1266,40 +1137,16 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
 
   List<DropdownMenuItem<String>> _buildWindowDropdown(
       List<QueryDocumentSnapshot> windows) {
-    final items = <DropdownMenuItem<String>>[];
-    for (final doc in windows) {
+    return windows.map((doc) {
       final d = doc.data() as Map<String, dynamic>;
-      final released = d['resultsReleased'] as bool? ?? false;
-      items.add(DropdownMenuItem(
+      return DropdownMenuItem(
         value: doc.id,
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                '${d['title'] ?? doc.id}  (${d['examSession'] ?? ''})',
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: released ? Colors.green[100] : Colors.orange[100],
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                released ? 'RELEASED' : 'HELD',
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: released ? Colors.green[800] : Colors.orange[800]),
-              ),
-            ),
-          ],
+        child: Text(
+          '${d['title'] ?? doc.id}  (${d['examSession'] ?? ''})',
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 13),
         ),
-      ));
-    }
-    return items;
+      );
+    }).toList();
   }
 }

@@ -96,6 +96,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
   List<_StudentRow> _studentRows = [];
   int _maxTotalMarks = 0;
   bool _marksLoaded = false;
+  bool _hasStaleData = false; // true when existing marks have outdated component keys
 
   // save-all state
   bool _savingAll = false;
@@ -258,12 +259,20 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           .get();
 
       final existingMarks = <String, Map<String, dynamic>>{};
+      bool staleDetected = false;
+      final currentKeys = compList.map((c) => c.name).toSet();
       for (final doc in marksSnap.docs) {
         final d = doc.data();
         if ((d['batch'] ?? '') == batch) {
           final sid = (d['studentId'] ?? '').toString();
-          existingMarks[sid] =
+          final rawComp =
               Map<String, dynamic>.from(d['componentMarks'] ?? {});
+          existingMarks[sid] = rawComp;
+          // Detect stale: saved has keys not in current format
+          if (!staleDetected &&
+              rawComp.keys.any((k) => !currentKeys.contains(k))) {
+            staleDetected = true;
+          }
         }
       }
 
@@ -299,6 +308,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             : int.tryParse(defData['totalMarks'].toString()) ?? 0;
         _loadingMarks = false;
         _marksLoaded = true;
+        _hasStaleData = staleDetected;
       });
     } catch (e) {
       if (!mounted) return;
@@ -348,7 +358,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         'totalMarks': total,
         'maxMarks': _maxTotalMarks,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      });
 
       if (!mounted) return;
       setState(() {
@@ -437,7 +447,6 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             'maxMarks': _maxTotalMarks,
             'updatedAt': now,
           },
-          SetOptions(merge: true),
         );
       }
       await wb.commit();
@@ -447,6 +456,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           row.isSaved = true;
         }
         _savingAll = false;
+        _hasStaleData = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -530,6 +540,34 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
                 _buildErrorBox(_marksError!),
               ] else if (_marksLoaded) ...[
                 const SizedBox(height: 20),
+                if (_hasStaleData)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border:
+                          Border.all(color: Colors.orange.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded,
+                            color: Colors.orange.shade700, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Some marks were saved with an old format and have stale data. '
+                            'Click "Save All Marks" below to update all students to the current format.',
+                            style: TextStyle(
+                                color: Colors.orange.shade800,
+                                fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 _buildMarksTable(),
               ],
             ],
