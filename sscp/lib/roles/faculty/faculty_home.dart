@@ -844,7 +844,6 @@ class _FacultyHomeState extends State<FacultyHome> {
               ),
             ),
           ),
-
         ];
       },
       child: Padding(
@@ -892,7 +891,6 @@ class _FacultyHomeState extends State<FacultyHome> {
       'Makeup Mid Marks': 'makeup_marks',
       'Consolidated Marks Report(New)': 'consolidated_marks',
       'Supply Exam Marks': 'supply_marks',
-
 
       // Academics submenu
       'Regulations': 'regulations',

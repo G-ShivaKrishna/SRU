@@ -170,8 +170,7 @@ class _MakeupWindowWidget extends StatefulWidget {
   final QueryDocumentSnapshot windowDoc;
   final String rollNo;
 
-  const _MakeupWindowWidget(
-      {required this.windowDoc, required this.rollNo});
+  const _MakeupWindowWidget({required this.windowDoc, required this.rollNo});
 
   @override
   State<_MakeupWindowWidget> createState() => _MakeupWindowWidgetState();
@@ -238,8 +237,9 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
     final regDocs = regSnap.docs;
     setState(() {
       _enrolledSubjects = subjects;
-      _existingRegistration =
-          regDocs.isNotEmpty ? regDocs.first.data() as Map<String, dynamic>? : null;
+      _existingRegistration = regDocs.isNotEmpty
+          ? regDocs.first.data() as Map<String, dynamic>?
+          : null;
       _loading = false;
     });
   }
@@ -375,7 +375,8 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
               style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           if (end != null)
-            Text('Registration closes: ${DateFormat('dd MMM yyyy').format(end)}',
+            Text(
+                'Registration closes: ${DateFormat('dd MMM yyyy').format(end)}',
                 style: const TextStyle(color: Colors.yellow, fontSize: 12)),
           Text('Max marks: $maxMarks',
               style: const TextStyle(color: Colors.white70, fontSize: 12)),
@@ -402,8 +403,8 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Already Registered',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.blue)),
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
             const SizedBox(height: 6),
             ..._buildRegisteredSubjects(subjects),
           ],
@@ -542,7 +543,8 @@ class _ResultsTabState extends State<_ResultsTab> {
   Widget _buildResultCard(Map<String, dynamic> data) {
     final midMarks = (data['midMarks'] as num?)?.toDouble() ?? 0;
     final maxMarks = (data['maxMarks'] as num?)?.toInt() ?? 30;
-    final pct = maxMarks > 0 ? (midMarks / maxMarks * 100).toStringAsFixed(1) : '—';
+    final pct =
+        maxMarks > 0 ? (midMarks / maxMarks * 100).toStringAsFixed(1) : '—';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -555,8 +557,7 @@ class _ResultsTabState extends State<_ResultsTab> {
               color: Color(0xFF1e3a5f),
               borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
             ),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
                 Expanded(
@@ -577,8 +578,8 @@ class _ResultsTabState extends State<_ResultsTab> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
@@ -595,8 +596,8 @@ class _ResultsTabState extends State<_ResultsTab> {
                       ),
                       Text(
                         '$pct%',
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.grey),
+                        style:
+                            const TextStyle(fontSize: 11, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -605,8 +606,7 @@ class _ResultsTabState extends State<_ResultsTab> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
                 const Icon(Icons.person, size: 14, color: Colors.grey),
@@ -614,12 +614,10 @@ class _ResultsTabState extends State<_ResultsTab> {
                 Text('Faculty: ${data['facultyId'] ?? '—'}',
                     style: const TextStyle(fontSize: 12)),
                 const Spacer(),
-                const Icon(Icons.check_circle,
-                    size: 14, color: Colors.green),
+                const Icon(Icons.check_circle, size: 14, color: Colors.green),
                 const SizedBox(width: 4),
                 const Text('Result Released',
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.green)),
+                    style: TextStyle(fontSize: 11, color: Colors.green)),
               ],
             ),
           ),

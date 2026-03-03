@@ -122,8 +122,7 @@ class _MakeupWindowsTab extends StatelessWidget {
                   itemBuilder: (_, i) => _MakeupWindowCard(
                     firestore: firestore,
                     doc: docs[i],
-                    onEdit: () =>
-                        _showCreateDialog(context, docs[i]),
+                    onEdit: () => _showCreateDialog(context, docs[i]),
                     onAssignFaculty: () =>
                         _showFacultyAssignDialog(context, docs[i]),
                   ),
@@ -139,8 +138,7 @@ class _MakeupWindowsTab extends StatelessWidget {
       BuildContext context, QueryDocumentSnapshot? existing) async {
     final data = existing?.data() as Map<String, dynamic>?;
     final titleCtrl = TextEditingController(text: data?['title'] ?? '');
-    final sessionCtrl =
-        TextEditingController(text: data?['examSession'] ?? '');
+    final sessionCtrl = TextEditingController(text: data?['examSession'] ?? '');
     final maxMarksCtrl = TextEditingController(
         text: (data?['maxMarks'] as num?)?.toString() ?? '30');
     DateTime? startDate = (data?['startDate'] as Timestamp?)?.toDate();
@@ -282,8 +280,7 @@ class _MakeupWindowsTab extends StatelessWidget {
                           'Please fill all fields including year and semester.')));
                   return;
                 }
-                final maxMarks =
-                    int.tryParse(maxMarksCtrl.text.trim()) ?? 30;
+                final maxMarks = int.tryParse(maxMarksCtrl.text.trim()) ?? 30;
                 final payload = {
                   'title': title,
                   'examSession': session,
@@ -348,7 +345,8 @@ class _MakeupWindowsTab extends StatelessWidget {
       if (code.isNotEmpty) deduped[code] = a;
     }
     allAssignments = deduped.values.toList()
-      ..sort((a, b) => (a['subjectCode'] ?? '').toString()
+      ..sort((a, b) => (a['subjectCode'] ?? '')
+          .toString()
           .compareTo((b['subjectCode'] ?? '').toString()));
     filteredAssignments = List.from(allAssignments);
     listLoading = false;
@@ -388,8 +386,7 @@ class _MakeupWindowsTab extends StatelessWidget {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, setSt) => AlertDialog(
-          title: Text(
-              'Assign Faculty — ${winData['title'] ?? windowDoc.id}',
+          title: Text('Assign Faculty — ${winData['title'] ?? windowDoc.id}',
               style: const TextStyle(fontSize: 14)),
           content: SizedBox(
             width: 480,
@@ -430,8 +427,7 @@ class _MakeupWindowsTab extends StatelessWidget {
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
                       child: Text('No subjects found.',
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.grey)),
+                          style: TextStyle(fontSize: 12, color: Colors.grey)),
                     )
                   else
                     Container(
@@ -444,15 +440,11 @@ class _MakeupWindowsTab extends StatelessWidget {
                         itemCount: filteredAssignments.length,
                         itemBuilder: (_, i) {
                           final a = filteredAssignments[i];
-                          final code =
-                              (a['subjectCode'] ?? '').toString();
-                          final name =
-                              (a['subjectName'] ?? '').toString();
+                          final code = (a['subjectCode'] ?? '').toString();
+                          final name = (a['subjectName'] ?? '').toString();
                           final yr = a['year']?.toString() ?? '';
-                          final sem =
-                              (a['semester'] ?? '').toString();
-                          final fname =
-                              (a['facultyName'] ?? '').toString();
+                          final sem = (a['semester'] ?? '').toString();
+                          final fname = (a['facultyName'] ?? '').toString();
                           final isSelected = selectedCode == code;
                           return ListTile(
                             dense: true,
@@ -466,9 +458,8 @@ class _MakeupWindowsTab extends StatelessWidget {
                                 fontWeight: isSelected
                                     ? FontWeight.bold
                                     : FontWeight.normal,
-                                color: isSelected
-                                    ? const Color(0xFF1e3a5f)
-                                    : null,
+                                color:
+                                    isSelected ? const Color(0xFF1e3a5f) : null,
                               ),
                             ),
                             subtitle: Text(
@@ -480,8 +471,7 @@ class _MakeupWindowsTab extends StatelessWidget {
                                 ? const Icon(Icons.check_circle,
                                     color: Colors.green, size: 18)
                                 : null,
-                            onTap: () =>
-                                selectAssignment(a, setSt),
+                            onTap: () => selectAssignment(a, setSt),
                           );
                         },
                       ),
@@ -529,8 +519,7 @@ class _MakeupWindowsTab extends StatelessWidget {
                   const SizedBox(height: 10),
                   const Divider(),
                   const Text('Auto-filled fields (editable):',
-                      style:
-                          TextStyle(fontSize: 11, color: Colors.grey)),
+                      style: TextStyle(fontSize: 11, color: Colors.grey)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: subjectCodeCtrl,
@@ -578,8 +567,7 @@ class _MakeupWindowsTab extends StatelessWidget {
                           .doc(docId)
                           .set({
                         'windowId': windowDoc.id,
-                        'examSession':
-                            winData['examSession'],
+                        'examSession': winData['examSession'],
                         'subjectCode': code,
                         'subjectName': name,
                         'facultyId': fid,
@@ -705,8 +693,7 @@ class _MakeupWindowCard extends StatelessWidget {
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(10)),
             ),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               children: [
                 Expanded(
@@ -725,8 +712,8 @@ class _MakeupWindowCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: isActive ? Colors.green : Colors.grey[500],
                     borderRadius: BorderRadius.circular(12),
@@ -747,17 +734,14 @@ class _MakeupWindowCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _infoRow('Max Marks:',
-                    '${data['maxMarks'] ?? 30}'),
+                _infoRow('Max Marks:', '${data['maxMarks'] ?? 30}'),
                 if (data['targetYear'] != null)
                   _infoRow('Year / Sem:',
                       'Year ${data['targetYear']}  —  Sem ${data['targetSemester'] ?? '—'}'),
                 if (start != null)
-                  _infoRow('Start:',
-                      DateFormat('dd MMM yyyy').format(start)),
+                  _infoRow('Start:', DateFormat('dd MMM yyyy').format(start)),
                 if (end != null)
-                  _infoRow(
-                      'End:', DateFormat('dd MMM yyyy').format(end)),
+                  _infoRow('End:', DateFormat('dd MMM yyyy').format(end)),
                 _FacultyAssignmentsSummaryMid(
                     firestore: firestore, windowId: doc.id),
                 const SizedBox(height: 8),
@@ -771,8 +755,7 @@ class _MakeupWindowCard extends StatelessWidget {
                     ),
                     OutlinedButton.icon(
                       onPressed: () => _toggleActive(context, isActive),
-                      icon: Icon(
-                          isActive ? Icons.lock : Icons.lock_open,
+                      icon: Icon(isActive ? Icons.lock : Icons.lock_open,
                           size: 14),
                       label: Text(isActive ? 'Close' : 'Open'),
                     ),
@@ -800,8 +783,8 @@ class _MakeupWindowCard extends StatelessWidget {
       child: Row(
         children: [
           Text(label,
-              style: const TextStyle(
-                  fontSize: 12, fontWeight: FontWeight.w600)),
+              style:
+                  const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           const SizedBox(width: 6),
           Text(value, style: const TextStyle(fontSize: 12)),
         ],
@@ -918,12 +901,10 @@ class _MakeupRegistrationsTabState extends State<_MakeupRegistrationsTab> {
                 }
                 var docs = List.from(snap.data?.docs ?? []);
                 docs.sort((a, b) {
-                  final aTs =
-                      (a.data() as Map<String, dynamic>)['registeredAt']
-                          as Timestamp?;
-                  final bTs =
-                      (b.data() as Map<String, dynamic>)['registeredAt']
-                          as Timestamp?;
+                  final aTs = (a.data() as Map<String, dynamic>)['registeredAt']
+                      as Timestamp?;
+                  final bTs = (b.data() as Map<String, dynamic>)['registeredAt']
+                      as Timestamp?;
                   if (aTs == null && bTs == null) return 0;
                   if (aTs == null) return 1;
                   if (bTs == null) return -1;
@@ -952,7 +933,8 @@ class _MakeupRegistrationsTabState extends State<_MakeupRegistrationsTab> {
                     final subjects = List<Map<String, dynamic>>.from(
                         (data['subjects'] as List? ?? [])
                             .map((s) => Map<String, dynamic>.from(s as Map)));
-                    final regAt = (data['registeredAt'] as Timestamp?)?.toDate();
+                    final regAt =
+                        (data['registeredAt'] as Timestamp?)?.toDate();
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
@@ -1023,8 +1005,7 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
     super.dispose();
   }
 
-  Future<void> _toggleRelease(
-      String windowId, bool currentlyReleased) async {
+  Future<void> _toggleRelease(String windowId, bool currentlyReleased) async {
     final newValue = !currentlyReleased;
     final confirm = await showDialog<bool>(
       context: context,
@@ -1069,8 +1050,7 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
       const batchSize = 400;
       for (var start = 0; start < markDocs.docs.length; start += batchSize) {
         final batch = widget.firestore.batch();
-        final end =
-            (start + batchSize).clamp(0, markDocs.docs.length);
+        final end = (start + batchSize).clamp(0, markDocs.docs.length);
         for (final doc in markDocs.docs.sublist(start, end)) {
           batch.update(doc.reference, {'resultsReleased': newValue});
         }
@@ -1081,8 +1061,7 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
           content: Text(newValue
               ? 'Marks released — students can now view makeup mid results.'
               : 'Results withdrawn from student view.'),
-          backgroundColor:
-              newValue ? Colors.green[700] : Colors.orange[700],
+          backgroundColor: newValue ? Colors.green[700] : Colors.orange[700],
         ));
       }
     } catch (e) {
@@ -1114,8 +1093,7 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
         if (_selectedWindowId != null) {
           final found = windows.where((d) => d.id == _selectedWindowId);
           if (found.isNotEmpty) {
-            selectedWindowData =
-                found.first.data() as Map<String, dynamic>;
+            selectedWindowData = found.first.data() as Map<String, dynamic>;
           }
         }
         final isReleased =
@@ -1147,12 +1125,10 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: isReleased
-                              ? Colors.green[50]
-                              : Colors.orange[50],
+                          color:
+                              isReleased ? Colors.green[50] : Colors.orange[50],
                           border: Border.all(
-                              color:
-                                  isReleased ? Colors.green : Colors.orange),
+                              color: isReleased ? Colors.green : Colors.orange),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -1172,12 +1148,11 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
                     ElevatedButton(
                       onPressed: _releasing
                           ? null
-                          : () => _toggleRelease(
-                              _selectedWindowId!, isReleased),
+                          : () =>
+                              _toggleRelease(_selectedWindowId!, isReleased),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isReleased
-                            ? Colors.orange[700]
-                            : Colors.green[700],
+                        backgroundColor:
+                            isReleased ? Colors.orange[700] : Colors.green[700],
                         foregroundColor: Colors.white,
                       ),
                       child: _releasing
@@ -1245,8 +1220,7 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
         }
         if (docs.isEmpty) {
           return const Center(
-            child: Text(
-                'No marks entered yet for this window.',
+            child: Text('No marks entered yet for this window.',
                 style: TextStyle(color: Colors.grey)),
           );
         }
@@ -1269,8 +1243,8 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
                 ),
                 isThreeLine: true,
                 trailing: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.blue[50],
                     borderRadius: BorderRadius.circular(6),
@@ -1279,8 +1253,7 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
                   child: Text(
                     '${data['midMarks']}',
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue),
+                        fontWeight: FontWeight.bold, color: Colors.blue),
                   ),
                 ),
               ),
@@ -1310,8 +1283,7 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
             ),
             const SizedBox(width: 4),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: released ? Colors.green[100] : Colors.orange[100],
                 borderRadius: BorderRadius.circular(4),
@@ -1321,9 +1293,7 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
                 style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: released
-                        ? Colors.green[800]
-                        : Colors.orange[800]),
+                    color: released ? Colors.green[800] : Colors.orange[800]),
               ),
             ),
           ],

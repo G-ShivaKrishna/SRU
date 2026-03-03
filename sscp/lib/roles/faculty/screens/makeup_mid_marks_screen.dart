@@ -49,10 +49,8 @@ class _MakeupMidMarksScreenState extends State<MakeupMidMarksScreen> {
             .doc(data['windowId']?.toString())
             .get();
         if (winDoc.exists) {
-          windowTitle =
-              (winDoc.data()?['title'] as String?) ?? windowTitle;
-          maxMarks =
-              (winDoc.data()?['maxMarks'] as num?)?.toInt() ?? 30;
+          windowTitle = (winDoc.data()?['title'] as String?) ?? windowTitle;
+          maxMarks = (winDoc.data()?['maxMarks'] as num?)?.toInt() ?? 30;
         }
       } catch (_) {}
       list.add({
@@ -83,8 +81,7 @@ class _MakeupMidMarksScreenState extends State<MakeupMidMarksScreen> {
             TextButton.icon(
               onPressed: () => setState(() => _selectedAssignment = null),
               icon: const Icon(Icons.arrow_back, color: Colors.white),
-              label:
-                  const Text('Back', style: TextStyle(color: Colors.white)),
+              label: const Text('Back', style: TextStyle(color: Colors.white)),
             ),
         ],
       ),
@@ -122,8 +119,7 @@ class _MakeupMidMarksScreenState extends State<MakeupMidMarksScreen> {
           padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
             'Your Assigned Makeup Mid Subjects',
-            style:
-                TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
         Expanded(
@@ -139,8 +135,7 @@ class _MakeupMidMarksScreenState extends State<MakeupMidMarksScreen> {
                 child: ListTile(
                   leading: const CircleAvatar(
                     backgroundColor: Color(0xFF1e3a5f),
-                    child: Icon(Icons.edit_note,
-                        color: Colors.white, size: 18),
+                    child: Icon(Icons.edit_note, color: Colors.white, size: 18),
                   ),
                   title: Text(
                     '${a['subjectCode']} — ${a['subjectName']}',
@@ -153,8 +148,7 @@ class _MakeupMidMarksScreenState extends State<MakeupMidMarksScreen> {
                   ),
                   isThreeLine: true,
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () =>
-                      setState(() => _selectedAssignment = a),
+                  onTap: () => setState(() => _selectedAssignment = a),
                 ),
               );
             },
@@ -189,16 +183,11 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
   List<_MidStudent> _students = [];
   final Map<String, TextEditingController> _marksCtrl = {};
 
-  String get _windowId =>
-      widget.assignment['windowId']?.toString() ?? '';
-  String get _subjectCode =>
-      widget.assignment['subjectCode']?.toString() ?? '';
-  String get _subjectName =>
-      widget.assignment['subjectName']?.toString() ?? '';
-  String get _examSession =>
-      widget.assignment['examSession']?.toString() ?? '';
-  int get _maxMarks =>
-      (widget.assignment['maxMarks'] as num?)?.toInt() ?? 30;
+  String get _windowId => widget.assignment['windowId']?.toString() ?? '';
+  String get _subjectCode => widget.assignment['subjectCode']?.toString() ?? '';
+  String get _subjectName => widget.assignment['subjectName']?.toString() ?? '';
+  String get _examSession => widget.assignment['examSession']?.toString() ?? '';
+  int get _maxMarks => (widget.assignment['maxMarks'] as num?)?.toInt() ?? 30;
 
   @override
   void initState() {
@@ -261,9 +250,7 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
       ));
 
       _marksCtrl[rollNo] = TextEditingController(
-          text: savedMarks != null
-              ? savedMarks.toStringAsFixed(0)
-              : '');
+          text: savedMarks != null ? savedMarks.toStringAsFixed(0) : '');
     }
 
     if (mounted) {
@@ -359,8 +346,7 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
                       child: ListView.separated(
                         padding: const EdgeInsets.all(8),
                         itemCount: _students.length,
-                        separatorBuilder: (_, __) =>
-                            const Divider(height: 1),
+                        separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (_, i) {
                           final s = _students[i];
                           return _MarksRow(
@@ -387,8 +373,7 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
         children: [
           Text(
             '$_subjectCode — $_subjectName',
-            style:
-                const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           Text(
             'Window: ${widget.assignment['windowTitle']}  •  Session: $_examSession',
@@ -411,19 +396,16 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
           Expanded(
               flex: 2,
               child: Text('Roll No',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 12))),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
           Expanded(
               flex: 3,
               child: Text('Name',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 12))),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
           SizedBox(
               width: 80,
               child: Text('Mid Marks',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 12))),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
         ],
       ),
     );
@@ -520,12 +502,12 @@ class _MarksRowState extends State<_MarksRow> {
               ),
               decoration: InputDecoration(
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 6),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 border: const OutlineInputBorder(),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                      color: _invalid ? Colors.red : Colors.grey),
+                  borderSide:
+                      BorderSide(color: _invalid ? Colors.red : Colors.grey),
                 ),
                 hintText: '/${widget.maxMarks}',
                 hintStyle: const TextStyle(fontSize: 11),
@@ -546,7 +528,5 @@ class _MidStudent {
   final String name;
   final double? savedMarks;
   const _MidStudent(
-      {required this.rollNo,
-      required this.name,
-      required this.savedMarks});
+      {required this.rollNo, required this.name, required this.savedMarks});
 }
