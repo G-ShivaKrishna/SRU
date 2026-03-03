@@ -118,8 +118,10 @@ class _FeeUpdateTabState extends State<_FeeUpdateTab> {
 
     setState(() => _saving = true);
     try {
-      final windowDoc =
-          await _db.collection(widget.windowsCollection).doc(_selectedWindowId).get();
+      final windowDoc = await _db
+          .collection(widget.windowsCollection)
+          .doc(_selectedWindowId)
+          .get();
       if (!windowDoc.exists) {
         _showSnack('Selected window not found', isError: true);
         return;
@@ -135,7 +137,8 @@ class _FeeUpdateTabState extends State<_FeeUpdateTab> {
 
       final staffEmail = FirebaseAuth.instance.currentUser?.email ?? '';
       final staffId = staffEmail.split('@').first.toUpperCase();
-      final paymentDocId = '${widget.paymentType}_${_selectedWindowId!}_$rollNo';
+      final paymentDocId =
+          '${widget.paymentType}_${_selectedWindowId!}_$rollNo';
 
       await _db.collection('feePayments').doc(paymentDocId).set({
         'paymentType': widget.paymentType,
@@ -171,7 +174,8 @@ class _FeeUpdateTabState extends State<_FeeUpdateTab> {
     try {
       final staffEmail = FirebaseAuth.instance.currentUser?.email ?? '';
       final staffId = staffEmail.split('@').first.toUpperCase();
-      final paymentDocId = '${widget.paymentType}_${_selectedWindowId!}_$rollNo';
+      final paymentDocId =
+          '${widget.paymentType}_${_selectedWindowId!}_$rollNo';
 
       await _db.collection('feePayments').doc(paymentDocId).set({
         'paymentType': widget.paymentType,
@@ -327,10 +331,12 @@ class _FeeUpdateTabState extends State<_FeeUpdateTab> {
                   var docs = listSnap.data?.docs ?? [];
                   // Sort client-side by updatedAt descending, limit to 25
                   docs.sort((a, b) {
-                    final timeA = (a.data() as Map<String, dynamic>)['updatedAt'] as Timestamp?;
-                    final timeB = (b.data() as Map<String, dynamic>)['updatedAt'] as Timestamp?;
-                    return (timeB?.toDate() ?? DateTime(2000)).compareTo(
-                        timeA?.toDate() ?? DateTime(2000));
+                    final timeA = (a.data()
+                        as Map<String, dynamic>)['updatedAt'] as Timestamp?;
+                    final timeB = (b.data()
+                        as Map<String, dynamic>)['updatedAt'] as Timestamp?;
+                    return (timeB?.toDate() ?? DateTime(2000))
+                        .compareTo(timeA?.toDate() ?? DateTime(2000));
                   });
                   if (docs.length > 25) {
                     docs = docs.sublist(0, 25);
@@ -348,7 +354,8 @@ class _FeeUpdateTabState extends State<_FeeUpdateTab> {
                       children: docs.map((doc) {
                         final d = doc.data() as Map<String, dynamic>;
                         final paid =
-                            (d['status']?.toString().toLowerCase() ?? '') == 'paid';
+                            (d['status']?.toString().toLowerCase() ?? '') ==
+                                'paid';
                         return ListTile(
                           dense: true,
                           leading: Icon(
@@ -357,7 +364,8 @@ class _FeeUpdateTabState extends State<_FeeUpdateTab> {
                             size: 18,
                           ),
                           title: Text((d['rollNo'] ?? '').toString()),
-                          subtitle: Text('Updated by: ${d['updatedBy'] ?? '-'}'),
+                          subtitle:
+                              Text('Updated by: ${d['updatedBy'] ?? '-'}'),
                           trailing: Text(
                             paid ? 'PAID' : 'UNPAID',
                             style: TextStyle(

@@ -26,7 +26,6 @@ class _HtmlPreviewScreenState extends State<HtmlPreviewScreen> {
   }
 }
 
-
 /// Web implementation - renders the memo in a styled format
 class _WebMemoRenderer extends StatelessWidget {
   final String htmlContent;
@@ -164,7 +163,8 @@ class _MemoContent extends StatelessWidget {
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ],
-              rows: _buildDataRows(data['subjects'] as List<Map<String, String>>? ?? []),
+              rows: _buildDataRows(
+                  data['subjects'] as List<Map<String, String>>? ?? []),
             ),
           ),
           const SizedBox(height: 20),
@@ -178,7 +178,8 @@ class _MemoContent extends StatelessWidget {
               children: [
                 TableRow(
                   children: [
-                    _SummaryCell('SUBJECTS REGISTERED', data['subjectsCount'] ?? '—'),
+                    _SummaryCell(
+                        'SUBJECTS REGISTERED', data['subjectsCount'] ?? '—'),
                     _SummaryCell('APPEARED', data['appearedCount'] ?? '—'),
                     _SummaryCell('PASSED', data['passedCount'] ?? '—'),
                   ],
@@ -279,17 +280,20 @@ class _MemoContent extends StatelessWidget {
       int index = entry.key + 1;
       Map<String, String> s = entry.value;
       final isPassed = s['result']?.toUpperCase() == 'PASS';
-      
+
       return DataRow(
         cells: [
-          DataCell(Text(index.toString(), style: const TextStyle(fontSize: 11))),
+          DataCell(
+              Text(index.toString(), style: const TextStyle(fontSize: 11))),
           DataCell(Text(s['code'] ?? '', style: const TextStyle(fontSize: 11))),
           DataCell(Text(s['name'] ?? '', style: const TextStyle(fontSize: 11))),
           DataCell(Text(s['int'] ?? '—', style: const TextStyle(fontSize: 11))),
           DataCell(Text(s['ext'] ?? '—', style: const TextStyle(fontSize: 11))),
           DataCell(Text(s['tot'] ?? '—',
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-          DataCell(Text(s['grade'] ?? '—', style: const TextStyle(fontSize: 11))),
+              style:
+                  const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+          DataCell(
+              Text(s['grade'] ?? '—', style: const TextStyle(fontSize: 11))),
           DataCell(
             Text(
               s['result'] ?? '—',
@@ -326,7 +330,8 @@ class _MemoContent extends StatelessWidget {
     };
 
     // Extract table rows
-    final rowPattern = RegExp(r'<tr>(.*?)</tr>', caseSensitive: false, dotAll: true);
+    final rowPattern =
+        RegExp(r'<tr>(.*?)</tr>', caseSensitive: false, dotAll: true);
     for (final match in rowPattern.allMatches(html)) {
       final rowHtml = match.group(1) ?? '';
       final cells = RegExp(r'<td[^>]*>(.*?)</td>', caseSensitive: false)
@@ -373,7 +378,6 @@ class _MemoContent extends StatelessWidget {
         .replaceAll('&amp;', '&');
   }
 }
-
 
 /// Fallback renderer if parsing fails
 class _FallbackMemoRenderer extends StatelessWidget {

@@ -1,5 +1,3 @@
-
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -148,8 +146,7 @@ class _ResultCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: const BoxDecoration(
               color: Color(0xFF1e3a5f),
-              borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(8)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -266,7 +263,8 @@ class _ResultCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Student: ${data['studentName']}  (${data['rollNo']})'),
-              Text('Year ${data['year']}  •  Sem ${data['semester']}  •  ${data['department']}'),
+              Text(
+                  'Year ${data['year']}  •  Sem ${data['semester']}  •  ${data['department']}'),
               const Divider(),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -852,7 +850,8 @@ class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
       builder: (ctx, paymentSnap) {
         if (paymentSnap.hasData) {
           final paid =
-              (paymentSnap.data?.data()?['status']?.toString().toLowerCase() ?? '') ==
+              (paymentSnap.data?.data()?['status']?.toString().toLowerCase() ??
+                      '') ==
                   'paid';
           if (mounted) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -869,203 +868,207 @@ class _SupplyWindowWidgetState extends State<_SupplyWindowWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-          // Window header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1e3a5f),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(winData['title'] ?? 'Supply Window',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15)),
-                Text(winData['examSession'] ?? '',
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 12)),
-                if (end != null)
-                  Text('Closes: ${end.day}/${end.month}/${end.year}',
-                      style:
-                          const TextStyle(color: Colors.yellow, fontSize: 12)),
-                Text('Fee: ₹$fee per subject',
-                    style:
-                        const TextStyle(color: Colors.white70, fontSize: 12)),
-              ],
-            ),
-          ),
+              // Window header
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1e3a5f),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(winData['title'] ?? 'Supply Window',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15)),
+                    Text(winData['examSession'] ?? '',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12)),
+                    if (end != null)
+                      Text('Closes: ${end.day}/${end.month}/${end.year}',
+                          style: const TextStyle(
+                              color: Colors.yellow, fontSize: 12)),
+                    Text('Fee: ₹$fee per subject',
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12)),
+                  ],
+                ),
+              ),
 
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_existing != null)
-            // Already registered
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue, width: 1),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Already Registered',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.blue)),
-                    const SizedBox(height: 6),
-                    ...List<Map<String, dynamic>>.from(
-                            _existing!['subjects'] ?? [])
-                        .map((s) => Text(
-                            '• ${s['subjectCode']} — ${s['subjectName']}',
-                            style: const TextStyle(fontSize: 12))),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Total: ₹${_existing!['totalFee']}'),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _existing!['paymentStatus'] == 'paid'
-                                ? Colors.green
-                                : Colors.orange,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            (_existing!['paymentStatus'] == 'paid'
-                                ? 'PAID'
-                                : 'PAYMENT PENDING'),
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else if (_backlogs.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Center(
-                child: Text(
-                  'No active backlogs — nothing to register.',
-                  style: TextStyle(color: Colors.green),
-                ),
-              ),
-            )
-          else if (!_feePaid)
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade300),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.warning_amber_rounded,
-                            color: Colors.orange, size: 18),
-                        SizedBox(width: 6),
-                        Text('Fee not confirmed',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Pay fee at the office. This page will work only after Fee Payment staff updates your payment to PAID.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _showFeePendingDialog,
-                            icon: const Icon(Icons.info_outline),
-                            label: const Text('Show Payment Info'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton.icon(
-                          onPressed: _refreshPaymentStatus,
-                          icon: const Icon(Icons.refresh, size: 16),
-                          label: const Text('Check'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            // Show selection
-            Column(
-              children: [
-                ..._backlogs.asMap().entries.map((e) {
-                  final i = e.key;
-                  final b = e.value;
-                  return CheckboxListTile(
-                    title: Text('${b['subjectCode']} — ${b['subjectName']}',
-                        style: const TextStyle(fontSize: 13)),
-                    subtitle: Text('Year ${b['year']}  Sem ${b['semester']}',
-                        style: const TextStyle(fontSize: 11)),
-                    value: _selected.contains(i),
-                    onChanged: (v) => setState(() {
-                      if (v == true) {
-                        _selected.add(i);
-                      } else {
-                        _selected.remove(i);
-                      }
-                    }),
-                  );
-                }),
-                if (_selected.isNotEmpty)
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                    child: Text('Fee: ₹${fee * _selected.length}',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_existing != null)
+                // Already registered
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed:
-                          (_selected.isEmpty || _saving) ? null : _register,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1e3a5f)),
-                      child: _saving
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2))
-                          : const Text('Register',
-                              style: TextStyle(color: Colors.white)),
+                  padding: const EdgeInsets.all(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue, width: 1),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Already Registered',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue)),
+                        const SizedBox(height: 6),
+                        ...List<Map<String, dynamic>>.from(
+                                _existing!['subjects'] ?? [])
+                            .map((s) => Text(
+                                '• ${s['subjectCode']} — ${s['subjectName']}',
+                                style: const TextStyle(fontSize: 12))),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Total: ₹${_existing!['totalFee']}'),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _existing!['paymentStatus'] == 'paid'
+                                    ? Colors.green
+                                    : Colors.orange,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                (_existing!['paymentStatus'] == 'paid'
+                                    ? 'PAID'
+                                    : 'PAYMENT PENDING'),
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
+                )
+              else if (_backlogs.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(
+                    child: Text(
+                      'No active backlogs — nothing to register.',
+                      style: TextStyle(color: Colors.green),
+                    ),
+                  ),
+                )
+              else if (!_feePaid)
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded,
+                                color: Colors.orange, size: 18),
+                            SizedBox(width: 6),
+                            Text('Fee not confirmed',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Pay fee at the office. This page will work only after Fee Payment staff updates your payment to PAID.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _showFeePendingDialog,
+                                icon: const Icon(Icons.info_outline),
+                                label: const Text('Show Payment Info'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: _refreshPaymentStatus,
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('Check'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                // Show selection
+                Column(
+                  children: [
+                    ..._backlogs.asMap().entries.map((e) {
+                      final i = e.key;
+                      final b = e.value;
+                      return CheckboxListTile(
+                        title: Text('${b['subjectCode']} — ${b['subjectName']}',
+                            style: const TextStyle(fontSize: 13)),
+                        subtitle: Text(
+                            'Year ${b['year']}  Sem ${b['semester']}',
+                            style: const TextStyle(fontSize: 11)),
+                        value: _selected.contains(i),
+                        onChanged: (v) => setState(() {
+                          if (v == true) {
+                            _selected.add(i);
+                          } else {
+                            _selected.remove(i);
+                          }
+                        }),
+                      );
+                    }),
+                    if (_selected.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 2),
+                        child: Text('Fee: ₹${fee * _selected.length}',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed:
+                              (_selected.isEmpty || _saving) ? null : _register,
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1e3a5f)),
+                          child: _saving
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2))
+                              : const Text('Register',
+                                  style: TextStyle(color: Colors.white)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
             ],
           ),
         );
@@ -1103,7 +1106,7 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
   // ── Memo generator — opens a styled HTML page in a new browser tab ─────────
   void _openMemo(String rollNo, String studentName, String examSession,
       List<Map<String, dynamic>> subjects) {
-        final rows = subjects.map((s) {
+    final rows = subjects.map((s) {
       final pass = s['result'] == 'PASS';
       final color = pass ? '#1b5e20' : '#b71c1c';
       return '<tr>'
@@ -1316,28 +1319,29 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final isMobile = constraints.maxWidth < 600;
-                        
+
                         return Table(
-                          border: TableBorder.all(color: Colors.grey.shade400, width: 0.8),
-                          columnWidths: isMobile 
-                            ? const {
-                                0: FlexColumnWidth(2.5),   // Code
-                                1: FlexColumnWidth(5),     // Subject
-                                2: FlexColumnWidth(1.5),   // Int
-                                3: FlexColumnWidth(1.5),   // Ext
-                                4: FlexColumnWidth(1.5),   // Tot
-                                5: FlexColumnWidth(1.3),   // Grd
-                                6: FlexColumnWidth(2),     // Result
-                              }
-                            : const {
-                                0: FixedColumnWidth(90),
-                                1: FlexColumnWidth(3),
-                                2: FixedColumnWidth(70),
-                                3: FixedColumnWidth(70),
-                                4: FixedColumnWidth(70),
-                                5: FixedColumnWidth(60),
-                                6: FixedColumnWidth(80),
-                              },
+                          border: TableBorder.all(
+                              color: Colors.grey.shade400, width: 0.8),
+                          columnWidths: isMobile
+                              ? const {
+                                  0: FlexColumnWidth(2.5), // Code
+                                  1: FlexColumnWidth(5), // Subject
+                                  2: FlexColumnWidth(1.5), // Int
+                                  3: FlexColumnWidth(1.5), // Ext
+                                  4: FlexColumnWidth(1.5), // Tot
+                                  5: FlexColumnWidth(1.3), // Grd
+                                  6: FlexColumnWidth(2), // Result
+                                }
+                              : const {
+                                  0: FixedColumnWidth(90),
+                                  1: FlexColumnWidth(3),
+                                  2: FixedColumnWidth(70),
+                                  3: FixedColumnWidth(70),
+                                  4: FixedColumnWidth(70),
+                                  5: FixedColumnWidth(60),
+                                  6: FixedColumnWidth(80),
+                                },
                           children: [
                             // Header
                             TableRow(
@@ -1442,10 +1446,12 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
                               final s = e.value;
                               final passed = s['result'] == 'PASS';
                               final isEven = idx % 2 == 0;
-                              
+
                               return TableRow(
                                 decoration: BoxDecoration(
-                                  color: isEven ? Colors.white : Colors.grey.shade50,
+                                  color: isEven
+                                      ? Colors.white
+                                      : Colors.grey.shade50,
                                 ),
                                 children: [
                                   _tableCell(
@@ -1511,7 +1517,9 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
                                     TextStyle(
                                       fontSize: isMobile ? 10 : 12,
                                       fontWeight: FontWeight.bold,
-                                      color: passed ? Colors.green[800] : Colors.red[800],
+                                      color: passed
+                                          ? Colors.green[800]
+                                          : Colors.red[800],
                                     ),
                                     EdgeInsets.symmetric(
                                       horizontal: isMobile ? 3 : 8,
@@ -1536,7 +1544,8 @@ class _SupplyResultsTabState extends State<_SupplyResultsTab> {
                         onPressed: () {
                           _openMemo(
                             widget.rollNo,
-                            (windowSubjects.first['studentName'] as String?) ?? '',
+                            (windowSubjects.first['studentName'] as String?) ??
+                                '',
                             examSession,
                             List<Map<String, dynamic>>.from(windowSubjects),
                           );

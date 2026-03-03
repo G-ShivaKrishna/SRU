@@ -402,7 +402,8 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
       builder: (ctx, paymentSnap) {
         if (paymentSnap.hasData) {
           final paid =
-              (paymentSnap.data?.data()?['status']?.toString().toLowerCase() ?? '') ==
+              (paymentSnap.data?.data()?['status']?.toString().toLowerCase() ??
+                      '') ==
                   'paid';
           if (mounted) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -421,73 +422,73 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
             children: [
               _buildWindowHeader(winData, end, maxMarks),
               if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_existingRegistration != null)
-            _buildAlreadyRegistered()
-          else if (_enrolledSubjects.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Center(
-                child: Text(
-                  'No enrolled subjects found for you.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-            )
-          else if (!_feePaid)
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade300),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_existingRegistration != null)
+                _buildAlreadyRegistered()
+              else if (_enrolledSubjects.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(
+                    child: Text(
+                      'No enrolled subjects found for you.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
+              else if (!_feePaid)
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.warning_amber_rounded,
-                            color: Colors.orange, size: 18),
-                        SizedBox(width: 6),
-                        Text('Fee not confirmed',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded,
+                                color: Colors.orange, size: 18),
+                            SizedBox(width: 6),
+                            Text('Fee not confirmed',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Pay fee at the office. This page will work only after Fee Payment staff updates your payment to PAID.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _showFeePendingDialog,
+                                icon: const Icon(Icons.info_outline),
+                                label: const Text('Show Payment Info'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: _refreshPaymentStatus,
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('Check'),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Pay fee at the office. This page will work only after Fee Payment staff updates your payment to PAID.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _showFeePendingDialog,
-                            icon: const Icon(Icons.info_outline),
-                            label: const Text('Show Payment Info'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton.icon(
-                          onPressed: _refreshPaymentStatus,
-                          icon: const Icon(Icons.refresh, size: 16),
-                          label: const Text('Check'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            _buildSelectionArea(),
+                  ),
+                )
+              else
+                _buildSelectionArea(),
             ],
           ),
         );
@@ -538,7 +539,8 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
         (reg['subjects'] as List? ?? [])
             .map((s) => Map<String, dynamic>.from(s as Map)));
     final totalFee = (reg['totalFee'] as num?)?.toInt() ?? 0;
-    final paid = (reg['paymentStatus']?.toString().toLowerCase() ?? 'paid') == 'paid';
+    final paid =
+        (reg['paymentStatus']?.toString().toLowerCase() ?? 'paid') == 'paid';
     return Padding(
       padding: const EdgeInsets.all(14),
       child: Container(
