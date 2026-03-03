@@ -16,6 +16,7 @@ import 'pages/syllabus_management_page.dart';
 import 'pages/grievance_management_page.dart';
 import 'pages/attendance_management_page.dart';
 import 'pages/results_management_page.dart';
+import 'pages/makeup_mid_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
 import 'screens/admin_cie_memo_release_screen.dart';
 import 'screens/admin_lookup_screen.dart';
@@ -100,6 +101,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const ResultsManagementPage();
     } else if (pageName == 'Supply Exam') {
       page = const ResultsManagementPage(initialTab: 1);
+    } else if (pageName == 'Makeup Mid') {
+      page = const MakeupMidManagementPage();
     } else {
       return;
     }
@@ -221,6 +224,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Grievances',
       'Attendance Management',
       'Supply Exam',
+      'Makeup Mid',
       'View Only',
       'Lookup',
     ];
@@ -736,6 +740,13 @@ class _AdminHomeState extends State<AdminHome> {
           Colors.green.shade700,
           context,
           () => _navigateToPage(context, 'Supply Exam'),
+        ),
+        _buildActionCard(
+          'Makeup Mid\nExam',
+          Icons.edit_calendar,
+          Colors.teal,
+          context,
+          () => _navigateToPage(context, 'Makeup Mid'),
         ),
       ],
     );

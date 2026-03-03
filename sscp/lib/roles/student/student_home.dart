@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/makeup_mid_registration_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -535,6 +536,9 @@ class _StudentHomeState extends State<StudentHome> {
       case 'Supply Exam':
         page = const ResultsScreen(initialTab: 2);
         break;
+      case 'Makeup Mid':
+        page = const MakeupMidRegistrationScreen();
+        break;
       case 'Feedback':
         page = const FeedbackScreen();
         break;
@@ -787,6 +791,14 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                 ),
+                const PopupMenuItem<String>(
+                  value: 'Makeup Mid',
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Text('Makeup Mid',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
                 const PopupMenuDivider(),
                 ...overflowItems.map((item) => PopupMenuItem<String>(
                       value: item,
@@ -895,6 +907,11 @@ class _StudentHomeState extends State<StudentHome> {
                   const PopupMenuItem(
                     value: 'Supply Exam',
                     child: Text('Supply Exam',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'Makeup Mid',
+                    child: Text('Makeup Mid',
                         style: TextStyle(color: Colors.white)),
                   ),
                 ],

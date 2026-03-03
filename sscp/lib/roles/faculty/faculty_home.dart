@@ -25,6 +25,7 @@ import 'screens/faculty_handbook_screen.dart';
 import 'screens/update_basic_data_screen.dart';
 import 'screens/course_preference_screen.dart';
 import 'screens/supply_marks_screen.dart';
+import 'screens/makeup_mid_marks_screen.dart';
 import 'screens/preference_report_screen.dart';
 import 'screens/course_view_screen.dart';
 import 'screens/cie_format_screen.dart';
@@ -778,8 +779,6 @@ class _FacultyHomeState extends State<FacultyHome> {
       onSelected: (value) {
         if (value == 'Regular Exams') {
           // Don't navigate, let the submenu handle it
-        } else if (value == 'Supply Exams') {
-          _handleMenuSelection(context, 'Marks Entry', value);
         } else {
           // Handle submenu items from Regular Exams
           _handleMenuSelection(context, 'Regular Exams', value);
@@ -845,16 +844,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               ),
             ),
           ),
-          PopupMenuItem<String>(
-            value: 'Supply Exams',
-            child: const Text(
-              'Supply Exams',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
-            ),
-          ),
+
         ];
       },
       child: Padding(
@@ -895,7 +885,6 @@ class _FacultyHomeState extends State<FacultyHome> {
       'SSM': 'ssm',
 
       // Marks Entry submenu
-      'Supply Exams': 'marks_supply',
 
       // Regular Exams submenu items
       'Check & Define CIE Format (UG/PG)': 'cie_format_ug',
@@ -903,6 +892,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       'Makeup Mid Marks': 'makeup_marks',
       'Consolidated Marks Report(New)': 'consolidated_marks',
       'Supply Exam Marks': 'supply_marks',
+
 
       // Academics submenu
       'Regulations': 'regulations',
@@ -979,10 +969,12 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const FacultyAcademicsScreen();
       case 'marks_regular':
       case 'marks_supply':
-      case 'makeup_marks':
         page = const FacultyResultsScreen();
       case 'supply_marks':
         page = const SupplyMarksScreen();
+      case 'makeup_marks':
+        page = const MakeupMidMarksScreen();
+
       case 'consolidated_marks':
         page = const ConsolidatedMarksScreen();
       case 'cie_marks':
