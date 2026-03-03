@@ -26,6 +26,13 @@ class ExcelUploadService {
     'email',
   ];
 
+  static const List<String> feePaymentRequiredColumns = [
+    'feePaymentId',
+    'staffName',
+    'department',
+    'email',
+  ];
+
   static Future<Map<String, dynamic>> uploadAccounts(
     String type,
     File? file, {
@@ -111,8 +118,11 @@ class ExcelUploadService {
       }
 
       // Get required columns based on type
-      final requiredColumns =
-          type == 'Students' ? studentRequiredColumns : facultyRequiredColumns;
+        final requiredColumns = type == 'Students'
+          ? studentRequiredColumns
+          : type == 'Faculty'
+            ? facultyRequiredColumns
+            : feePaymentRequiredColumns;
 
       // Parse header row (first row)
       final headerRow = sheet.rows.first;
@@ -213,8 +223,20 @@ class ExcelUploadService {
                 'Row ${rowIndex + 1}: Invalid date format "$displayDate" (use YYYY-MM-DD)');
             isValidRow = false;
           }
-        } else {
+        } else if (type == 'Faculty') {
           // Validate Faculty Email
+          if (!_isValidEmail(rowData['email'] ?? '')) {
+            rowErrorMessages.add(
+                'Row ${rowIndex + 1}: Invalid email "${rowData['email']}"');
+            isValidRow = false;
+          }
+        } else {
+          if (!_isValidFeePaymentId(rowData['feePaymentId'] ?? '')) {
+            rowErrorMessages.add(
+                'Row ${rowIndex + 1}: Invalid Fee Payment ID "${rowData['feePaymentId']}" (Format: FEE001)');
+            isValidRow = false;
+          }
+
           if (!_isValidEmail(rowData['email'] ?? '')) {
             rowErrorMessages.add(
                 'Row ${rowIndex + 1}: Invalid email "${rowData['email']}"');
@@ -242,12 +264,27 @@ class ExcelUploadService {
         };
       }
 
+      // Fee Payment uploads are strict: any invalid row blocks whole upload
+      if (type == 'Fee Payment' && rowErrors.isNotEmpty) {
+        return {
+          'success': false,
+          'message':
+              'Fee Payment upload blocked. Fix all row errors before creating accounts.',
+          'totalRows': sheet.rows.length - 1,
+          'created': 0,
+          'failed': sheet.rows.length - 1,
+          'failedReasons': rowErrors,
+        };
+      }
+
       // Upload valid data
       if (type == 'Students') {
         return await FirebaseService.bulkCreateStudents(dataRows);
-      } else {
+      }
+      if (type == 'Faculty') {
         return await FirebaseService.bulkCreateFaculty(dataRows);
       }
+      return await FirebaseService.bulkCreateFeePayment(dataRows);
     } catch (e) {
       return {
         'success': false,
@@ -278,13 +315,20 @@ class ExcelUploadService {
               admissionType: data['admissionType'],
               dateOfAdmission: data['dateOfAdmission'],
             )
-          : FirebaseService.createFacultyAccount(
-              facultyId: data['facultyId'] ?? '',
-              facultyName: data['facultyName'] ?? '',
-              department: data['department'] ?? '',
-              designation: data['designation'] ?? '',
-              email: data['email'] ?? '',
-            );
+          : type == 'Faculty'
+              ? FirebaseService.createFacultyAccount(
+                  facultyId: data['facultyId'] ?? '',
+                  facultyName: data['facultyName'] ?? '',
+                  department: data['department'] ?? '',
+                  designation: data['designation'] ?? '',
+                  email: data['email'] ?? '',
+                )
+              : FirebaseService.createFeePaymentAccount(
+                  feePaymentId: data['feePaymentId'] ?? '',
+                  staffName: data['staffName'] ?? '',
+                  department: data['department'] ?? '',
+                  email: data['email'] ?? '',
+                );
 
       final result = await future.timeout(
         const Duration(seconds: 30),
@@ -315,6 +359,11 @@ class ExcelUploadService {
   static bool _isValidEmail(String value) {
     final pattern = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
     return pattern.hasMatch(value);
+  }
+
+  static bool _isValidFeePaymentId(String value) {
+    final pattern = RegExp(r'^FEE[0-9]{3,5}$', caseSensitive: false);
+    return pattern.hasMatch(value.trim());
   }
 
   static bool _isValidDateFormat(String value) {

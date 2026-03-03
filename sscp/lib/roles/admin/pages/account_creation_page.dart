@@ -22,7 +22,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
   String? _selectedFileName;
 
   final List<String> _methods = ['Excel Upload', 'Manual Entry'];
-  final List<String> _types = ['Students', 'Faculty'];
+  final List<String> _types = ['Students', 'Faculty', 'Fee Payment'];
   final Map<String, List<String>> _requiredColumns = {
     'Students': [
       'HallTicketNumber',
@@ -43,6 +43,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       'Designation',
       'Email'
     ],
+    'Fee Payment': ['FeePaymentID', 'StaffName', 'Department', 'Email'],
   };
 
   // Form controllers for manual entry
@@ -67,6 +68,13 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     'email': TextEditingController(),
   };
 
+  final Map<String, TextEditingController> _feePaymentControllers = {
+    'feePaymentId': TextEditingController(),
+    'staffName': TextEditingController(),
+    'department': TextEditingController(),
+    'email': TextEditingController(),
+  };
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +90,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     _typeTabController.dispose();
     _studentControllers.forEach((_, controller) => controller.dispose());
     _facultyControllers.forEach((_, controller) => controller.dispose());
+    _feePaymentControllers.forEach((_, controller) => controller.dispose());
     super.dispose();
   }
 
@@ -98,6 +107,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
   void _clearFormControllers() {
     _studentControllers.forEach((_, controller) => controller.clear());
     _facultyControllers.forEach((_, controller) => controller.clear());
+    _feePaymentControllers.forEach((_, controller) => controller.clear());
   }
 
   @override
@@ -136,7 +146,11 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             _buildTypeSelector(isMobile),
             const SizedBox(height: 24),
             _buildRequiredColumnsCard(
-                _typeTabController.index == 0 ? 'Students' : 'Faculty',
+              _typeTabController.index == 0
+                ? 'Students'
+                : _typeTabController.index == 1
+                  ? 'Faculty'
+                  : 'Fee Payment',
                 isMobile),
             const SizedBox(height: 24),
             _buildFileSelectionCard(isMobile),
@@ -145,7 +159,11 @@ class _AccountCreationPageState extends State<AccountCreationPage>
               _buildSelectedFileCard(isMobile),
             const SizedBox(height: 24),
             _buildUploadButton(
-                _typeTabController.index == 0 ? 'Students' : 'Faculty',
+              _typeTabController.index == 0
+                ? 'Students'
+                : _typeTabController.index == 1
+                  ? 'Faculty'
+                  : 'Fee Payment',
                 isMobile),
             if (_uploadResult != null) ...[
               const SizedBox(height: 24),
@@ -185,8 +203,10 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             const SizedBox(height: 24),
             if (_typeTabController.index == 0)
               _buildStudentManualForm(isMobile)
+            else if (_typeTabController.index == 1)
+              _buildFacultyManualForm(isMobile)
             else
-              _buildFacultyManualForm(isMobile),
+              _buildFeePaymentManualForm(isMobile),
             const SizedBox(height: 24),
             _buildManualSubmitButton(isMobile),
             if (_uploadResult != null) ...[
@@ -367,6 +387,50 @@ class _AccountCreationPageState extends State<AccountCreationPage>
           'Email',
           'e.g., faculty@email.com',
           _facultyControllers['email']!,
+          isMobile,
+          keyboardType: TextInputType.emailAddress,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeePaymentManualForm(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Enter Fee Payment Staff Details',
+          style: TextStyle(
+            fontSize: isMobile ? 14 : 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildFormField(
+          'Fee Payment ID',
+          'e.g., FEE001',
+          _feePaymentControllers['feePaymentId']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Staff Name',
+          'e.g., Finance Officer',
+          _feePaymentControllers['staffName']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Department',
+          'e.g., Accounts',
+          _feePaymentControllers['department']!,
+          isMobile,
+        ),
+        const SizedBox(height: 12),
+        _buildFormField(
+          'Email',
+          'e.g., feeoffice@email.com',
+          _feePaymentControllers['email']!,
           isMobile,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -886,9 +950,16 @@ class _AccountCreationPageState extends State<AccountCreationPage>
   }
 
   Future<void> _handleManualSubmit() async {
-    final type = _typeTabController.index == 0 ? 'Students' : 'Faculty';
-    final controllers =
-        type == 'Students' ? _studentControllers : _facultyControllers;
+    final type = _typeTabController.index == 0
+      ? 'Students'
+      : _typeTabController.index == 1
+        ? 'Faculty'
+        : 'Fee Payment';
+    final controllers = type == 'Students'
+      ? _studentControllers
+      : type == 'Faculty'
+        ? _facultyControllers
+        : _feePaymentControllers;
 
     // Validate all fields are filled
     if (controllers.values.any((controller) => controller.text.isEmpty)) {

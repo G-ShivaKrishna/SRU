@@ -4,6 +4,8 @@ import '../roles/student/student_login_screen.dart';
 import '../roles/student/student_home.dart';
 import '../roles/faculty/faculty_login_screen.dart';
 import '../roles/faculty/faculty_home.dart';
+import '../roles/fee_payment/fee_payment_login_screen.dart';
+import '../roles/fee_payment/fee_payment_home.dart';
 import '../roles/admin/admin_home.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
@@ -85,6 +87,20 @@ class RoleSelectionScreen extends StatelessWidget {
                           Navigator.of(context).pushReplacement(
                             MaterialPageRoute(
                                 builder: (context) => const AdminHome()),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildRoleButton(
+                        context,
+                        label: 'Fee Payment',
+                        onPressed: () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => DevConfig.bypassLogin
+                                  ? const FeePaymentHome()
+                                  : const FeePaymentLoginScreen(),
+                            ),
                           );
                         },
                       ),

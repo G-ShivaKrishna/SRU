@@ -6,6 +6,7 @@ import 'splash_animation.dart';
 import 'screens/role_selection_screen.dart';
 import 'roles/student/student_home.dart';
 import 'roles/admin/admin_home.dart';
+import 'roles/fee_payment/fee_payment_home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,10 @@ class MyApp extends StatelessWidget {
         return const AdminHome();
       case 'student':
         return const StudentHome();
+      case 'fee payment':
+      case 'fee_payment':
+      case 'feepayment':
+        return const FeePaymentHome();
       default:
         return const RoleSelectionScreen();
     }
