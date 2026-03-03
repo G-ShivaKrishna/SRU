@@ -32,7 +32,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
   void _generateCaptcha() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     _captchaText =
-        List.generate(6, (index) => chars[Random().nextInt(chars.length)]).join();
+        List.generate(6, (index) => chars[Random().nextInt(chars.length)])
+            .join();
   }
 
   void _refreshCaptcha() {
@@ -130,7 +131,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const RoleSelectionScreen()),
             );
           },
         ),
@@ -146,7 +148,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
               decoration: InputDecoration(
                 labelText: 'Fee Payment ID',
                 hintText: 'e.g., FEE001',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 prefixIcon: const Icon(Icons.badge),
               ),
             ),
@@ -157,11 +160,15 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 labelText: 'Password',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                 prefixIcon: const Icon(Icons.lock),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(_obscurePassword
+                      ? Icons.visibility_off
+                      : Icons.visibility),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
             ),
@@ -180,7 +187,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: Colors.grey[300],
                           borderRadius: BorderRadius.circular(4),
@@ -207,7 +215,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
                     enabled: !_isLoading,
                     decoration: InputDecoration(
                       hintText: 'Enter captcha text',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ],
@@ -226,7 +235,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                         'Login',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
                       ),
               ),
             ),

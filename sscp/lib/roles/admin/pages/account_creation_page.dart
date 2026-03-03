@@ -146,11 +146,11 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             _buildTypeSelector(isMobile),
             const SizedBox(height: 24),
             _buildRequiredColumnsCard(
-              _typeTabController.index == 0
-                ? 'Students'
-                : _typeTabController.index == 1
-                  ? 'Faculty'
-                  : 'Fee Payment',
+                _typeTabController.index == 0
+                    ? 'Students'
+                    : _typeTabController.index == 1
+                        ? 'Faculty'
+                        : 'Fee Payment',
                 isMobile),
             const SizedBox(height: 24),
             _buildFileSelectionCard(isMobile),
@@ -159,11 +159,11 @@ class _AccountCreationPageState extends State<AccountCreationPage>
               _buildSelectedFileCard(isMobile),
             const SizedBox(height: 24),
             _buildUploadButton(
-              _typeTabController.index == 0
-                ? 'Students'
-                : _typeTabController.index == 1
-                  ? 'Faculty'
-                  : 'Fee Payment',
+                _typeTabController.index == 0
+                    ? 'Students'
+                    : _typeTabController.index == 1
+                        ? 'Faculty'
+                        : 'Fee Payment',
                 isMobile),
             if (_uploadResult != null) ...[
               const SizedBox(height: 24),
@@ -951,15 +951,15 @@ class _AccountCreationPageState extends State<AccountCreationPage>
 
   Future<void> _handleManualSubmit() async {
     final type = _typeTabController.index == 0
-      ? 'Students'
-      : _typeTabController.index == 1
-        ? 'Faculty'
-        : 'Fee Payment';
+        ? 'Students'
+        : _typeTabController.index == 1
+            ? 'Faculty'
+            : 'Fee Payment';
     final controllers = type == 'Students'
-      ? _studentControllers
-      : type == 'Faculty'
-        ? _facultyControllers
-        : _feePaymentControllers;
+        ? _studentControllers
+        : type == 'Faculty'
+            ? _facultyControllers
+            : _feePaymentControllers;
 
     // Validate all fields are filled
     if (controllers.values.any((controller) => controller.text.isEmpty)) {

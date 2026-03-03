@@ -195,7 +195,8 @@ class FirebaseService {
     try {
       final normalizedId = feePaymentId.trim().toUpperCase();
       if (!RegExp(r'^FEE[0-9]{3,5}$').hasMatch(normalizedId)) {
-        throw Exception('Invalid Fee Payment ID format. Use format like FEE001');
+        throw Exception(
+            'Invalid Fee Payment ID format. Use format like FEE001');
       }
       if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
           .hasMatch(email.trim())) {

@@ -118,11 +118,11 @@ class ExcelUploadService {
       }
 
       // Get required columns based on type
-        final requiredColumns = type == 'Students'
+      final requiredColumns = type == 'Students'
           ? studentRequiredColumns
           : type == 'Faculty'
-            ? facultyRequiredColumns
-            : feePaymentRequiredColumns;
+              ? facultyRequiredColumns
+              : feePaymentRequiredColumns;
 
       // Parse header row (first row)
       final headerRow = sheet.rows.first;
