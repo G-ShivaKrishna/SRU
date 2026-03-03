@@ -560,6 +560,10 @@ class _ResultsTabState extends State<_ResultsTab> {
   Widget _buildResultCard(Map<String, dynamic> data) {
     final midMarks = (data['midMarks'] as num?)?.toDouble() ?? 0;
     final maxMarks = (data['maxMarks'] as num?)?.toInt() ?? 30;
+    final cieUpdated = data['cieUpdated'] as bool? ?? false;
+    final updatedComponent = data['updatedComponent'] as String?;
+    final oldValue = (data['oldValue'] as num?)?.toInt();
+    final newValue = (data['newValue'] as num?)?.toInt();
     final pct =
         maxMarks > 0 ? (midMarks / maxMarks * 100).toStringAsFixed(1) : '—';
 
@@ -624,17 +628,63 @@ class _ResultsTabState extends State<_ResultsTab> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            child: Row(
+            child: Column(
               children: [
-                const Icon(Icons.person, size: 14, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text('Faculty: ${data['facultyId'] ?? '—'}',
-                    style: const TextStyle(fontSize: 12)),
-                const Spacer(),
-                const Icon(Icons.check_circle, size: 14, color: Colors.green),
-                const SizedBox(width: 4),
-                const Text('CIE Updated',
-                    style: TextStyle(fontSize: 11, color: Colors.green)),
+                Row(
+                  children: [
+                    const Icon(Icons.person, size: 14, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text('Faculty: ${data['facultyId'] ?? '—'}',
+                        style: const TextStyle(fontSize: 12)),
+                    const Spacer(),
+                    if (cieUpdated) ...[
+                      const Icon(Icons.check_circle,
+                          size: 14, color: Colors.green),
+                      const SizedBox(width: 4),
+                      const Text('CIE Updated',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.green,
+                              fontWeight: FontWeight.w600)),
+                    ] else ...[
+                      const Icon(Icons.info_outline,
+                          size: 14, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      const Text('Not higher than existing',
+                          style: TextStyle(fontSize: 11, color: Colors.orange)),
+                    ],
+                  ],
+                ),
+                if (cieUpdated &&
+                    updatedComponent != null &&
+                    oldValue != null &&
+                    newValue != null) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.trending_up,
+                            size: 12, color: Colors.green),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$updatedComponent: $oldValue → $newValue',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.green.shade800,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

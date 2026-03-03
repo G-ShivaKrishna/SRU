@@ -305,6 +305,7 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
           'maxMarks': _maxMarks,
           'facultyId': widget.facultyId,
           'uploadedAt': FieldValue.serverTimestamp(),
+          'cieUpdated': false, // Will update this later if CIE was improved
         },
       );
       validEntries.add({'rollNo': student.rollNo, 'marks': marks});
@@ -315,24 +316,42 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
 
     // Auto-update CIE studentMarks: replace the lowest mid component
     // with makeup marks if makeup marks are higher
+    final updates = <String>[];
+    final noMarks = <String>[]; // Students where CIE marks weren't found
+    
     for (final entry in validEntries) {
       final rollNo = entry['rollNo'] as String;
       final makeupMark = entry['marks'] as double;
-      try {
-        final smSnap = await widget.firestore
-            .collection('studentMarks')
-            .where('studentId', isEqualTo: rollNo)
-            .where('subjectCode', isEqualTo: _subjectCode)
-            .get();
-        for (final smDoc in smSnap.docs) {
+      
+      final smSnap = await widget.firestore
+          .collection('studentMarks')
+          .where('studentId', isEqualTo: rollNo)
+          .where('subjectCode', isEqualTo: _subjectCode)
+          .get();
+      
+      // If no CIE marks exist for this subject, skip (student may not have enrolled)
+      if (smSnap.docs.isEmpty) {
+        noMarks.add(rollNo);
+        continue;
+      }
+      
+      // Try to update the CIE marks
+      for (final smDoc in smSnap.docs) {
+        try {
           final smData = smDoc.data();
           final compMarks =
               Map<String, dynamic>.from(smData['componentMarks'] ?? {});
+          
           // Find all keys that contain 'mid' (case-insensitive)
           final midKeys = compMarks.keys
               .where((k) => k.toLowerCase().contains('mid'))
               .toList();
-          if (midKeys.isEmpty) continue;
+          
+          if (midKeys.isEmpty) {
+            // No mid components found - skip this student
+            continue;
+          }
+          
           // Find the key with the lowest current value
           String? lowestKey;
           double lowestVal = double.infinity;
@@ -343,11 +362,14 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
               lowestKey = key;
             }
           }
+          
+          // Update if makeup mark is higher
           if (lowestKey != null && makeupMark > lowestVal) {
             compMarks[lowestKey] = makeupMark.toInt();
             final newTotal = compMarks.values
                 .fold<num>(0, (s, v) => s + ((v is num) ? v : 0))
                 .toInt();
+            
             await widget.firestore
                 .collection('studentMarks')
                 .doc(smDoc.id)
@@ -356,16 +378,124 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
               'totalMarks': newTotal,
               'updatedAt': FieldValue.serverTimestamp(),
             });
+            
+            // Mark makeup exam doc as having updated CIE
+            final makeupDocId = '${_windowId}_${_subjectCode}_$rollNo';
+            await widget.firestore
+                .collection('makeupMidMarks')
+                .doc(makeupDocId)
+                .update({
+              'cieUpdated': true,
+              'updatedComponent': lowestKey,
+              'oldValue': lowestVal.toInt(),
+              'newValue': makeupMark.toInt(),
+            });
+            
+            updates.add(
+                '$rollNo: $lowestKey ${lowestVal.toInt()}→${makeupMark.toInt()}');
           }
+        } catch (e) {
+          // Continue processing other students even if one fails
         }
-      } catch (_) {}
+      }
     }
 
     if (mounted) {
+      // Show detailed update summary
+      String updateMsg = updates.isEmpty
+          ? 'No CIE marks needed update'
+          : 'CIE Updated (${updates.length}): ${updates.take(3).join(", ")}${updates.length > 3 ? "..." : ""}';
+      
+      String noMarksMsg = noMarks.isEmpty
+          ? ''
+          : '\n⚠️ ${noMarks.length} student(s) have no CIE marks yet (${noMarks.join(", ")})';
+      
+      final message = saved > 0
+          ? 'Saved makeup marks for $saved student(s).\n$updateMsg$noMarksMsg'
+          : 'No marks to save.';
+      
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              'Saved marks for $saved student(s). CIE marks updated where applicable.'),
-          backgroundColor: Colors.green));
+          content: Text(message),
+          backgroundColor: updates.isNotEmpty ? Colors.green : Colors.orange,
+          duration: const Duration(seconds: 6)));
+      
+      // Show detailed dialog if updates or no-marks exist
+      if (updates.length > 3 || noMarks.isNotEmpty) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Makeup Mid Processing Summary'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (updates.isNotEmpty) ...[
+                    Text(
+                      '✓ ${updates.length} student(s) had CIE marks updated:',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.green),
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: updates
+                              .map((u) => Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 2),
+                                    child: Text('• $u',
+                                        style: const TextStyle(fontSize: 13)),
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (noMarks.isNotEmpty) ...[
+                    if (updates.isNotEmpty) const SizedBox(height: 16),
+                    Text(
+                      '⚠️ ${noMarks.length} student(s) have no CIE marks yet:',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.orange),
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: noMarks
+                              .map((rollNo) => Padding(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 2),
+                                    child: Text('• $rollNo',
+                                        style: const TextStyle(fontSize: 13)),
+                                  ))
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'These students may not have taken regular CIE exams yet. Their makeup marks are saved but CIE will update once they have CIE marks.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        );
+      }
+      
       _loadStudents();
     }
   }
