@@ -251,7 +251,7 @@ class _StudentHomeState extends State<StudentHome> {
       // Get student's year
       final year = studentData['year'];
       final yearInt = year is int ? year : int.tryParse(year.toString());
-      
+
       if (yearInt == null) {
         // No valid year found
         studentData['mentorName'] = 'Not Assigned';
@@ -354,7 +354,7 @@ class _StudentHomeState extends State<StudentHome> {
               final month = int.parse(p[1]);
               final year = int.parse(p[2]);
               final recDate = DateTime(year, month, day);
-              
+
               // Only include records from sinceDate onwards (inclusive)
               if (recDate.isBefore(sinceDate)) {
                 continue; // Skip this old record
@@ -880,7 +880,8 @@ class _StudentHomeState extends State<StudentHome> {
                     );
                   } else if (value == 'Syllabus') {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const SyllabusScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const SyllabusScreen()),
                     );
                   } else {
                     _navigateToPage(context, value);
@@ -904,8 +905,7 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ],
                 child: const Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
                     children: [
                       Text(
@@ -963,8 +963,7 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ],
                 child: const Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
                     children: [
                       Text(
@@ -1002,8 +1001,7 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ],
                 child: const Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
                     children: [
                       Text(

@@ -265,7 +265,8 @@ class _SupplyExamMemoScreenState extends State<SupplyExamMemoScreen> {
               if (_sessions.isEmpty)
                 _buildEmptyState()
               else
-                ..._sessions.map((session) => _buildSessionCard(session, isMobile)),
+                ..._sessions
+                    .map((session) => _buildSessionCard(session, isMobile)),
             ],
           ),
         ),
@@ -531,8 +532,7 @@ class _SupplyMemoViewScreenState extends State<_SupplyMemoViewScreen> {
                           textAlign: TextAlign.center),
                       const SizedBox(height: 20),
                       ElevatedButton(
-                          onPressed: _loadMarks,
-                          child: const Text('Retry')),
+                          onPressed: _loadMarks, child: const Text('Retry')),
                     ],
                   ),
                 )
@@ -997,8 +997,8 @@ class _SupplyMemoViewScreenState extends State<_SupplyMemoViewScreen> {
                           isMobile),
                     ]
                   : [
-                      _summaryCell('SUBJECTS\nREGISTERED\n$total',
-                          Colors.black, isMobile),
+                      _summaryCell('SUBJECTS\nREGISTERED\n$total', Colors.black,
+                          isMobile),
                       _summaryCell('APPEARED\n$total', Colors.black, isMobile),
                       _summaryCell(
                           'PASSED\n$_passed', Colors.green.shade700, isMobile),
