@@ -565,10 +565,10 @@ class _StudentHomeState extends State<StudentHome> {
         page = const SupplyExamMemoScreen();
         break;
       case 'Backlogs':
-        page = const ResultsScreen(initialTab: 1);
+        page = const ResultsScreen(initialTab: 0);
         break;
       case 'Supply Exam':
-        page = const ResultsScreen(initialTab: 2);
+        page = const ResultsScreen(initialTab: 1);
         break;
       case 'Makeup Mid':
         page = const MakeupMidRegistrationScreen();
