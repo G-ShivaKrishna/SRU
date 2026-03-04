@@ -14,6 +14,7 @@ import 'screens/attendance_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/student_cie_marks_screen.dart';
 import 'screens/student_cie_memo_screen.dart';
+import 'screens/supply_exam_memo_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
 import 'screens/central_library_screen.dart';
@@ -560,6 +561,9 @@ class _StudentHomeState extends State<StudentHome> {
       case 'Semester Memo':
         page = const StudentCieMemoScreen();
         break;
+      case 'Supply Exam Memo':
+        page = const SupplyExamMemoScreen();
+        break;
       case 'Backlogs':
         page = const ResultsScreen(initialTab: 1);
         break;
@@ -806,6 +810,14 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ),
                 const PopupMenuItem<String>(
+                  value: 'Supply Exam Memo',
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Text('Supply Exam Memo',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+                const PopupMenuItem<String>(
                   value: 'Backlogs',
                   child: Padding(
                     padding: EdgeInsets.only(left: 12),
@@ -927,6 +939,11 @@ class _StudentHomeState extends State<StudentHome> {
                   const PopupMenuItem(
                     value: 'Semester Memo',
                     child: Text('Semester Memo',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
+                    value: 'Supply Exam Memo',
+                    child: Text('Supply Exam Memo',
                         style: TextStyle(color: Colors.white)),
                   ),
                   const PopupMenuItem(
