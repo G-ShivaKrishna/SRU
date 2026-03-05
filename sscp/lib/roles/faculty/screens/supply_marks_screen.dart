@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
+import '../../../services/audit_log_service.dart';
 
 /// Faculty: Supply Exam Marks Entry
 /// - Shows subjects assigned to this faculty via [supplySubjectAssignments]
@@ -374,6 +374,26 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
     }
 
     await batch.commit();
+
+    // Log audit trail
+    if (saved > 0) {
+      final studentRolls = _students
+          .where((s) => (_extCtrl[s.rollNo]?.text.trim() ?? '').isNotEmpty)
+          .map((s) => s.rollNo)
+          .toList();
+      AuditLogService().logMarksPosting(
+        facultyId: widget.facultyId,
+        marksType: 'supply',
+        courseCode: _subjectCode,
+        section: _examSession,
+        studentRollNos: studentRolls,
+        additionalDetails: {
+          'windowId': _windowId,
+          'examSession': _examSession,
+          'studentCount': saved,
+        },
+      );
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

@@ -20,6 +20,7 @@ import 'pages/makeup_mid_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
 import 'screens/admin_cie_memo_release_screen.dart';
 import 'screens/admin_lookup_screen.dart';
+import 'pages/audit_log_viewer_page.dart';
 
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
@@ -103,6 +104,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const ResultsManagementPage(initialTab: 1);
     } else if (pageName == 'Makeup Mid') {
       page = const MakeupMidManagementPage();
+    } else if (pageName == 'Audit Trail') {
+      page = const AuditLogViewerPage();
     } else {
       return;
     }
@@ -225,6 +228,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Attendance Management',
       'Supply Exam',
       'Makeup Mid',
+      'Audit Trail',
       'View Only',
       'Lookup',
     ];
@@ -747,6 +751,13 @@ class _AdminHomeState extends State<AdminHome> {
           Colors.teal,
           context,
           () => _navigateToPage(context, 'Makeup Mid'),
+        ),
+        _buildActionCard(
+          'Audit Trail',
+          Icons.history,
+          Colors.deepPurple.shade700,
+          context,
+          () => _navigateToPage(context, 'Audit Trail'),
         ),
       ],
     );

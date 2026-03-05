@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../screens/role_selection_screen.dart';
+import '../../services/audit_log_service.dart';
 
 class FeePaymentHome extends StatefulWidget {
   const FeePaymentHome({super.key});
@@ -155,6 +156,21 @@ class _FeeUpdateTabState extends State<_FeeUpdateTab> {
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
+      // Log audit trail
+      AuditLogService().logFeePayment(
+        staffId: staffId,
+        paymentType: widget.paymentType,
+        windowId: _selectedWindowId!,
+        studentRollNo: rollNo,
+        status: 'paid',
+        amount: amount,
+        additionalDetails: {
+          'windowTitle': windowTitle,
+          'examSession': examSession,
+          'studentName': studentName,
+        },
+      );
+
       _showSnack('Payment marked as PAID for $rollNo');
     } catch (e) {
       _showSnack('Failed to update payment: $e', isError: true);
@@ -187,6 +203,17 @@ class _FeeUpdateTabState extends State<_FeeUpdateTab> {
         'updatedAt': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
+      // Log audit trail
+      AuditLogService().logFeePayment(
+        staffId: staffId,
+        paymentType: widget.paymentType,
+        windowId: _selectedWindowId!,
+        studentRollNo: rollNo,
+        status: 'unpaid',
+        amount: 0,
+        additionalDetails: {},
+      );
 
       _showSnack('Payment set to UNPAID for $rollNo');
     } catch (e) {

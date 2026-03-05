@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
+import '../../../services/audit_log_service.dart';
 
 class UpdateBasicDataScreen extends StatefulWidget {
   const UpdateBasicDataScreen({super.key});
@@ -287,6 +288,17 @@ class _UpdateBasicDataScreenState extends State<UpdateBasicDataScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       };
       await _firestore.collection('faculty').doc(_facultyDocId).set(data, SetOptions(merge: true));
+      
+      // Log audit trail
+      final email = _auth.currentUser?.email ?? '';
+      final facultyId = email.split('@').first.toUpperCase();
+      AuditLogService().logFacultyProfileUpdate(
+        facultyId: facultyId,
+        updatedFields: {
+          'fieldsUpdated': data.keys.where((k) => k != 'updatedAt').toList(),
+        },
+      );
+      
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Profile updated successfully!'),

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'audit_log_service.dart';
 
 class FeedbackService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -398,6 +399,14 @@ class FeedbackService {
         'comments': comments ?? '',
         'submittedAt': FieldValue.serverTimestamp(),
       });
+
+      // Log audit trail
+      AuditLogService().logFeedbackSubmission(
+        studentRollNo: studentId,
+        sessionId: sessionId,
+        facultyId: facultyId,
+        courseCode: subjectCode,
+      );
     } catch (e) {
       throw Exception('Failed to submit feedback: $e');
     }
