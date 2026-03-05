@@ -23,7 +23,7 @@ class StudentPromotionService {
     if (rollNumbers.isEmpty) return;
     try {
       print('🧹 Starting post-promotion cleanup...');
-      
+
       // ── 1 & 2 · Archive + delete studentCourses ──────────────────────────
       const chunkSize = 30; // Firestore whereIn limit
       for (int i = 0; i < rollNumbers.length; i += chunkSize) {
@@ -88,13 +88,12 @@ class StudentPromotionService {
         }
         await wb.commit();
       }
-      
+
       // ── 7 · Delete all audit logs ─────────────────────────────────────────
       // Clean slate for new semester - old logs are no longer relevant
       print('🧹 Deleting all audit logs...');
       await AuditLogService().deleteAllAuditLogs();
       print('✅ Post-promotion cleanup completed');
-      
     } catch (e) {
       // Side effects must not fail the promotion itself
       print('⚠️ Post-promotion cleanup error: $e');

@@ -13,14 +13,14 @@ class AuditLogViewerPage extends StatefulWidget {
 
 class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
   final _auditService = AuditLogService();
-  
+
   final _dateFormat = DateFormat('MMM dd, yyyy HH:mm');
-  
+
   @override
   void dispose() {
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,15 +45,15 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
       ),
     );
   }
-  
+
   Widget _buildStatistics() {
     return FutureBuilder<Map<String, int>>(
       future: _auditService.getLogStatistics(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
-        
+
         final stats = snapshot.data!;
-        
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(16),
@@ -81,8 +81,10 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
                   _buildStatChip('Total', stats['total'] ?? 0, Colors.blue),
                   _buildStatChip('Marks', stats['marks'] ?? 0, Colors.orange),
                   _buildStatChip('Fees', stats['fees'] ?? 0, Colors.green),
-                  _buildStatChip('Grievances', stats['grievance'] ?? 0, Colors.red),
-                  _buildStatChip('Feedback', stats['feedback'] ?? 0, Colors.purple),
+                  _buildStatChip(
+                      'Grievances', stats['grievance'] ?? 0, Colors.red),
+                  _buildStatChip(
+                      'Feedback', stats['feedback'] ?? 0, Colors.purple),
                   _buildStatChip('Profile', stats['profile'] ?? 0, Colors.teal),
                 ],
               ),
@@ -92,7 +94,7 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
       },
     );
   }
-  
+
   Widget _buildStatChip(String label, int count, Color color) {
     return Chip(
       label: Text('$label: $count'),
@@ -104,7 +106,7 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
       ),
     );
   }
-  
+
   Widget _buildLogList() {
     print('🔷 Building log list widget...');
     return StreamBuilder<List<AuditLogEntry>>(
@@ -117,11 +119,11 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
         print('🔷 Error: ${snapshot.error}');
         print('🔷 Has data: ${snapshot.hasData}');
         print('🔷 Data length: ${snapshot.data?.length ?? 0}');
-        
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasError) {
           print('❌ StreamBuilder error: ${snapshot.error}');
           return Center(
@@ -132,21 +134,21 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
                 const SizedBox(height: 16),
                 Text('Error: ${snapshot.error}'),
                 const SizedBox(height: 8),
-                Text('Stack: ${snapshot.stackTrace}', 
-                  style: const TextStyle(fontSize: 10)),
+                Text('Stack: ${snapshot.stackTrace}',
+                    style: const TextStyle(fontSize: 10)),
               ],
             ),
           );
         }
-        
+
         final logs = snapshot.data ?? [];
-        
+
         if (logs.isEmpty) {
           return const Center(
             child: Text('No activity logs found'),
           );
         }
-        
+
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: logs.length,
@@ -157,7 +159,7 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
       },
     );
   }
-  
+
   Widget _buildLogCard(AuditLogEntry log) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -197,8 +199,8 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                 ),
                 const SizedBox(height: 8),
-                ...log.details.entries.map((e) =>
-                    _buildDetailRow(e.key, e.value.toString())),
+                ...log.details.entries
+                    .map((e) => _buildDetailRow(e.key, e.value.toString())),
               ],
             ),
           ),
@@ -206,7 +208,7 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
       ),
     );
   }
-  
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -237,11 +239,11 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
       ),
     );
   }
-  
+
   Widget _getModuleIcon(String module) {
     IconData icon;
     Color color;
-    
+
     switch (module) {
       case 'marks':
         icon = Icons.grade;
@@ -267,13 +269,13 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
         icon = Icons.description;
         color = Colors.blue;
     }
-    
+
     return CircleAvatar(
       backgroundColor: color.withOpacity(0.2),
       child: Icon(icon, color: color, size: 20),
     );
   }
-  
+
   String _formatRole(String role) {
     switch (role) {
       case 'faculty':
@@ -286,7 +288,7 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
         return role;
     }
   }
-  
+
   String _formatModule(String module) {
     switch (module) {
       case 'marks':
@@ -303,7 +305,7 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
         return module;
     }
   }
-  
+
   Future<void> _createTestLog() async {
     print('🧪 Creating test audit log...');
     try {
@@ -322,7 +324,7 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
           'description': 'This is a test audit log entry',
         },
       );
-      
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

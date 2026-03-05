@@ -377,7 +377,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       });
 
       // Log audit trail
-      print('📝 About to log marks posting for facultyId: $facultyId, student: ${row.studentId}');
+      print(
+          '📝 About to log marks posting for facultyId: $facultyId, student: ${row.studentId}');
       await AuditLogService().logMarksPosting(
         facultyId: facultyId,
         marksType: 'cie',
@@ -405,7 +406,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         row.isSaved = true;
         row.isSaving = false;
       });
-      
+
       // Show success message with audit confirmation
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -504,9 +505,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         );
       }
       await wb.commit();
-      
+
       // Log audit trail for all students
-      print('📝 About to log marks posting for ${_studentRows.length} students (Save All)');
+      print(
+          '📝 About to log marks posting for ${_studentRows.length} students (Save All)');
       final allStudentIds = _studentRows.map((row) => row.studentId).toList();
       await AuditLogService().logMarksPosting(
         facultyId: facultyId,
@@ -523,12 +525,13 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
           'batch': batch,
           'studentCount': allStudentIds.length,
           'maxMarks': _maxTotalMarks,
-          'components': _components.map((c) => '${c.name} (${c.maxMarks})').join(', '),
+          'components':
+              _components.map((c) => '${c.name} (${c.maxMarks})').join(', '),
           'savedVia': 'Save All',
         },
       );
       print('📝 Audit log call completed for Save All');
-      
+
       if (!mounted) return;
       setState(() {
         for (final row in _studentRows) {
@@ -539,7 +542,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('✓ Marks saved for ${_studentRows.length} students (Logged)'),
+            content: Text(
+                '✓ Marks saved for ${_studentRows.length} students (Logged)'),
             backgroundColor: Colors.green),
       );
     } catch (e) {

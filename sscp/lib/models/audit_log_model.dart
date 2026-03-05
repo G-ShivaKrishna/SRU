@@ -79,19 +79,20 @@ class AuditLogEntry {
         final batch = details['batch']?.toString() ?? '';
         final subject = details['subjectName'] ?? details['courseCode'] ?? '';
         final savedVia = details['savedVia']?.toString() ?? '';
-        
+
         final context = [
           if (year.isNotEmpty) 'Year $year',
           if (sem.isNotEmpty) 'Sem $sem',
           if (dept.isNotEmpty) dept,
           if (batch.isNotEmpty) 'Batch $batch',
         ].join(', ');
-        
-        var desc = '$user posted CIE marks for ${affectedUsers.length} student(s)';
+
+        var desc =
+            '$user posted CIE marks for ${affectedUsers.length} student(s)';
         if (subject.isNotEmpty) desc += ' - $subject';
         if (context.isNotEmpty) desc += ' ($context)';
         if (savedVia.isNotEmpty) desc += ' [$savedVia]';
-        
+
         return desc;
       case 'supply_marks':
         return '$user posted Supply marks for ${affectedUsers.length} student(s)';

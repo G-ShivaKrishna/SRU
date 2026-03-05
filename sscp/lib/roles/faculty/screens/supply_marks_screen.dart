@@ -56,7 +56,7 @@ class _SupplyMarksScreenState extends State<SupplyMarksScreen> {
           isWindowActive = (winData['isActive'] as bool?) ?? false;
         }
       } catch (_) {}
-      
+
       // Only include assignments for active/enabled windows
       if (isWindowActive) {
         list.add({
@@ -85,11 +85,9 @@ class _SupplyMarksScreenState extends State<SupplyMarksScreen> {
         actions: [
           if (_selectedAssignment != null)
             TextButton.icon(
-              onPressed: () =>
-                  setState(() => _selectedAssignment = null),
+              onPressed: () => setState(() => _selectedAssignment = null),
               icon: const Icon(Icons.arrow_back, color: Colors.white),
-              label: const Text('Back',
-                  style: TextStyle(color: Colors.white)),
+              label: const Text('Back', style: TextStyle(color: Colors.white)),
             ),
         ],
       ),
@@ -127,8 +125,7 @@ class _SupplyMarksScreenState extends State<SupplyMarksScreen> {
           padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
             'Your Assigned Supply Exam Subjects',
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
         Expanded(
@@ -148,7 +145,8 @@ class _SupplyMarksScreenState extends State<SupplyMarksScreen> {
                   ),
                   title: Text(
                     '${a['subjectCode']} — ${a['subjectName']}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                   subtitle: Text(
                     '${a['windowTitle']}\n${a['examSession'] ?? ''}',
@@ -192,12 +190,9 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
   final Map<String, TextEditingController> _extCtrl = {};
 
   String get _windowId => widget.assignment['windowId']?.toString() ?? '';
-  String get _subjectCode =>
-      widget.assignment['subjectCode']?.toString() ?? '';
-  String get _subjectName =>
-      widget.assignment['subjectName']?.toString() ?? '';
-  String get _examSession =>
-      widget.assignment['examSession']?.toString() ?? '';
+  String get _subjectCode => widget.assignment['subjectCode']?.toString() ?? '';
+  String get _subjectName => widget.assignment['subjectName']?.toString() ?? '';
+  String get _examSession => widget.assignment['examSession']?.toString() ?? '';
 
   @override
   void initState() {
@@ -229,8 +224,8 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
       final subjects = List<Map<String, dynamic>>.from(
           (d['subjects'] as List? ?? [])
               .map((s) => Map<String, dynamic>.from(s as Map)));
-      final has = subjects
-          .any((s) => s['subjectCode']?.toString() == _subjectCode);
+      final has =
+          subjects.any((s) => s['subjectCode']?.toString() == _subjectCode);
       if (has) registered.add(d);
     }
 
@@ -322,7 +317,8 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
       if (!winDoc.exists || (winDoc.data()?['isActive'] ?? false) != true) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('This supply window has been disabled by admin. Cannot save marks.'),
+            content: Text(
+                'This supply window has been disabled by admin. Cannot save marks.'),
             backgroundColor: Colors.red,
           ));
         }
@@ -337,7 +333,7 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
       }
       return;
     }
-    
+
     final batch = widget.firestore.batch();
     int saved = 0;
 
@@ -432,21 +428,19 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
                           Text(
                             '$_subjectCode — $_subjectName',
                             style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold),
+                                fontSize: 15, fontWeight: FontWeight.bold),
                           ),
                           Text(
                               'Window: ${widget.assignment['windowTitle']}  •  Session: $_examSession',
                               style: const TextStyle(fontSize: 12)),
-                          Text(
-                              '${_students.length} registered student(s)',
+                          Text('${_students.length} registered student(s)',
                               style: const TextStyle(fontSize: 12)),
                         ],
                       ),
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 6),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       child: Row(
                         children: [
                           Expanded(
@@ -490,8 +484,7 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
                       child: ListView.separated(
                         padding: const EdgeInsets.all(8),
                         itemCount: _students.length,
-                        separatorBuilder: (_, __) =>
-                            const Divider(height: 1),
+                        separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (_, i) {
                           final s = _students[i];
                           return _StudentMarksRow(
@@ -512,8 +505,7 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF1e3a5f),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
                       ),
@@ -527,8 +519,7 @@ class _SupplyMarksEntryState extends State<_SupplyMarksEntry> {
 class _StudentMarksRow extends StatefulWidget {
   final _SupplyStudent student;
   final TextEditingController extCtrl;
-  const _StudentMarksRow(
-      {required this.student, required this.extCtrl});
+  const _StudentMarksRow({required this.student, required this.extCtrl});
 
   @override
   State<_StudentMarksRow> createState() => _StudentMarksRowState();
@@ -560,8 +551,7 @@ class _StudentMarksRowState extends State<_StudentMarksRow> {
     final internal = widget.student.internalMarks;
     final ext = _extPreview;
     final total = ext != null ? internal + ext : null;
-    final pass =
-        ext != null ? (ext >= 28 && total! >= 45) : null;
+    final pass = ext != null ? (ext >= 28 && total! >= 45) : null;
 
     Color rowColor = Colors.transparent;
     if (pass == true) rowColor = Colors.green.shade50;
@@ -569,8 +559,7 @@ class _StudentMarksRowState extends State<_StudentMarksRow> {
 
     return Container(
       color: rowColor,
-      padding: const EdgeInsets.symmetric(
-          horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         children: [
           Expanded(
@@ -598,14 +587,11 @@ class _StudentMarksRowState extends State<_StudentMarksRow> {
               decoration: InputDecoration(
                 isDense: true,
                 contentPadding:
-                    const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 6),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6)),
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
                 hintText: '—',
-                errorText: ext != null && (ext < 0 || ext > 70)
-                    ? '0-70'
-                    : null,
+                errorText: ext != null && (ext < 0 || ext > 70) ? '0-70' : null,
               ),
             ),
           ),

@@ -317,7 +317,8 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
 
     // Log audit trail
     if (saved > 0) {
-      final studentRolls = validEntries.map((e) => e['rollNo'] as String).toList();
+      final studentRolls =
+          validEntries.map((e) => e['rollNo'] as String).toList();
       AuditLogService().logMarksPosting(
         facultyId: widget.facultyId,
         marksType: 'makeup',

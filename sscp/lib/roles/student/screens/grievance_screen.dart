@@ -118,7 +118,8 @@ class _SubmitGrievanceTabState extends State<_SubmitGrievanceTab> {
           .get();
       final studentName = studentDoc.data()?['name'] ?? rollNumber;
 
-      final docRef = await FirebaseFirestore.instance.collection('grievances').add({
+      final docRef =
+          await FirebaseFirestore.instance.collection('grievances').add({
         'rollNumber': rollNumber,
         'studentName': studentName,
         'studentEmail': user.email,
@@ -135,7 +136,11 @@ class _SubmitGrievanceTabState extends State<_SubmitGrievanceTab> {
         studentRollNo: rollNumber,
         grievanceId: docRef.id,
         grievanceType: _selectedType!,
-        subject: _descCtrl.text.trim().substring(0, _descCtrl.text.trim().length > 50 ? 50 : _descCtrl.text.trim().length),
+        subject: _descCtrl.text.trim().substring(
+            0,
+            _descCtrl.text.trim().length > 50
+                ? 50
+                : _descCtrl.text.trim().length),
       );
 
       _descCtrl.clear();
