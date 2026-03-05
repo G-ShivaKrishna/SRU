@@ -12,6 +12,7 @@ import '../../../utils/web_download_stub.dart'
     if (dart.library.html) '../../../utils/web_download_web.dart';
 import '../../../utils/file_save_stub.dart'
     if (dart.library.io) '../../../utils/file_save_io.dart';
+import '../../../services/audit_log_service.dart';
 
 // ─── Models ────────────────────────────────────────────────────────────────────
 
@@ -375,11 +376,45 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
+      // Log audit trail
+      print(
+          '📝 About to log marks posting for facultyId: $facultyId, student: ${row.studentId}');
+      await AuditLogService().logMarksPosting(
+        facultyId: facultyId,
+        marksType: 'cie',
+        courseCode: assignment.subjectCode,
+        section: batch,
+        studentRollNos: [row.studentId],
+        additionalDetails: {
+          'studentName': row.studentName,
+          'subjectName': assignment.subjectName,
+          'academicYear': assignment.academicYear,
+          'semester': assignment.semester,
+          'year': assignment.year,
+          'department': assignment.department,
+          'batch': batch,
+          'totalMarks': total,
+          'maxMarks': _maxTotalMarks,
+          'components': compMarks,
+          'savedVia': 'Individual Save',
+        },
+      );
+      print('📝 Audit log call completed');
+
       if (!mounted) return;
       setState(() {
         row.isSaved = true;
         row.isSaving = false;
       });
+
+      // Show success message with audit confirmation
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✓ Marks saved for ${row.studentId} (Logged)'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => row.isSaving = false);
@@ -470,6 +505,33 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         );
       }
       await wb.commit();
+
+      // Log audit trail for all students
+      print(
+          '📝 About to log marks posting for ${_studentRows.length} students (Save All)');
+      final allStudentIds = _studentRows.map((row) => row.studentId).toList();
+      await AuditLogService().logMarksPosting(
+        facultyId: facultyId,
+        marksType: 'cie',
+        courseCode: assignment.subjectCode,
+        section: batch,
+        studentRollNos: allStudentIds,
+        additionalDetails: {
+          'subjectName': assignment.subjectName,
+          'academicYear': assignment.academicYear,
+          'semester': assignment.semester,
+          'year': assignment.year,
+          'department': assignment.department,
+          'batch': batch,
+          'studentCount': allStudentIds.length,
+          'maxMarks': _maxTotalMarks,
+          'components':
+              _components.map((c) => '${c.name} (${c.maxMarks})').join(', '),
+          'savedVia': 'Save All',
+        },
+      );
+      print('📝 Audit log call completed for Save All');
+
       if (!mounted) return;
       setState(() {
         for (final row in _studentRows) {
@@ -480,7 +542,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Marks saved for ${_studentRows.length} students'),
+            content: Text(
+                '✓ Marks saved for ${_studentRows.length} students (Logged)'),
             backgroundColor: Colors.green),
       );
     } catch (e) {

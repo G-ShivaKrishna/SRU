@@ -14,6 +14,7 @@ import 'screens/attendance_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/student_cie_marks_screen.dart';
 import 'screens/student_cie_memo_screen.dart';
+import 'screens/supply_exam_memo_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
 import 'screens/central_library_screen.dart';
@@ -250,7 +251,7 @@ class _StudentHomeState extends State<StudentHome> {
       // Get student's year
       final year = studentData['year'];
       final yearInt = year is int ? year : int.tryParse(year.toString());
-      
+
       if (yearInt == null) {
         // No valid year found
         studentData['mentorName'] = 'Not Assigned';
@@ -353,7 +354,7 @@ class _StudentHomeState extends State<StudentHome> {
               final month = int.parse(p[1]);
               final year = int.parse(p[2]);
               final recDate = DateTime(year, month, day);
-              
+
               // Only include records from sinceDate onwards (inclusive)
               if (recDate.isBefore(sinceDate)) {
                 continue; // Skip this old record
@@ -560,11 +561,14 @@ class _StudentHomeState extends State<StudentHome> {
       case 'Semester Memo':
         page = const StudentCieMemoScreen();
         break;
+      case 'Supply Exam Memo':
+        page = const SupplyExamMemoScreen();
+        break;
       case 'Backlogs':
-        page = const ResultsScreen(initialTab: 1);
+        page = const ResultsScreen(initialTab: 0);
         break;
       case 'Supply Exam':
-        page = const ResultsScreen(initialTab: 2);
+        page = const ResultsScreen(initialTab: 1);
         break;
       case 'Makeup Mid':
         page = const MakeupMidRegistrationScreen();
@@ -806,6 +810,14 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ),
                 const PopupMenuItem<String>(
+                  value: 'Supply Exam Memo',
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 12),
+                    child: Text('Supply Exam Memo',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+                const PopupMenuItem<String>(
                   value: 'Backlogs',
                   child: Padding(
                     padding: EdgeInsets.only(left: 12),
@@ -868,7 +880,8 @@ class _StudentHomeState extends State<StudentHome> {
                     );
                   } else if (value == 'Syllabus') {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const SyllabusScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const SyllabusScreen()),
                     );
                   } else {
                     _navigateToPage(context, value);
@@ -892,8 +905,7 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ],
                 child: const Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
                     children: [
                       Text(
@@ -930,6 +942,11 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                   const PopupMenuItem(
+                    value: 'Supply Exam Memo',
+                    child: Text('Supply Exam Memo',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  const PopupMenuItem(
                     value: 'Backlogs',
                     child:
                         Text('Backlogs', style: TextStyle(color: Colors.white)),
@@ -946,8 +963,7 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ],
                 child: const Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
                     children: [
                       Text(
@@ -985,8 +1001,7 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ],
                 child: const Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   child: Row(
                     children: [
                       Text(

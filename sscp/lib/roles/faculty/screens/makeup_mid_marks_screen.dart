@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../services/audit_log_service.dart';
 
 /// Faculty: Makeup Mid Exam Marks Entry
 /// - Shows subjects assigned to this faculty via [makeupMidSubjectAssignments]
@@ -313,6 +314,25 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
     }
 
     await batch.commit();
+
+    // Log audit trail
+    if (saved > 0) {
+      final studentRolls =
+          validEntries.map((e) => e['rollNo'] as String).toList();
+      AuditLogService().logMarksPosting(
+        facultyId: widget.facultyId,
+        marksType: 'makeup',
+        courseCode: _subjectCode,
+        section: _examSession,
+        studentRollNos: studentRolls,
+        additionalDetails: {
+          'windowId': _windowId,
+          'examSession': _examSession,
+          'studentCount': saved,
+          'maxMarks': _maxMarks,
+        },
+      );
+    }
 
     // Auto-update CIE studentMarks: replace the lowest mid component
     // with makeup marks if makeup marks are higher

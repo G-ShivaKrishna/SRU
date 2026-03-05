@@ -185,6 +185,94 @@ class FirebaseService {
     }
   }
 
+  // ============ FEE PAYMENT ACCOUNT CREATION ============
+  static Future<Map<String, dynamic>> createFeePaymentAccount({
+    required String feePaymentId,
+    required String staffName,
+    required String email,
+    required String department,
+  }) async {
+    try {
+      final normalizedId = feePaymentId.trim().toUpperCase();
+      if (!RegExp(r'^FEE[0-9]{3,5}$').hasMatch(normalizedId)) {
+        throw Exception(
+            'Invalid Fee Payment ID format. Use format like FEE001');
+      }
+      if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+          .hasMatch(email.trim())) {
+        throw Exception('Invalid email format');
+      }
+
+      final firebaseEmail = '${normalizedId.toLowerCase()}@sru.edu.in';
+      final firebasePassword = _generateStrongPassword(normalizedId);
+
+      UserCredential userCredential;
+      try {
+        userCredential = await _auth
+            .createUserWithEmailAndPassword(
+              email: firebaseEmail,
+              password: firebasePassword,
+            )
+            .timeout(const Duration(seconds: 15));
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'email-already-in-use') {
+          return {
+            'success': false,
+            'message': 'Fee Payment ID already has an account',
+            'error': e.code,
+          };
+        }
+        rethrow;
+      }
+
+      final uid = userCredential.user!.uid;
+
+      await _firestore.collection('feePayments').doc(normalizedId).set({
+        'uid': uid,
+        'feePaymentId': normalizedId,
+        'name': staffName,
+        'department': department,
+        'email': email,
+        'firebaseEmail': firebaseEmail,
+        'role': 'fee_payment',
+        'status': 'active',
+        'passwordHash': _hashPassword(firebasePassword),
+        'createdAt': FieldValue.serverTimestamp(),
+        'createdBy': 'admin',
+      });
+
+      await _firestore.collection('users').doc(uid).set({
+        'uid': uid,
+        'role': 'fee_payment',
+        'feePaymentId': normalizedId,
+        'email': email,
+        'firebaseEmail': firebaseEmail,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return {
+        'success': true,
+        'message': 'Fee Payment account created successfully',
+        'uid': uid,
+        'username': normalizedId,
+        'password': firebasePassword,
+        'email': email,
+        'firebaseEmail': firebaseEmail,
+      };
+    } on FirebaseAuthException catch (e) {
+      return {
+        'success': false,
+        'message': _getAuthErrorMessage(e.code),
+        'error': e.code,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error creating fee payment account: $e',
+      };
+    }
+  }
+
   // ============ VERIFY USERNAME & PASSWORD ============
   static Future<Map<String, dynamic>> verifyUserCredentials({
     required String username,
@@ -369,6 +457,47 @@ class FirebaseService {
       'success': failed == 0,
       'message': 'Bulk faculty upload completed',
       'totalRows': facultyData.length,
+      'created': created,
+      'failed': failed,
+      'failedReasons': failedReasons,
+    };
+  }
+
+  static Future<Map<String, dynamic>> bulkCreateFeePayment(
+    List<Map<String, String>> feeData,
+  ) async {
+    int created = 0;
+    int failed = 0;
+    List<String> failedReasons = [];
+
+    for (int i = 0; i < feeData.length; i++) {
+      try {
+        final entry = feeData[i];
+        final result = await createFeePaymentAccount(
+          feePaymentId: entry['feePaymentId'] ?? '',
+          staffName: entry['staffName'] ?? '',
+          email: entry['email'] ?? '',
+          department: entry['department'] ?? '',
+        );
+
+        if (result['success'] == true) {
+          created++;
+        } else {
+          failed++;
+          failedReasons.add(
+            'Row ${i + 2}: ${result['message'] ?? 'Unknown error'}',
+          );
+        }
+      } catch (e) {
+        failed++;
+        failedReasons.add('Row ${i + 2}: Error - $e');
+      }
+    }
+
+    return {
+      'success': failed == 0,
+      'message': 'Bulk fee payment upload completed',
+      'totalRows': feeData.length,
       'created': created,
       'failed': failed,
       'failedReasons': failedReasons,

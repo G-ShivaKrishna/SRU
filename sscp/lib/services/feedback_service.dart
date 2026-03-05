@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'audit_log_service.dart';
 
 class FeedbackService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -124,9 +125,9 @@ class FeedbackService {
 
       // Case-insensitive branch matching
       final branchUpper = studentBranch.toUpperCase();
-      final branchMatches = enabledBranches.any((b) => 
-          b.toUpperCase() == branchUpper || 
-          b.toUpperCase().contains(branchUpper) || 
+      final branchMatches = enabledBranches.any((b) =>
+          b.toUpperCase() == branchUpper ||
+          b.toUpperCase().contains(branchUpper) ||
           branchUpper.contains(b.toUpperCase()));
 
       return enabledYears.contains(studentYear) && branchMatches;
@@ -156,8 +157,9 @@ class FeedbackService {
         for (final doc in studentCoursesSnapshot.docs) {
           final data = doc.data();
           // Get selected courses from selectionsByType
-          final selectionsByType = data['selectionsByType'] as Map<String, dynamic>? ?? {};
-          
+          final selectionsByType =
+              data['selectionsByType'] as Map<String, dynamic>? ?? {};
+
           for (final entry in selectionsByType.entries) {
             final courseList = entry.value as List<dynamic>? ?? [];
             for (final course in courseList) {
@@ -173,7 +175,8 @@ class FeedbackService {
                   'subjectCode': course['code'] ?? course['courseCode'] ?? '',
                   'subjectName': course['name'] ?? course['courseName'] ?? '',
                   'facultyId': facultyAssignment?['facultyId'] ?? '',
-                  'facultyName': facultyAssignment?['facultyName'] ?? 'Not Assigned',
+                  'facultyName':
+                      facultyAssignment?['facultyName'] ?? 'Not Assigned',
                 });
               }
             }
@@ -185,7 +188,7 @@ class FeedbackService {
       if (subjects.isEmpty) {
         // Try multiple query approaches for subjects
         QuerySnapshot? subjectsSnapshot;
-        
+
         // Try with year as int
         subjectsSnapshot = await _firestore
             .collection('subjects')
@@ -205,9 +208,11 @@ class FeedbackService {
         for (final doc in subjectsSnapshot.docs) {
           final data = doc.data() as Map<String, dynamic>;
           final docDept = (data['department'] ?? '').toString().toLowerCase();
-          
+
           // Check if department matches (case-insensitive)
-          if (docDept == branchLower || docDept.contains(branchLower) || branchLower.contains(docDept)) {
+          if (docDept == branchLower ||
+              docDept.contains(branchLower) ||
+              branchLower.contains(docDept)) {
             final facultyAssignment = await _getFacultyForSubject(
               subjectCode: data['code'] ?? doc.id,
               year: studentYear,
@@ -219,7 +224,8 @@ class FeedbackService {
               'subjectCode': data['code'] ?? doc.id,
               'subjectName': data['name'] ?? '',
               'facultyId': facultyAssignment?['facultyId'] ?? '',
-              'facultyName': facultyAssignment?['facultyName'] ?? 'Not Assigned',
+              'facultyName':
+                  facultyAssignment?['facultyName'] ?? 'Not Assigned',
             });
           }
         }
@@ -254,14 +260,16 @@ class FeedbackService {
         final branchLower = studentBranch.toLowerCase();
         for (final doc in coursesSnapshot.docs) {
           final data = doc.data();
-          final applicableYears = List<String>.from(data['applicableYears'] ?? []);
-          final applicableBranches = List<String>.from(data['applicableBranches'] ?? []);
-          
+          final applicableYears =
+              List<String>.from(data['applicableYears'] ?? []);
+          final applicableBranches =
+              List<String>.from(data['applicableBranches'] ?? []);
+
           // Check if course is applicable to this student
-          final yearMatches = applicableYears.contains(studentYear) || 
-                             applicableYears.contains(int.tryParse(studentYear)?.toString());
-          final branchMatches = applicableBranches.any((b) => 
-              b.toLowerCase() == branchLower || 
+          final yearMatches = applicableYears.contains(studentYear) ||
+              applicableYears.contains(int.tryParse(studentYear)?.toString());
+          final branchMatches = applicableBranches.any((b) =>
+              b.toLowerCase() == branchLower ||
               b.toLowerCase().contains(branchLower));
 
           if (yearMatches && branchMatches) {
@@ -276,7 +284,8 @@ class FeedbackService {
               'subjectCode': data['code'] ?? doc.id,
               'subjectName': data['name'] ?? '',
               'facultyId': facultyAssignment?['facultyId'] ?? '',
-              'facultyName': facultyAssignment?['facultyName'] ?? 'Not Assigned',
+              'facultyName':
+                  facultyAssignment?['facultyName'] ?? 'Not Assigned',
             });
           }
         }
@@ -285,8 +294,9 @@ class FeedbackService {
       // Strategy 5: As last resort, get ALL active subjects/courses to show something
       if (subjects.isEmpty) {
         // Try subjects collection without filters
-        var allSubjects = await _firestore.collection('subjects').limit(20).get();
-        
+        var allSubjects =
+            await _firestore.collection('subjects').limit(20).get();
+
         if (allSubjects.docs.isEmpty) {
           allSubjects = await _firestore.collection('courses').limit(20).get();
         }
@@ -398,6 +408,14 @@ class FeedbackService {
         'comments': comments ?? '',
         'submittedAt': FieldValue.serverTimestamp(),
       });
+
+      // Log audit trail
+      AuditLogService().logFeedbackSubmission(
+        studentRollNo: studentId,
+        sessionId: sessionId,
+        facultyId: facultyId,
+        courseCode: subjectCode,
+      );
     } catch (e) {
       throw Exception('Failed to submit feedback: $e');
     }
@@ -475,9 +493,8 @@ class FeedbackService {
         String semester = '';
         String academicYear = '';
         try {
-          final sessionDoc = await _feedbackSessionsCollection
-              .doc(data['sessionId'])
-              .get();
+          final sessionDoc =
+              await _feedbackSessionsCollection.doc(data['sessionId']).get();
           if (sessionDoc.exists) {
             final sessionData = sessionDoc.data() as Map<String, dynamic>;
             semester = sessionData['semester'] ?? '';

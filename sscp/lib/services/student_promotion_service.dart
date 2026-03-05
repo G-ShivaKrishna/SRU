@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'audit_log_service.dart';
 
 /// Service to handle student year/semester progression
 class StudentPromotionService {
@@ -13,6 +14,7 @@ class StudentPromotionService {
   //  4. Clear mentorName/Phone/Email from student docs
   //  5. Delete all coursePreferences (faculty must re-submit next semester)
   //  6. Set isActive=false on all facultyAssignments (admin re-assigns next sem)
+  //  7. Delete all audit logs (clean slate for new semester)
   // ─────────────────────────────────────────────────────────────────────────
   static Future<void> runPostPromotionTasks({
     required List<String> rollNumbers,
@@ -20,6 +22,8 @@ class StudentPromotionService {
   }) async {
     if (rollNumbers.isEmpty) return;
     try {
+      print('🧹 Starting post-promotion cleanup...');
+
       // ── 1 & 2 · Archive + delete studentCourses ──────────────────────────
       const chunkSize = 30; // Firestore whereIn limit
       for (int i = 0; i < rollNumbers.length; i += chunkSize) {
@@ -84,8 +88,15 @@ class StudentPromotionService {
         }
         await wb.commit();
       }
-    } catch (_) {
+
+      // ── 7 · Delete all audit logs ─────────────────────────────────────────
+      // Clean slate for new semester - old logs are no longer relevant
+      print('🧹 Deleting all audit logs...');
+      await AuditLogService().deleteAllAuditLogs();
+      print('✅ Post-promotion cleanup completed');
+    } catch (e) {
       // Side effects must not fail the promotion itself
+      print('⚠️ Post-promotion cleanup error: $e');
     }
   }
 

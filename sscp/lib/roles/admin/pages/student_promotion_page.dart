@@ -13,19 +13,6 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
   late TabController _tabController;
   bool _isLoading = false;
 
-  // Bulk promotion state
-  int? _selectedYear;
-  int? _selectedSemester;
-  String? _selectedDepartment;
-  List<String> _departments = [];
-  int _studentCount = 0;
-
-  // Bulk demotion state
-  int? _demoteYear;
-  int? _demoteSemester;
-  String? _demoteDepartment;
-  int _demoteStudentCount = 0;
-
   // Semester toggle state
   bool _semesterActive = false;
   List<String>? _promotionLog;
@@ -38,9 +25,8 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _promotionLog = <String>[];
-    _loadDepartments();
   }
 
   @override
@@ -48,77 +34,6 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadDepartments() async {
-    try {
-      final departments = await StudentPromotionService.getDepartments();
-      setState(() => _departments = departments);
-    } catch (e) {
-      _showSnackBar('Error loading departments: $e', isError: true);
-    }
-  }
-
-  Future<void> _updateStudentCount() async {
-    if (_selectedYear == null || _selectedSemester == null) {
-      setState(() => _studentCount = 0);
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      final students = await StudentPromotionService.getStudents(
-        year: _selectedYear,
-        semester: _selectedSemester,
-        department: _selectedDepartment,
-      );
-      setState(() => _studentCount = students.length);
-    } catch (e) {
-      _showSnackBar('Error fetching students: $e', isError: true);
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _performBulkPromotion() async {
-    if (_selectedYear == null || _selectedSemester == null) {
-      _showSnackBar('Please select year and semester', isError: true);
-      return;
-    }
-
-    if (_studentCount == 0) {
-      _showSnackBar('No students to promote', isError: true);
-      return;
-    }
-
-    // Confirm action
-    final confirmed = await _showConfirmDialog(
-      title: 'Confirm Bulk Promotion',
-      message:
-          'This will promote $_studentCount students from Year $_selectedYear, Semester $_selectedSemester.\n\nAre you sure?',
-    );
-
-    if (!confirmed) return;
-
-    setState(() => _isLoading = true);
-    try {
-      final result = await StudentPromotionService.bulkPromoteStudents(
-        fromYear: _selectedYear!,
-        fromSemester: _selectedSemester!,
-        department: _selectedDepartment,
-      );
-
-      if (result['success'] == true) {
-        _showSnackBar(result['message'] as String);
-        await _updateStudentCount();
-      } else {
-        _showSnackBar(result['message'] as String, isError: true);
-      }
-    } catch (e) {
-      _showSnackBar('Error: $e', isError: true);
-    } finally {
-      setState(() => _isLoading = false);
-    }
   }
 
   Future<void> _searchStudents() async {
@@ -283,8 +198,6 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Bulk Promotion'),
-            Tab(text: 'Bulk Demotion'),
             Tab(text: 'Individual'),
             Tab(text: 'Semester Toggle'),
           ],
@@ -295,8 +208,6 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
           TabBarView(
             controller: _tabController,
             children: [
-              _buildBulkPromotionTab(),
-              _buildBulkDemotionTab(),
               _buildIndividualTab(),
               _buildSemesterToggleTab(),
             ],
@@ -306,421 +217,6 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
               color: Colors.black26,
               child: const Center(child: CircularProgressIndicator()),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBulkPromotionTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Info Card
-          Card(
-            color: Colors.blue[50],
-            child: const Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Bulk promotion moves all students from the selected year/semester to the next. '
-                      'Semester 1 → Semester 2, Semester 2 → Year+1, Semester 1.',
-                      style: TextStyle(color: Colors.blue),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Selection Card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Select Students to Promote',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Year Selection
-                  DropdownButtonFormField<int>(
-                    initialValue: _selectedYear,
-                    decoration: const InputDecoration(
-                      labelText: 'From Year',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [1, 2, 3, 4]
-                        .map((y) => DropdownMenuItem(
-                              value: y,
-                              child: Text('Year $y'),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() => _selectedYear = value);
-                      _updateStudentCount();
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Semester Selection
-                  DropdownButtonFormField<int>(
-                    initialValue: _selectedSemester,
-                    decoration: const InputDecoration(
-                      labelText: 'From Semester',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [1, 2]
-                        .map((s) => DropdownMenuItem(
-                              value: s,
-                              child: Text('Semester $s'),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() => _selectedSemester = value);
-                      _updateStudentCount();
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Department Selection (optional)
-                  DropdownButtonFormField<String?>(
-                    initialValue: _selectedDepartment,
-                    decoration: const InputDecoration(
-                      labelText: 'Department (Optional)',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('All Departments'),
-                      ),
-                      ..._departments.map((d) => DropdownMenuItem(
-                            value: d,
-                            child: Text(d),
-                          )),
-                    ],
-                    onChanged: (value) {
-                      setState(() => _selectedDepartment = value);
-                      _updateStudentCount();
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Preview Card
-          if (_selectedYear != null && _selectedSemester != null)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          _studentCount > 0
-                              ? Icons.people
-                              : Icons.people_outline,
-                          color: _studentCount > 0 ? Colors.green : Colors.grey,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$_studentCount students will be promoted',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color:
-                                _studentCount > 0 ? Colors.green : Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    if (_studentCount > 0)
-                      Text(
-                        _selectedSemester == 1
-                            ? 'Year $_selectedYear, Semester 1 → Year $_selectedYear, Semester 2'
-                            : _selectedYear == 4
-                                ? 'Year 4, Semester 2 → Graduated'
-                                : 'Year $_selectedYear, Semester 2 → Year ${_selectedYear! + 1}, Semester 1',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          const SizedBox(height: 24),
-
-          // Promote Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _studentCount > 0 && !_isLoading
-                  ? _performBulkPromotion
-                  : null,
-              icon: const Icon(Icons.arrow_upward),
-              label: Text('Promote $_studentCount Students'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1e3a5f),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _updateDemoteStudentCount() async {
-    if (_demoteYear == null || _demoteSemester == null) {
-      setState(() => _demoteStudentCount = 0);
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      final students = await StudentPromotionService.getStudents(
-        year: _demoteYear,
-        semester: _demoteSemester,
-        department: _demoteDepartment,
-      );
-      setState(() => _demoteStudentCount = students.length);
-    } catch (e) {
-      _showSnackBar('Error fetching students: $e', isError: true);
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _performBulkDemotion() async {
-    if (_demoteYear == null || _demoteSemester == null) {
-      _showSnackBar('Please select year and semester', isError: true);
-      return;
-    }
-
-    if (_demoteStudentCount == 0) {
-      _showSnackBar('No students to demote', isError: true);
-      return;
-    }
-
-    // Confirm action
-    final confirmed = await _showConfirmDialog(
-      title: 'Confirm Bulk Demotion',
-      message:
-          'This will demote $_demoteStudentCount students from Year $_demoteYear, Semester $_demoteSemester.\n\nAre you sure?',
-    );
-
-    if (!confirmed) return;
-
-    setState(() => _isLoading = true);
-    try {
-      final result = await StudentPromotionService.bulkDemoteStudents(
-        fromYear: _demoteYear!,
-        fromSemester: _demoteSemester!,
-        department: _demoteDepartment,
-      );
-
-      if (result['success'] == true) {
-        _showSnackBar(result['message'] as String);
-        await _updateDemoteStudentCount();
-      } else {
-        _showSnackBar(result['message'] as String, isError: true);
-      }
-    } catch (e) {
-      _showSnackBar('Error: $e', isError: true);
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Widget _buildBulkDemotionTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Info Card
-          Card(
-            color: Colors.orange[50],
-            child: const Padding(
-              padding: EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber, color: Colors.orange),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Bulk demotion moves all students from the selected year/semester to the previous. '
-                      'Semester 2 → Semester 1, Semester 1 → Year-1, Semester 2.',
-                      style: TextStyle(color: Colors.orange),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Selection Card
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Select Students to Demote',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Year Selection
-                  DropdownButtonFormField<int>(
-                    initialValue: _demoteYear,
-                    decoration: const InputDecoration(
-                      labelText: 'From Year',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [1, 2, 3, 4]
-                        .map((y) => DropdownMenuItem(
-                              value: y,
-                              child: Text('Year $y'),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() => _demoteYear = value);
-                      _updateDemoteStudentCount();
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Semester Selection
-                  DropdownButtonFormField<int>(
-                    initialValue: _demoteSemester,
-                    decoration: const InputDecoration(
-                      labelText: 'From Semester',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [1, 2]
-                        .map((s) => DropdownMenuItem(
-                              value: s,
-                              child: Text('Semester $s'),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() => _demoteSemester = value);
-                      _updateDemoteStudentCount();
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Department Selection (optional)
-                  DropdownButtonFormField<String?>(
-                    initialValue: _demoteDepartment,
-                    decoration: const InputDecoration(
-                      labelText: 'Department (Optional)',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('All Departments'),
-                      ),
-                      ..._departments.map((d) => DropdownMenuItem(
-                            value: d,
-                            child: Text(d),
-                          )),
-                    ],
-                    onChanged: (value) {
-                      setState(() => _demoteDepartment = value);
-                      _updateDemoteStudentCount();
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Preview Card
-          if (_demoteYear != null && _demoteSemester != null)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          _demoteStudentCount > 0
-                              ? Icons.people
-                              : Icons.people_outline,
-                          color: _demoteStudentCount > 0
-                              ? Colors.orange
-                              : Colors.grey,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$_demoteStudentCount students will be demoted',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: _demoteStudentCount > 0
-                                ? Colors.orange
-                                : Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    if (_demoteStudentCount > 0)
-                      Text(
-                        _demoteSemester == 2
-                            ? 'Year $_demoteYear, Semester 2 → Year $_demoteYear, Semester 1'
-                            : _demoteYear == 1
-                                ? 'Cannot demote: Already at Year 1, Semester 1'
-                                : 'Year $_demoteYear, Semester 1 → Year ${_demoteYear! - 1}, Semester 2',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          const SizedBox(height: 24),
-
-          // Demote Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _demoteStudentCount > 0 &&
-                      !_isLoading &&
-                      !(_demoteYear == 1 && _demoteSemester == 1)
-                  ? _performBulkDemotion
-                  : null,
-              icon: const Icon(Icons.arrow_downward),
-              label: Text('Demote $_demoteStudentCount Students'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -895,12 +391,14 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
   Future<void> _performFullSemesterPromotion() async {
     final confirmed = await _showConfirmDialog(
       title: 'Start New Semester?',
-      message: 'This will:\n\n'
-          '• Promote ALL students to the next semester/year\n'
-          '• Reset attendance counters to 0\n'
-          '• Archive & clear enrolled courses\n'
-          '• Remove mentor assignments\n'
-          '• Reset faculty course preferences\n\n'
+      message: 'This will promote ALL students and reset the entire system:\n\n'
+          '✓ Promote ALL students to the next semester/year\n'
+          '✓ Reset attendance counters to 0\n'
+          '✓ Archive & clear enrolled courses\n'
+          '✓ Remove mentor assignments\n'
+          '✓ Reset faculty course preferences\n'
+          '✓ Deactivate all faculty assignments\n\n'
+          '⚠️ DELETE ALL AUDIT LOGS (fresh start for new semester)\n\n'
           'This action cannot be undone. Continue?',
     );
     if (!confirmed) return;
@@ -949,8 +447,8 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
 
     _showSnackBar(
       anyError
-          ? 'Completed with some errors'
-          : 'New semester started successfully!',
+          ? 'New semester started with some errors'
+          : 'New semester started successfully! All audit logs have been reset.',
       isError: anyError,
     );
   }
@@ -1093,6 +591,8 @@ class _StudentPromotionPageState extends State<StudentPromotionPage>
                     'Clears faculty course preferences for re-submission'),
                 _infoRow(Icons.assignment_turned_in_outlined, Colors.teal,
                     'Deactivates faculty course assignments — admin must re-assign for new semester'),
+                _infoRow(Icons.delete_sweep_rounded, Colors.redAccent,
+                    'Deletes ALL audit logs — fresh start for new semester'),
               ],
             ),
           ),

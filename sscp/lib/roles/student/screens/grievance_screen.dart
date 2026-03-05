@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
+import '../../../services/audit_log_service.dart';
 
 class GrievanceScreen extends StatefulWidget {
   final int initialIndex;
@@ -117,7 +118,8 @@ class _SubmitGrievanceTabState extends State<_SubmitGrievanceTab> {
           .get();
       final studentName = studentDoc.data()?['name'] ?? rollNumber;
 
-      await FirebaseFirestore.instance.collection('grievances').add({
+      final docRef =
+          await FirebaseFirestore.instance.collection('grievances').add({
         'rollNumber': rollNumber,
         'studentName': studentName,
         'studentEmail': user.email,
@@ -128,6 +130,18 @@ class _SubmitGrievanceTabState extends State<_SubmitGrievanceTab> {
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // Log audit trail
+      AuditLogService().logGrievanceSubmission(
+        studentRollNo: rollNumber,
+        grievanceId: docRef.id,
+        grievanceType: _selectedType!,
+        subject: _descCtrl.text.trim().substring(
+            0,
+            _descCtrl.text.trim().length > 50
+                ? 50
+                : _descCtrl.text.trim().length),
+      );
 
       _descCtrl.clear();
       setState(() {

@@ -196,13 +196,19 @@ class _MakeupWindowWidget extends StatefulWidget {
 class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
   List<Map<String, dynamic>> _enrolledSubjects = [];
   Map<String, dynamic>? _existingRegistration;
+  bool _feePaid = false;
   bool _loading = true;
   bool _saving = false;
   final Set<int> _selected = {};
+  late Stream<DocumentSnapshot<Map<String, dynamic>>> _paymentStream;
 
   @override
   void initState() {
     super.initState();
+    _paymentStream = FirebaseFirestore.instance
+        .collection('feePayments')
+        .doc('makeup_mid_${widget.windowDoc.id}_${widget.rollNo}')
+        .snapshots();
     _load();
   }
 
@@ -262,9 +268,59 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
     });
   }
 
+  Future<void> _refreshPaymentStatus() async {
+    setState(() => _loading = true);
+    await Future.delayed(const Duration(milliseconds: 500));
+    setState(() => _loading = false);
+  }
+
+  Future<bool> _ensurePaymentConfirmed() async {
+    final paymentDocId = 'makeup_mid_${widget.windowDoc.id}_${widget.rollNo}';
+    final doc = await FirebaseFirestore.instance
+        .collection('feePayments')
+        .doc(paymentDocId)
+        .get();
+    final paid =
+        (doc.data()?['status']?.toString().toLowerCase() ?? '') == 'paid';
+    if (mounted) {
+      setState(() {
+        _feePaid = paid;
+      });
+    }
+    return paid;
+  }
+
+  Future<void> _showFeePendingDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Fee Payment Required'),
+        content: const Text(
+          'Please pay the Makeup Mid fee at the office. Registration will be enabled only after Fee Payment staff marks your payment as PAID.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _register() async {
     if (_selected.isEmpty) return;
+
+    final paid = await _ensurePaymentConfirmed();
+    if (!paid) {
+      if (mounted) {
+        await _showFeePendingDialog();
+      }
+      return;
+    }
+
     final winData = widget.windowDoc.data() as Map<String, dynamic>;
+    final feePerSubject = (winData['fee'] as num?)?.toInt() ?? 0;
 
     final subjects = _selected.map((i) {
       final s = _enrolledSubjects[i];
@@ -311,6 +367,10 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
         'makeupWindowId': widget.windowDoc.id,
         'examSession': winData['examSession'],
         'subjects': subjects,
+        'feePerSubject': feePerSubject,
+        'totalFee': feePerSubject * subjects.length,
+        'paymentStatus': 'paid',
+        'paymentId': 'makeup_mid_${widget.windowDoc.id}_${widget.rollNo}',
         'registeredAt': FieldValue.serverTimestamp(),
       });
       await _load();
@@ -337,40 +397,108 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
     final end = (winData['endDate'] as Timestamp?)?.toDate();
     final maxMarks = (winData['maxMarks'] as num?)?.toInt() ?? 30;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      elevation: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildWindowHeader(winData, end, maxMarks),
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_existingRegistration != null)
-            _buildAlreadyRegistered()
-          else if (_enrolledSubjects.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Center(
-                child: Text(
-                  'No enrolled subjects found for you.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ),
-            )
-          else
-            _buildSelectionArea(),
-        ],
-      ),
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: _paymentStream,
+      builder: (ctx, paymentSnap) {
+        if (paymentSnap.hasData) {
+          final paid =
+              (paymentSnap.data?.data()?['status']?.toString().toLowerCase() ??
+                      '') ==
+                  'paid';
+          if (mounted) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_feePaid != paid) {
+                setState(() => _feePaid = paid);
+              }
+            });
+          }
+        }
+        return Card(
+          margin: const EdgeInsets.only(bottom: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 2,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildWindowHeader(winData, end, maxMarks),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_existingRegistration != null)
+                _buildAlreadyRegistered()
+              else if (_enrolledSubjects.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(
+                    child: Text(
+                      'No enrolled subjects found for you.',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
+              else if (!_feePaid)
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded,
+                                color: Colors.orange, size: 18),
+                            SizedBox(width: 6),
+                            Text('Fee not confirmed',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Pay fee at the office. This page will work only after Fee Payment staff updates your payment to PAID.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _showFeePendingDialog,
+                                icon: const Icon(Icons.info_outline),
+                                label: const Text('Show Payment Info'),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: _refreshPaymentStatus,
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('Check'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                _buildSelectionArea(),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildWindowHeader(
       Map<String, dynamic> winData, DateTime? end, int maxMarks) {
+    final fee = (winData['fee'] as num?)?.toInt() ?? 0;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: const BoxDecoration(
@@ -396,6 +524,8 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
             Text(
                 'Registration closes: ${DateFormat('dd MMM yyyy').format(end)}',
                 style: const TextStyle(color: Colors.yellow, fontSize: 12)),
+          Text('Fee: ₹$fee per subject',
+              style: const TextStyle(color: Colors.white70, fontSize: 12)),
           Text('Max marks: $maxMarks',
               style: const TextStyle(color: Colors.white70, fontSize: 12)),
         ],
@@ -408,6 +538,9 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
     final subjects = List<Map<String, dynamic>>.from(
         (reg['subjects'] as List? ?? [])
             .map((s) => Map<String, dynamic>.from(s as Map)));
+    final totalFee = (reg['totalFee'] as num?)?.toInt() ?? 0;
+    final paid =
+        (reg['paymentStatus']?.toString().toLowerCase() ?? 'paid') == 'paid';
     return Padding(
       padding: const EdgeInsets.all(14),
       child: Container(
@@ -425,6 +558,28 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
                     TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
             const SizedBox(height: 6),
             ..._buildRegisteredSubjects(subjects),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total: ₹$totalFee'),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: paid ? Colors.green : Colors.orange,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    paid ? 'PAID' : 'PAYMENT PENDING',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
