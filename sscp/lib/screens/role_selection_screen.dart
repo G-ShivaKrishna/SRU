@@ -11,6 +11,8 @@ import '../roles/admin/admin_home.dart';
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
 
+  static const Color _logoBlue = Color(0xFF1e3a5f);
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
@@ -21,7 +23,7 @@ class RoleSelectionScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1e3a5f), Color(0xFF2a5178)],
+            colors: [Color(0xFFFFFFFF), Color(0xFFEAF0F6)],
           ),
         ),
         child: SafeArea(
@@ -38,9 +40,21 @@ class RoleSelectionScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Column(
                           children: [
-                            SizedBox(
-                              width: isMobile ? 72 : 92,
-                              height: isMobile ? 72 : 92,
+                            Container(
+                              width: isMobile ? 112 : 140,
+                              height: isMobile ? 112 : 140,
+                              padding: EdgeInsets.all(isMobile ? 8 : 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _logoBlue.withValues(alpha: 0.15),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
                               child: Image.asset(
                                 'assets/images/logo.png',
                                 fit: BoxFit.contain,
@@ -52,7 +66,7 @@ class RoleSelectionScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: _logoBlue,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -60,7 +74,7 @@ class RoleSelectionScreen extends StatelessWidget {
                               'Choose your role to continue',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.white70,
+                                color: _logoBlue,
                               ),
                             ),
                           ],
@@ -160,11 +174,11 @@ class RoleSelectionScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: _logoBlue,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: _logoBlue.withValues(alpha: 0.22),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -176,12 +190,12 @@ class RoleSelectionScreen extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: const Color(0xFF1e3a5f).withValues(alpha: 0.1),
+                color: Colors.white.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 icon,
-                color: const Color(0xFF1e3a5f),
+                color: Colors.white,
                 size: 28,
               ),
             ),
@@ -195,22 +209,22 @@ class RoleSelectionScreen extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1e3a5f),
+                      color: Colors.white,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: Colors.white70,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(
+            const Icon(
               Icons.arrow_forward_ios,
-              color: Colors.grey[400],
+              color: Colors.white70,
               size: 20,
             ),
           ],
