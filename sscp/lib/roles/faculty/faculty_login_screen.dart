@@ -326,8 +326,7 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
                         : () {
                             showDialog(
                               context: context,
-                              builder: (context) =>
-                                  const ResetLinkHelper(),
+                              builder: (context) => const ResetLinkHelper(),
                             );
                           },
                     icon: const Icon(Icons.link, size: 16),
@@ -339,10 +338,9 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
                         : () {
                             showDialog(
                               context: context,
-                              builder: (context) =>
-                                  const ForgotPasswordDialog(
-                                    role: 'faculty',
-                                  ),
+                              builder: (context) => const ForgotPasswordDialog(
+                                role: 'faculty',
+                              ),
                             );
                           },
                     child: const Text('Forgot Password?'),

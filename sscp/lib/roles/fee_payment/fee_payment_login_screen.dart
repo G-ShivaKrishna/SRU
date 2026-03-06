@@ -319,8 +319,7 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
                         : () {
                             showDialog(
                               context: context,
-                              builder: (context) =>
-                                  const ResetLinkHelper(),
+                              builder: (context) => const ResetLinkHelper(),
                             );
                           },
                     icon: const Icon(Icons.link, size: 16),
@@ -332,10 +331,9 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
                         : () {
                             showDialog(
                               context: context,
-                              builder: (context) =>
-                                  const ForgotPasswordDialog(
-                                    role: 'feePayment',
-                                  ),
+                              builder: (context) => const ForgotPasswordDialog(
+                                role: 'feePayment',
+                              ),
                             );
                           },
                     child: const Text('Forgot Password?'),

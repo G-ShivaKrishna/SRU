@@ -188,7 +188,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   Expanded(
                     child: Text(
                       'Click OK to continue',
-                      style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.blue.shade700),
                     ),
                   ),
                 ],
