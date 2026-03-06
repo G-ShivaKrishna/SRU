@@ -1,10 +1,14 @@
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../config/dev_config.dart';
+import '../../services/user_service.dart';
 import '../../screens/role_selection_screen.dart';
+import '../../widgets/forgot_password_dialog.dart';
+import '../../widgets/reset_link_helper.dart';
 import 'fee_payment_home.dart';
 
 class FeePaymentLoginScreen extends StatefulWidget {
@@ -84,9 +88,36 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final email = '${feeId.toLowerCase()}@sru.edu.in';
+      // Normalize fee ID to uppercase
+      final normalizedFeeId = feeId.toUpperCase();
 
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      // Fetch fee payment staff data to get custom email from Firestore
+      final feePaymentDoc = await FirebaseFirestore.instance
+          .collection('feePaymentStaff')
+          .doc(normalizedFeeId)
+          .get();
+
+      if (!feePaymentDoc.exists) {
+        setState(() => _isLoading = false);
+        _showError('Fee Payment staff record not found');
+        _refreshCaptcha();
+        return;
+      }
+
+      // Use the custom email stored in Firestore for authentication
+      final customEmail = feePaymentDoc['email'] ?? '';
+      if (customEmail.isEmpty) {
+        setState(() => _isLoading = false);
+        _showError('Email not configured for this staff');
+        _refreshCaptcha();
+        return;
+      }
+
+      await _auth.signInWithEmailAndPassword(
+          email: customEmail, password: password);
+
+      // Fetch and cache user ID from Firestore
+      await UserService.fetchAndCacheUserId();
 
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
@@ -98,8 +129,12 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
 
       if (e.code == 'user-not-found') {
         _showError('Fee Payment account not found. Contact admin.');
-      } else if (e.code == 'wrong-password') {
-        _showError('Incorrect password');
+      } else if (e.code == 'wrong-password' ||
+          e.code == 'invalid-credential' ||
+          e.code == 'invalid-login-credentials' ||
+          e.code == 'INVALID_LOGIN_CREDENTIALS') {
+        _showErrorDialog('Incorrect Password',
+            'The password you entered is incorrect. Would you like to reset your password?');
       } else {
         _showError('Login failed: ${e.message}');
       }
@@ -116,6 +151,63 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
         content: Text(message),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red.shade700, size: 24),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      color: Colors.blue.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Use the "Forgot Password?" link below to reset your password securely via email.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600,
+            ),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
@@ -171,6 +263,47 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
                       setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const ResetLinkHelper(),
+                          );
+                        },
+                  icon: const Icon(Icons.link, size: 16),
+                  label: const Text('Have a reset link?'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.green.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const ForgotPasswordDialog(
+                              role: 'feePayment',
+                            ),
+                          );
+                        },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                  ),
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(color: Colors.blue, fontSize: 14),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             Container(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
+import '../../../services/user_service.dart';
 import '../../../services/audit_log_service.dart';
 
 class GrievanceScreen extends StatefulWidget {
@@ -109,7 +110,24 @@ class _SubmitGrievanceTabState extends State<_SubmitGrievanceTab> {
 
     try {
       final user = FirebaseAuth.instance.currentUser!;
-      final rollNumber = user.email!.split('@')[0].toUpperCase();
+      var rollNumber = UserService.getCurrentUserId();
+
+      // Fallback to email extraction if UserService hasn't cached yet
+      if (rollNumber == null || rollNumber.isEmpty) {
+        final email = user.email ?? '';
+        rollNumber = email.split('@')[0].toUpperCase();
+      }
+
+      if (rollNumber.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User information not found'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _submitting = false);
+        return;
+      }
 
       // Fetch student name
       final studentDoc = await FirebaseFirestore.instance
@@ -327,11 +345,20 @@ class _GrievanceStatusTabState extends State<_GrievanceStatusTab> {
     super.initState();
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final rollNumber = user.email!.split('@')[0].toUpperCase();
-      _stream = FirebaseFirestore.instance
-          .collection('grievances')
-          .where('rollNumber', isEqualTo: rollNumber)
-          .snapshots();
+      var rollNumber = UserService.getCurrentUserId();
+
+      // Fallback to email extraction if UserService hasn't cached yet
+      if (rollNumber == null || rollNumber.isEmpty) {
+        final email = user.email ?? '';
+        rollNumber = email.split('@')[0].toUpperCase();
+      }
+
+      if (rollNumber.isNotEmpty) {
+        _stream = FirebaseFirestore.instance
+            .collection('grievances')
+            .where('rollNumber', isEqualTo: rollNumber)
+            .snapshots();
+      }
     }
   }
 

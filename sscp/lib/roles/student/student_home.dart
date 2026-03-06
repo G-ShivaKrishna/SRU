@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
+import '../../services/user_service.dart';
 import '../faculty/screens/student_handbook_screen.dart';
 import '../faculty/screens/syllabus_screen.dart';
 import 'screens/academics_screen.dart';
@@ -87,9 +88,21 @@ class _StudentHomeState extends State<StudentHome> {
       }
 
       _currentUser = user;
-      // Extract roll number from email and convert to uppercase for Firestore query
-      final email = _currentUser?.email ?? '';
-      final rollNumber = email.split('@')[0].toUpperCase();
+      // Get roll number from cached user service, fallback to email extraction
+      final userEmail = user.email?.toLowerCase().trim() ?? '';
+      final rollNumber = UserService.getCurrentUserId() ??
+          userEmail.split('@')[0].toUpperCase();
+
+      if (rollNumber.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User information not found'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
 
       final doc = await _firestore.collection('students').doc(rollNumber).get();
       if (doc.exists) {

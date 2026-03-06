@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import '../../../services/user_service.dart';
 
 /// Normalises semester values so numeric ("1") and Roman ("I") match.
 String _normSem(String? s) {
@@ -46,7 +47,8 @@ class _MakeupMidRegistrationScreenState
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    _rollNo = email.split('@')[0].toUpperCase();
+    _rollNo =
+        UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
     _activeWindowsStream = FirebaseFirestore.instance
         .collection('makeupMidWindows')
         .where('isActive', isEqualTo: true)

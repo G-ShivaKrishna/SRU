@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../widgets/app_header.dart';
+import '../../../services/user_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Student Results Screen – Results / Backlogs / Supply Exam tabs
@@ -26,7 +27,8 @@ class _ResultsScreenState extends State<ResultsScreen>
     _tab =
         TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    _rollNo = email.split('@')[0].toUpperCase();
+    _rollNo =
+        UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
   }
 
   @override
