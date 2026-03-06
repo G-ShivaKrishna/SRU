@@ -1,6 +1,6 @@
 class DevConfig {
   // Set to true to bypass login screens during development
-  static const bool bypassLogin = false;
+  static const bool bypassLogin = true;
 
   // Render demo data in actual pages when bypassing login
   // Automatically true when bypassLogin is true,
