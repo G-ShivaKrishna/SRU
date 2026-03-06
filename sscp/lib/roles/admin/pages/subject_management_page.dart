@@ -25,7 +25,6 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
 
   // Filters
   String? _selectedDepartment;
-  int? _selectedYear;
   String? _selectedSemester;
 
   // Excel upload state
