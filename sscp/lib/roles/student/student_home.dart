@@ -90,8 +90,9 @@ class _StudentHomeState extends State<StudentHome> {
       _currentUser = user;
       // Get roll number from cached user service, fallback to email extraction
       final userEmail = user.email?.toLowerCase().trim() ?? '';
-      final rollNumber = UserService.getCurrentUserId() ?? userEmail.split('@')[0].toUpperCase();
-      
+      final rollNumber = UserService.getCurrentUserId() ??
+          userEmail.split('@')[0].toUpperCase();
+
       if (rollNumber.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

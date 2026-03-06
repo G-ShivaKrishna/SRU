@@ -29,7 +29,8 @@ class _SupplyMarksScreenState extends State<SupplyMarksScreen> {
   void initState() {
     super.initState();
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    _facultyId = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+    _facultyId =
+        UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
     _loadAssignments();
   }
 

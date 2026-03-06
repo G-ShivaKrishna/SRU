@@ -53,9 +53,10 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
 
   Future<void> _handleForgotPassword() async {
     final idInput = _idController.text.trim().toUpperCase();
-    
+
     if (idInput.isEmpty) {
-      setState(() => _errorMessage = 'Please enter your ${widget.role == 'student' ? 'roll number' : 'ID'}');
+      setState(() => _errorMessage =
+          'Please enter your ${widget.role == 'student' ? 'roll number' : 'ID'}');
       return;
     }
 
@@ -69,13 +70,15 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
       final idField = _getIdFieldName();
 
       // Query Firestore to find the user and get their email
-      final Query query = _firestore.collection(collection).where(idField, isEqualTo: idInput);
+      final Query query =
+          _firestore.collection(collection).where(idField, isEqualTo: idInput);
       final QuerySnapshot snapshot = await query.limit(1).get();
 
       if (snapshot.docs.isEmpty) {
         setState(() {
           _isLoading = false;
-          _errorMessage = '${widget.role == 'student' ? 'Roll number' : 'ID'} not found';
+          _errorMessage =
+              '${widget.role == 'student' ? 'Roll number' : 'ID'} not found';
         });
         return;
       }
@@ -161,7 +164,8 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline, color: Colors.red.shade700, size: 18),
+                    Icon(Icons.error_outline,
+                        color: Colors.red.shade700, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(

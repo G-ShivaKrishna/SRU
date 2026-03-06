@@ -47,7 +47,8 @@ class _MakeupMidRegistrationScreenState
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    _rollNo = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+    _rollNo =
+        UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
     _activeWindowsStream = FirebaseFirestore.instance
         .collection('makeupMidWindows')
         .where('isActive', isEqualTo: true)

@@ -52,7 +52,8 @@ class UserService {
           .get();
 
       if (studentQuery.docs.isNotEmpty) {
-        _currentUserId = studentQuery.docs.first['hallTicketNumber']?.toString();
+        _currentUserId =
+            studentQuery.docs.first['hallTicketNumber']?.toString();
         _currentUserRole = 'student';
         _currentUserData = studentQuery.docs.first.data();
         print('✅ UserService: Found student - ID: $_currentUserId');
@@ -62,12 +63,14 @@ class UserService {
       // Fallback: Search all students with case-insensitive comparison
       final allStudents = await _firestore.collection('students').get();
       for (final doc in allStudents.docs) {
-        final storedEmail = (doc['email'] ?? '').toString().toLowerCase().trim();
+        final storedEmail =
+            (doc['email'] ?? '').toString().toLowerCase().trim();
         if (storedEmail == email) {
           _currentUserId = doc['hallTicketNumber']?.toString();
           _currentUserRole = 'student';
           _currentUserData = doc.data();
-          print('✅ UserService: Found student (fallback) - ID: $_currentUserId');
+          print(
+              '✅ UserService: Found student (fallback) - ID: $_currentUserId');
           return _currentUserId;
         }
       }
@@ -92,12 +95,14 @@ class UserService {
       // Fallback: Search all faculty
       final allFaculty = await _firestore.collection('faculty').get();
       for (final doc in allFaculty.docs) {
-        final storedEmail = (doc['email'] ?? '').toString().toLowerCase().trim();
+        final storedEmail =
+            (doc['email'] ?? '').toString().toLowerCase().trim();
         if (storedEmail == email) {
           _currentUserId = doc['facultyId']?.toString();
           _currentUserRole = 'faculty';
           _currentUserData = doc.data();
-          print('✅ UserService: Found faculty (fallback) - ID: $_currentUserId');
+          print(
+              '✅ UserService: Found faculty (fallback) - ID: $_currentUserId');
           return _currentUserId;
         }
       }
@@ -122,17 +127,20 @@ class UserService {
       // Fallback: Search all feePayments
       final allFeePayment = await _firestore.collection('feePayments').get();
       for (final doc in allFeePayment.docs) {
-        final storedEmail = (doc['email'] ?? '').toString().toLowerCase().trim();
+        final storedEmail =
+            (doc['email'] ?? '').toString().toLowerCase().trim();
         if (storedEmail == email) {
           _currentUserId = doc['feePaymentId']?.toString();
           _currentUserRole = 'feePayment';
           _currentUserData = doc.data();
-          print('✅ UserService: Found feePayment (fallback) - ID: $_currentUserId');
+          print(
+              '✅ UserService: Found feePayment (fallback) - ID: $_currentUserId');
           return _currentUserId;
         }
       }
 
-      print('❌ UserService: User not found in any collection with email: $email');
+      print(
+          '❌ UserService: User not found in any collection with email: $email');
       _clearCache();
       return null;
     } catch (e) {

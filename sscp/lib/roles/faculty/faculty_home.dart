@@ -91,7 +91,8 @@ class _FacultyHomeState extends State<FacultyHome> {
 
       _currentUser = user;
       final email = _currentUser?.email ?? '';
-      final facultyId = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+      final facultyId =
+          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
       final doc = await _firestore.collection('faculty').doc(facultyId).get();
       if (doc.exists) {
@@ -845,7 +846,6 @@ class _FacultyHomeState extends State<FacultyHome> {
               ),
             ),
           ),
-
         ];
       },
       child: const Padding(

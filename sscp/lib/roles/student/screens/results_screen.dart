@@ -27,7 +27,8 @@ class _ResultsScreenState extends State<ResultsScreen>
     _tab =
         TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    _rollNo = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+    _rollNo =
+        UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
   }
 
   @override

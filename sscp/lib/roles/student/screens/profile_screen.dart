@@ -122,7 +122,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Fetch from Firestore
       final email = user.email ?? '';
-      final rollNumber = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+      final rollNumber =
+          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
       final doc = await _firestore.collection('students').doc(rollNumber).get();
       if (doc.exists) {
@@ -161,7 +162,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final email = user.email ?? '';
-    final rollNumber = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+    final rollNumber =
+        UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
     // Check if already has pending request
     final requestStatus =
@@ -397,7 +399,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       final email = user.email ?? '';
-      final rollNumber = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+      final rollNumber =
+          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
       // Check if student has edit access
       final hasAccess = await StudentAccessService.hasEditAccess(rollNumber);

@@ -22,16 +22,17 @@ class FacultyAssignmentService {
   /// Tries multiple matching strategies since preferences use Firebase Auth UID/email
   /// which may differ from faculty collection data
   /// Returns a list of preferred subjects for a faculty member
-  Future<List<FacultyPreferredCourse>> getFacultyPreferences(String facultyId, {String? facultyEmail}) async {
+  Future<List<FacultyPreferredCourse>> getFacultyPreferences(String facultyId,
+      {String? facultyEmail}) async {
     try {
       QuerySnapshot? snapshot;
-      
+
       // Strategy 1: Try querying by exact email
       if (facultyEmail != null && facultyEmail.isNotEmpty) {
         snapshot = await _coursePreferencesCollection
             .where('facultyEmail', isEqualTo: facultyEmail)
             .get();
-        
+
         // Try with email lowercased
         if (snapshot.docs.isEmpty) {
           snapshot = await _coursePreferencesCollection
@@ -39,24 +40,25 @@ class FacultyAssignmentService {
               .get();
         }
       }
-      
+
       // Strategy 2: If email didn't work, try facultyId as-is
       if (snapshot == null || snapshot.docs.isEmpty) {
         snapshot = await _coursePreferencesCollection
             .where('facultyId', isEqualTo: facultyId)
             .get();
       }
-      
+
       // Strategy 3: Search all preferences for email containing facultyId pattern
       // e.g., facultyId = "FAC0001" might match email "fac0001@university.edu"
       if (snapshot.docs.isEmpty) {
         final allPrefs = await _coursePreferencesCollection.get();
         final facultyIdLower = facultyId.toLowerCase();
-        
+
         for (final doc in allPrefs.docs) {
           final data = doc.data() as Map<String, dynamic>;
-          final storedEmail = (data['facultyEmail'] ?? '').toString().toLowerCase();
-          
+          final storedEmail =
+              (data['facultyEmail'] ?? '').toString().toLowerCase();
+
           // Check if stored email contains the facultyId (e.g., fac0001@... matches FAC0001)
           if (storedEmail.isNotEmpty && storedEmail.contains(facultyIdLower)) {
             // Found a match - use this document
@@ -64,7 +66,7 @@ class FacultyAssignmentService {
             final courses = data['courses'] as List<dynamic>? ?? [];
             final acYear = data['acYear'] ?? '';
             final roundId = data['roundId'] ?? '';
-            
+
             for (int i = 0; i < courses.length; i++) {
               final course = courses[i] as Map<String, dynamic>;
               preferences.add(FacultyPreferredCourse(
@@ -83,9 +85,11 @@ class FacultyAssignmentService {
             for (final otherDoc in allPrefs.docs) {
               if (otherDoc.id == doc.id) continue;
               final otherData = otherDoc.data() as Map<String, dynamic>;
-              final otherEmail = (otherData['facultyEmail'] ?? '').toString().toLowerCase();
+              final otherEmail =
+                  (otherData['facultyEmail'] ?? '').toString().toLowerCase();
               if (otherEmail == storedEmail) {
-                final otherCourses = otherData['courses'] as List<dynamic>? ?? [];
+                final otherCourses =
+                    otherData['courses'] as List<dynamic>? ?? [];
                 final otherAcYear = otherData['acYear'] ?? '';
                 final otherRoundId = otherData['roundId'] ?? '';
                 for (int i = 0; i < otherCourses.length; i++) {
@@ -106,10 +110,9 @@ class FacultyAssignmentService {
             }
             return preferences;
           }
-          
+
           // NOTE: Email prefix matching removed - not compatible with custom email system
           // facultyId from UserService now provides direct ID from backend
-
         }
       }
 
@@ -121,7 +124,7 @@ class FacultyAssignmentService {
         final courses = data['courses'] as List<dynamic>? ?? [];
         final acYear = data['acYear'] ?? '';
         final roundId = data['roundId'] ?? '';
-        
+
         for (int i = 0; i < courses.length; i++) {
           final course = courses[i] as Map<String, dynamic>;
           preferences.add(FacultyPreferredCourse(
@@ -151,7 +154,8 @@ class FacultyAssignmentService {
     String? academicYear,
   }) async {
     try {
-      final preferences = await getFacultyPreferences(facultyId, facultyEmail: facultyEmail);
+      final preferences =
+          await getFacultyPreferences(facultyId, facultyEmail: facultyEmail);
       if (preferences.isEmpty) return [];
 
       // Filter by academic year if provided
@@ -160,27 +164,30 @@ class FacultyAssignmentService {
           : preferences;
 
       // Convert to Subject objects
-      return filtered.map((pref) => Subject(
-        id: pref.code,
-        code: pref.code,
-        name: pref.name,
-        department: pref.department,
-        credits: 0, // Will be updated when matched with actual subject
-        year: pref.year,
-        semester: pref.semester,
-        subjectType: SubjectTypeExtension.fromString(pref.subjectType),
-        isActive: true,
-      )).toList();
+      return filtered
+          .map((pref) => Subject(
+                id: pref.code,
+                code: pref.code,
+                name: pref.name,
+                department: pref.department,
+                credits: 0, // Will be updated when matched with actual subject
+                year: pref.year,
+                semester: pref.semester,
+                subjectType: SubjectTypeExtension.fromString(pref.subjectType),
+                isActive: true,
+              ))
+          .toList();
     } catch (e) {
       return [];
     }
   }
 
   /// Check if a faculty has submitted any course preferences
-  Future<bool> hasFacultySubmittedPreferences(String facultyId, {String? facultyEmail}) async {
+  Future<bool> hasFacultySubmittedPreferences(String facultyId,
+      {String? facultyEmail}) async {
     try {
       QuerySnapshot snapshot;
-      
+
       if (facultyEmail != null && facultyEmail.isNotEmpty) {
         snapshot = await _coursePreferencesCollection
             .where('facultyEmail', isEqualTo: facultyEmail)
@@ -269,7 +276,7 @@ class FacultyAssignmentService {
 
       final snapshot = await query.get();
       final Map<String, String> subjectFacultyMap = {};
-      
+
       for (final doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         final subjectCode = data['subjectCode'] ?? '';
@@ -283,7 +290,7 @@ class FacultyAssignmentService {
   }
 
   /// Create a new faculty assignment
-  /// Enforces: 
+  /// Enforces:
   /// 1. One faculty can teach only ONE subject per student year
   /// 2. One subject can only be taught by ONE faculty (per year/semester)
   Future<String> createAssignment(FacultyAssignment assignment) async {
@@ -296,12 +303,11 @@ class FacultyAssignmentService {
         semester: assignment.semester,
       );
 
-      if (existingForYear != null && 
+      if (existingForYear != null &&
           existingForYear.subjectCode != assignment.subjectCode) {
         throw Exception(
-          'Faculty already teaches "${existingForYear.subjectName}" to Year ${assignment.year} students. '
-          'A faculty can only teach one subject per student year.'
-        );
+            'Faculty already teaches "${existingForYear.subjectName}" to Year ${assignment.year} students. '
+            'A faculty can only teach one subject per student year.');
       }
 
       // CHECK 2: Subject can only be taught by ONE faculty
@@ -312,12 +318,11 @@ class FacultyAssignmentService {
         year: assignment.year,
       );
 
-      if (existingSubjectAssignment != null && 
+      if (existingSubjectAssignment != null &&
           existingSubjectAssignment.facultyId != assignment.facultyId) {
         throw Exception(
-          '"${assignment.subjectName}" is already assigned to ${existingSubjectAssignment.facultyName}. '
-          'A subject can only be taught by one faculty.'
-        );
+            '"${assignment.subjectName}" is already assigned to ${existingSubjectAssignment.facultyName}. '
+            'A subject can only be taught by one faculty.');
       }
 
       // Check for duplicate assignment (same faculty, subject, batch combination)
@@ -337,7 +342,10 @@ class FacultyAssignmentService {
             List<String>.from(existingData['assignedBatches'] ?? []);
 
         // Merge batches
-        final mergedBatches = <String>{...existingBatches, ...assignment.assignedBatches}.toList();
+        final mergedBatches = <String>{
+          ...existingBatches,
+          ...assignment.assignedBatches
+        }.toList();
 
         await _assignmentsCollection.doc(existingDoc.id).update({
           'assignedBatches': mergedBatches,
@@ -423,9 +431,8 @@ class FacultyAssignmentService {
   /// Get all assignments
   Future<List<FacultyAssignment>> getAllAssignments() async {
     try {
-      final snapshot = await _assignmentsCollection
-          .where('isActive', isEqualTo: true)
-          .get();
+      final snapshot =
+          await _assignmentsCollection.where('isActive', isEqualTo: true).get();
       final assignments = snapshot.docs
           .map((doc) => FacultyAssignment.fromFirestore(doc))
           .toList();
@@ -454,7 +461,8 @@ class FacultyAssignmentService {
   }
 
   /// Get assignments for a specific batch
-  Future<List<FacultyAssignment>> getAssignmentsForBatch(String batchName) async {
+  Future<List<FacultyAssignment>> getAssignmentsForBatch(
+      String batchName) async {
     try {
       final snapshot = await _assignmentsCollection
           .where('assignedBatches', arrayContains: batchName)
@@ -579,9 +587,8 @@ class FacultyAssignmentService {
   /// Get all subjects
   Future<List<Subject>> getAllSubjects() async {
     try {
-      final snapshot = await _subjectsCollection
-          .where('isActive', isEqualTo: true)
-          .get();
+      final snapshot =
+          await _subjectsCollection.where('isActive', isEqualTo: true).get();
       return snapshot.docs.map((doc) => Subject.fromFirestore(doc)).toList();
     } catch (e) {
       throw Exception('Failed to get subjects: $e');
@@ -751,7 +758,7 @@ class FacultyAssignmentService {
     try {
       // Import the Excel package
       final excel = await _parseExcelBytes(fileBytes, fileName);
-      
+
       if (excel == null) {
         return {
           'success': false,
@@ -793,10 +800,15 @@ class FacultyAssignmentService {
           .toList();
 
       // Required columns
-      final requiredColumns = ['code', 'name', 'department', 'year', 'semester'];
-      final missingColumns = requiredColumns
-          .where((col) => !headers.contains(col))
-          .toList();
+      final requiredColumns = [
+        'code',
+        'name',
+        'department',
+        'year',
+        'semester'
+      ];
+      final missingColumns =
+          requiredColumns.where((col) => !headers.contains(col)).toList();
 
       if (missingColumns.isNotEmpty) {
         return {
@@ -822,7 +834,7 @@ class FacultyAssignmentService {
       // Process data rows (skip header)
       for (int i = 1; i < rows.length; i++) {
         final row = rows[i];
-        
+
         try {
           final code = row[codeIndex]?.value?.toString().trim() ?? '';
           final name = row[nameIndex]?.value?.toString().trim() ?? '';
@@ -834,11 +846,13 @@ class FacultyAssignmentService {
               : '3';
 
           // Validate required fields
-          if (code.isEmpty || name.isEmpty || department.isEmpty || 
-              yearStr.isEmpty || semester.isEmpty) {
-            (results['failedReasons'] as List<String>).add(
-              'Row ${i + 1}: Missing required fields'
-            );
+          if (code.isEmpty ||
+              name.isEmpty ||
+              department.isEmpty ||
+              yearStr.isEmpty ||
+              semester.isEmpty) {
+            (results['failedReasons'] as List<String>)
+                .add('Row ${i + 1}: Missing required fields');
             results['failed'] = (results['failed'] as int) + 1;
             continue;
           }
@@ -846,29 +860,31 @@ class FacultyAssignmentService {
           // Parse year
           final year = int.tryParse(yearStr);
           if (year == null || year < 1 || year > 4) {
-            (results['failedReasons'] as List<String>).add(
-              'Row ${i + 1}: Invalid year "$yearStr"'
-            );
+            (results['failedReasons'] as List<String>)
+                .add('Row ${i + 1}: Invalid year "$yearStr"');
             results['failed'] = (results['failed'] as int) + 1;
             continue;
           }
 
           // Normalize semester
           String normalizedSemester = semester.toUpperCase();
-          if (normalizedSemester == '1' || normalizedSemester == 'SEM 1' || 
-              normalizedSemester == 'SEMESTER 1' || normalizedSemester == 'SEM I' ||
+          if (normalizedSemester == '1' ||
+              normalizedSemester == 'SEM 1' ||
+              normalizedSemester == 'SEMESTER 1' ||
+              normalizedSemester == 'SEM I' ||
               normalizedSemester == 'SEMESTER I') {
             normalizedSemester = 'I';
-          } else if (normalizedSemester == '2' || normalizedSemester == 'SEM 2' || 
-              normalizedSemester == 'SEMESTER 2' || normalizedSemester == 'SEM II' ||
+          } else if (normalizedSemester == '2' ||
+              normalizedSemester == 'SEM 2' ||
+              normalizedSemester == 'SEMESTER 2' ||
+              normalizedSemester == 'SEM II' ||
               normalizedSemester == 'SEMESTER II') {
             normalizedSemester = 'II';
           }
 
           if (normalizedSemester != 'I' && normalizedSemester != 'II') {
-            (results['failedReasons'] as List<String>).add(
-              'Row ${i + 1}: Invalid semester "$semester"'
-            );
+            (results['failedReasons'] as List<String>)
+                .add('Row ${i + 1}: Invalid semester "$semester"');
             results['failed'] = (results['failed'] as int) + 1;
             continue;
           }
@@ -889,16 +905,15 @@ class FacultyAssignmentService {
 
           await createSubject(subject);
           results['created'] = (results['created'] as int) + 1;
-
         } catch (e) {
-          (results['failedReasons'] as List<String>).add(
-            'Row ${i + 1}: Error - $e'
-          );
+          (results['failedReasons'] as List<String>)
+              .add('Row ${i + 1}: Error - $e');
           results['failed'] = (results['failed'] as int) + 1;
         }
       }
 
-      results['message'] = 'Upload completed: ${results['created']} subjects created, ${results['failed']} failed';
+      results['message'] =
+          'Upload completed: ${results['created']} subjects created, ${results['failed']} failed';
       results['success'] = (results['created'] as int) > 0;
 
       return results;

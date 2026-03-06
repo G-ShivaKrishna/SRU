@@ -148,7 +148,8 @@ class _UpdateBasicDataScreenState extends State<UpdateBasicDataScreen> {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
       final email = user.email ?? '';
-      _facultyDocId = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+      _facultyDocId =
+          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
       final doc =
           await _firestore.collection('faculty').doc(_facultyDocId).get();
       final d = doc.exists ? (doc.data() ?? {}) : <String, dynamic>{};
@@ -328,7 +329,8 @@ class _UpdateBasicDataScreenState extends State<UpdateBasicDataScreen> {
 
       // Log audit trail
       final email = _auth.currentUser?.email ?? '';
-      final facultyId = UserService.getCurrentUserId() ?? email.split('@').first.toUpperCase();
+      final facultyId = UserService.getCurrentUserId() ??
+          email.split('@').first.toUpperCase();
       AuditLogService().logFacultyProfileUpdate(
         facultyId: facultyId,
         updatedFields: {

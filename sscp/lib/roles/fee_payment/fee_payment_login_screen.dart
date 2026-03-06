@@ -113,7 +113,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
         return;
       }
 
-      await _auth.signInWithEmailAndPassword(email: customEmail, password: password);
+      await _auth.signInWithEmailAndPassword(
+          email: customEmail, password: password);
 
       // Fetch and cache user ID from Firestore
       await UserService.fetchAndCacheUserId();
@@ -128,10 +129,10 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
 
       if (e.code == 'user-not-found') {
         _showError('Fee Payment account not found. Contact admin.');
-      } else if (e.code == 'wrong-password' || 
-                 e.code == 'invalid-credential' || 
-                 e.code == 'invalid-login-credentials' ||
-                 e.code == 'INVALID_LOGIN_CREDENTIALS') {
+      } else if (e.code == 'wrong-password' ||
+          e.code == 'invalid-credential' ||
+          e.code == 'invalid-login-credentials' ||
+          e.code == 'INVALID_LOGIN_CREDENTIALS') {
         _showErrorDialog('Incorrect Password',
             'The password you entered is incorrect. Would you like to reset your password?');
       } else {
@@ -181,7 +182,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  Icon(Icons.info_outline,
+                      color: Colors.blue.shade700, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

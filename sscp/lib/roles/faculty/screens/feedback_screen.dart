@@ -39,7 +39,8 @@ class _FacultyFeedbackScreenState extends State<FacultyFeedbackScreen> {
       if (user == null) throw Exception('Not logged in');
 
       final email = user.email ?? '';
-      final docId = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+      final docId =
+          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
       // Get faculty document to find facultyId
       final facultyDoc =

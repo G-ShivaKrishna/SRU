@@ -52,12 +52,12 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       // Email format: [hallTicketNumber]@sru.edu.in
       final email = user.email ?? '';
       var hallTicketNumber = UserService.getCurrentUserId();
-      
+
       // Fallback to email extraction if UserService hasn't cached yet
       if (hallTicketNumber == null || hallTicketNumber.isEmpty) {
         hallTicketNumber = email.split('@')[0].toUpperCase();
       }
-      
+
       if (hallTicketNumber.isEmpty) {
         _showError('User information not found');
         return;
@@ -1241,8 +1241,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                             '• $error',
                             style: const TextStyle(fontSize: 12),
                           ),
-                        ))
-                    ,
+                        )),
               ],
             ),
           ),
@@ -1356,8 +1355,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                             '• $error',
                             style: const TextStyle(fontSize: 12),
                           ),
-                        ))
-                    ,
+                        )),
               ],
             ),
           ),

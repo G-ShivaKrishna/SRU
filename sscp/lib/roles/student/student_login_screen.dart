@@ -135,10 +135,10 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
       if (e.code == 'user-not-found') {
         _showError('Student account not found. Contact admin.');
-      } else if (e.code == 'wrong-password' || 
-                 e.code == 'invalid-credential' || 
-                 e.code == 'invalid-login-credentials' ||
-                 e.code == 'INVALID_LOGIN_CREDENTIALS') {
+      } else if (e.code == 'wrong-password' ||
+          e.code == 'invalid-credential' ||
+          e.code == 'invalid-login-credentials' ||
+          e.code == 'INVALID_LOGIN_CREDENTIALS') {
         _showErrorDialog('Incorrect Password',
             'The password you entered is incorrect. Would you like to reset your password?');
       } else if (e.code == 'invalid-email') {
@@ -190,7 +190,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  Icon(Icons.info_outline,
+                      color: Colors.blue.shade700, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

@@ -111,13 +111,13 @@ class _SubmitGrievanceTabState extends State<_SubmitGrievanceTab> {
     try {
       final user = FirebaseAuth.instance.currentUser!;
       var rollNumber = UserService.getCurrentUserId();
-      
+
       // Fallback to email extraction if UserService hasn't cached yet
       if (rollNumber == null || rollNumber.isEmpty) {
         final email = user.email ?? '';
         rollNumber = email.split('@')[0].toUpperCase();
       }
-      
+
       if (rollNumber.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -346,13 +346,13 @@ class _GrievanceStatusTabState extends State<_GrievanceStatusTab> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       var rollNumber = UserService.getCurrentUserId();
-      
+
       // Fallback to email extraction if UserService hasn't cached yet
       if (rollNumber == null || rollNumber.isEmpty) {
         final email = user.email ?? '';
         rollNumber = email.split('@')[0].toUpperCase();
       }
-      
+
       if (rollNumber.isNotEmpty) {
         _stream = FirebaseFirestore.instance
             .collection('grievances')

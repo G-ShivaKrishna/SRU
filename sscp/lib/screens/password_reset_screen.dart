@@ -60,9 +60,11 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
       setState(() {
         _isVerifying = false;
         if (e.code == 'expired-action-code') {
-          _errorMessage = 'This reset link has expired. Please request a new one.';
+          _errorMessage =
+              'This reset link has expired. Please request a new one.';
         } else if (e.code == 'invalid-action-code') {
-          _errorMessage = 'This reset link is invalid or has already been used.';
+          _errorMessage =
+              'This reset link is invalid or has already been used.';
         } else {
           _errorMessage = 'Error: ${e.message}';
         }
@@ -86,8 +88,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
     }
 
     if (newPassword.length < 6) {
-      setState(() =>
-          _errorMessage = 'Password must be at least 6 characters long');
+      setState(
+          () => _errorMessage = 'Password must be at least 6 characters long');
       return;
     }
 
@@ -129,7 +131,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog
-                Navigator.of(context).popUntil((route) => route.isFirst); // Go to login
+                Navigator.of(context)
+                    .popUntil((route) => route.isFirst); // Go to login
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green.shade600,
@@ -143,7 +146,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
       setState(() {
         _isLoading = false;
         if (e.code == 'weak-password') {
-          _errorMessage = 'Password is too weak. Please choose a stronger password.';
+          _errorMessage =
+              'Password is too weak. Please choose a stronger password.';
         } else {
           _errorMessage = 'Error: ${e.message}';
         }
@@ -200,7 +204,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                         ),
                         const SizedBox(height: 32),
                         ElevatedButton.icon(
-                          onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                          onPressed: () => Navigator.of(context)
+                              .popUntil((route) => route.isFirst),
                           icon: const Icon(Icons.arrow_back),
                           label: const Text('Back to Login'),
                           style: ElevatedButton.styleFrom(
@@ -299,7 +304,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                                     : Icons.visibility_off,
                               ),
                               onPressed: () {
-                                setState(() => _showNewPassword = !_showNewPassword);
+                                setState(
+                                    () => _showNewPassword = !_showNewPassword);
                               },
                             ),
                           ),
@@ -332,8 +338,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                                     : Icons.visibility_off,
                               ),
                               onPressed: () {
-                                setState(
-                                    () => _showConfirmPassword = !_showConfirmPassword);
+                                setState(() => _showConfirmPassword =
+                                    !_showConfirmPassword);
                               },
                             ),
                           ),
@@ -380,14 +386,15 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                                     height: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                     ),
                                   )
                                 : const Icon(Icons.check_circle),
                             label: Text(
                               _isLoading ? 'Resetting...' : 'Reset Password',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -405,7 +412,8 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                           child: OutlinedButton(
                             onPressed: _isLoading
                                 ? null
-                                : () => Navigator.of(context).popUntil((route) => route.isFirst),
+                                : () => Navigator.of(context)
+                                    .popUntil((route) => route.isFirst),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),

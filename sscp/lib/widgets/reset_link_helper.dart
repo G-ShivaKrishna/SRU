@@ -33,9 +33,10 @@ class _ResetLinkHelperState extends State<ResetLinkHelper> {
 
   void _processLink() {
     final link = _linkController.text.trim();
-    
+
     if (link.isEmpty) {
-      setState(() => _errorMessage = 'Please paste the reset link from your email');
+      setState(
+          () => _errorMessage = 'Please paste the reset link from your email');
       return;
     }
 
@@ -177,7 +178,8 @@ class _ResetLinkHelperState extends State<ResetLinkHelper> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                      Icon(Icons.error_outline,
+                          color: Colors.red.shade700, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -199,7 +201,9 @@ class _ResetLinkHelperState extends State<ResetLinkHelper> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isProcessing ? null : () => Navigator.of(context).pop(),
+                      onPressed: _isProcessing
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -221,7 +225,8 @@ class _ResetLinkHelperState extends State<ResetLinkHelper> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : const Text('Reset Password'),
