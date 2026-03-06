@@ -177,19 +177,24 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: const Color(0xFFEAF0F6),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(color: const Color(0xFF9EB0C7)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade600),
-                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.info_outline,
+                    color: Color(0xFF1e3a5f),
+                  ),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Click OK to continue',
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.blue.shade700),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF1e3a5f),
+                      ),
                     ),
                   ),
                 ],
@@ -201,7 +206,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade600,
+              backgroundColor: const Color(0xFF1e3a5f),
+              foregroundColor: Colors.white,
             ),
             child: const Text('OK'),
           ),
@@ -313,11 +319,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 children: [
                   TextButton.icon(
                     onPressed: _refreshCaptcha,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1e3a5f),
+                    ),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Refresh'),
                   ),
                   TextButton(
                     onPressed: _isLoading ? null : () {},
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1e3a5f),
+                    ),
                     child: const Text('Forgot Password?'),
                   ),
                 ],
@@ -326,9 +338,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: const Color(0xFFEAF0F6),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue),
+                  border: Border.all(color: const Color(0xFF1e3a5f)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -339,6 +351,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2,
+                        color: Color(0xFF1e3a5f),
                       ),
                     ),
                     const SizedBox(height: 12),

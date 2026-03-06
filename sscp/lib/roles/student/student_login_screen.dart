@@ -184,21 +184,24 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: const Color(0xFFEAF0F6),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(color: const Color(0xFF9EB0C7)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  Icon(Icons.info_outline,
-                      color: Colors.blue.shade700, size: 20),
-                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.info_outline,
+                    color: Color(0xFF1e3a5f),
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Use the "Forgot Password?" link below to reset your password securely via email.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blue.shade700,
+                        color: Color(0xFF1e3a5f),
                       ),
                     ),
                   ),
@@ -211,7 +214,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade600,
+              backgroundColor: const Color(0xFF1e3a5f),
+              foregroundColor: Colors.white,
             ),
             child: const Text('OK'),
           ),
@@ -227,7 +231,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Student Login'),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFF1e3a5f),
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -250,7 +254,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               Icon(
                 Icons.school,
                 size: isMobile ? 60 : 80,
-                color: Colors.blue,
+                color: const Color(0xFF1e3a5f),
               ),
               const SizedBox(height: 24),
               Text(
@@ -258,7 +262,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 style: TextStyle(
                   fontSize: isMobile ? 20 : 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+                  color: const Color(0xFF1e3a5f),
                 ),
               ),
               const SizedBox(height: 8),
@@ -330,6 +334,9 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                               builder: (context) => const ResetLinkHelper(),
                             );
                           },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1e3a5f),
+                    ),
                     icon: const Icon(Icons.link, size: 16),
                     label: const Text('Have a reset link?'),
                   ),
@@ -344,6 +351,9 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                               ),
                             );
                           },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1e3a5f),
+                    ),
                     child: const Text('Forgot Password?'),
                   ),
                 ],
@@ -352,9 +362,9 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: const Color(0xFFEAF0F6),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue),
+                  border: Border.all(color: const Color(0xFF1e3a5f)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -365,6 +375,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 2,
+                        color: Color(0xFF1e3a5f),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -403,7 +414,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: const Color(0xFF1e3a5f),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),

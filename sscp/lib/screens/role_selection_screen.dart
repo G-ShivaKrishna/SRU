@@ -25,113 +25,123 @@ class RoleSelectionScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                const SizedBox(height: 30),
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Column(
                     children: [
-                      Icon(
-                        Icons.school,
-                        size: isMobile ? 60 : 80,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Select Role',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                      const SizedBox(height: 30),
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          children: [
+                            SizedBox(
+                              width: isMobile ? 72 : 92,
+                              height: isMobile ? 72 : 92,
+                              child: Image.asset(
+                                'assets/images/logo.png',
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            const Text(
+                              'Select Role',
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Choose your role to continue',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Choose your role to continue',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white70,
+                      const SizedBox(height: 50),
+                      // Role Cards
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Column(
+                          children: [
+                            _buildRoleCard(
+                              context,
+                              icon: Icons.school,
+                              label: 'Student',
+                              subtitle: 'Student type',
+                              onPressed: () {
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (context) => DevConfig.bypassLogin
+                                        ? const StudentHome()
+                                        : const StudentLoginScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            _buildRoleCard(
+                              context,
+                              icon: Icons.person,
+                              label: 'Teacher / Faculty',
+                              subtitle: 'Teacher/Faculty',
+                              onPressed: () {
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (context) => DevConfig.bypassLogin
+                                        ? const FacultyHome()
+                                        : const FacultyLoginScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            _buildRoleCard(
+                              context,
+                              icon: Icons.security,
+                              label: 'Admin',
+                              subtitle: 'Admin portal',
+                              onPressed: () {
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (context) => const AdminHome(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            _buildRoleCard(
+                              context,
+                              icon: Icons.credit_card,
+                              label: 'Fee Payment',
+                              subtitle: 'Fee management',
+                              onPressed: () {
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (context) => DevConfig.bypassLogin
+                                        ? const FeePaymentHome()
+                                        : const FeePaymentLoginScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 50),
                     ],
                   ),
                 ),
-                const SizedBox(height: 50),
-                // Role Cards
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      _buildRoleCard(
-                        context,
-                        icon: Icons.school,
-                        label: 'Student',
-                        subtitle: 'Student type',
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => DevConfig.bypassLogin
-                                  ? const StudentHome()
-                                  : const StudentLoginScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildRoleCard(
-                        context,
-                        icon: Icons.person,
-                        label: 'Teacher / Faculty',
-                        subtitle: 'Teacher/Faculty',
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => DevConfig.bypassLogin
-                                  ? const FacultyHome()
-                                  : const FacultyLoginScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildRoleCard(
-                        context,
-                        icon: Icons.security,
-                        label: 'Admin',
-                        subtitle: 'Admin portal',
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => const AdminHome(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildRoleCard(
-                        context,
-                        icon: Icons.credit_card,
-                        label: 'Fee Payment',
-                        subtitle: 'Fee management',
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (context) => DevConfig.bypassLogin
-                                  ? const FeePaymentHome()
-                                  : const FeePaymentLoginScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 50),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -154,7 +164,7 @@ class RoleSelectionScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -166,7 +176,7 @@ class RoleSelectionScreen extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: const Color(0xFF1e3a5f).withOpacity(0.1),
+                color: const Color(0xFF1e3a5f).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
