@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../services/audit_log_service.dart';
+import '../../../services/user_service.dart';
 
 /// Faculty: Supply Exam Marks Entry
 /// - Shows subjects assigned to this faculty via [supplySubjectAssignments]
@@ -28,7 +29,7 @@ class _SupplyMarksScreenState extends State<SupplyMarksScreen> {
   void initState() {
     super.initState();
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    _facultyId = email.split('@')[0].toUpperCase();
+    _facultyId = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
     _loadAssignments();
   }
 

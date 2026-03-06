@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../services/audit_log_service.dart';
+import '../../services/user_service.dart';
 
 class FeePaymentHome extends StatefulWidget {
   const FeePaymentHome({super.key});
@@ -137,7 +138,7 @@ class _FeeUpdateTabState extends State<_FeeUpdateTab> {
       final amount = (winData['fee'] as num?)?.toDouble() ?? 0;
 
       final staffEmail = FirebaseAuth.instance.currentUser?.email ?? '';
-      final staffId = staffEmail.split('@').first.toUpperCase();
+      final staffId = UserService.getCurrentUserId() ?? staffEmail.split('@').first.toUpperCase();
       final paymentDocId =
           '${widget.paymentType}_${_selectedWindowId!}_$rollNo';
 
@@ -189,7 +190,7 @@ class _FeeUpdateTabState extends State<_FeeUpdateTab> {
     setState(() => _saving = true);
     try {
       final staffEmail = FirebaseAuth.instance.currentUser?.email ?? '';
-      final staffId = staffEmail.split('@').first.toUpperCase();
+      final staffId = UserService.getCurrentUserId() ?? staffEmail.split('@').first.toUpperCase();
       final paymentDocId =
           '${widget.paymentType}_${_selectedWindowId!}_$rollNo';
 

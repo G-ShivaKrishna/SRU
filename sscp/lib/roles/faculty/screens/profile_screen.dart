@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
+import '../../../services/user_service.dart';
 
 class FacultyProfileScreen extends StatefulWidget {
   const FacultyProfileScreen({super.key});
@@ -30,7 +31,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
       final email = user.email ?? '';
-      final docId = email.split('@')[0].toUpperCase();
+      final docId = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
       final doc = await _firestore.collection('faculty').doc(docId).get();
       if (!mounted) return;
       setState(() {

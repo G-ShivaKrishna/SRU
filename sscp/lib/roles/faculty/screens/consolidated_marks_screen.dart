@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../services/user_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Consolidated Marks Report – all students' marks for subjects taught by this
@@ -44,7 +45,7 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
     final user = _auth.currentUser;
     if (user == null) return '';
     final email = user.email ?? '';
-    return email.split('@')[0].toUpperCase();
+    return UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
   }
 
   Future<void> _load() async {

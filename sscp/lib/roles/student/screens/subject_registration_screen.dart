@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/faculty_assignment_model.dart';
 import '../../../services/student_course_service.dart';
+import '../../../services/user_service.dart';
 
 /// Subject Registration Screen
 /// 
@@ -79,7 +80,22 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
 
       // Extract hall ticket number from Firebase email
       final email = user.email ?? '';
-      final hallTicketNumber = email.split('@')[0].toUpperCase();
+      var hallTicketNumber = UserService.getCurrentUserId();
+      
+      // Fallback to email extraction if UserService hasn't cached yet
+      if (hallTicketNumber == null || hallTicketNumber.isEmpty) {
+        hallTicketNumber = email.split('@')[0].toUpperCase();
+      }
+      
+      if (hallTicketNumber.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User information not found'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
       // Fetch student data
       final studentDoc = await FirebaseFirestore.instance

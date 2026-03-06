@@ -21,8 +21,10 @@ class FirebaseService {
     String? dateOfAdmission,
   }) async {
     try {
-      // Generate Firebase email from Hall Ticket Number
-      final firebaseEmail = '${hallTicketNumber.toLowerCase()}@sru.edu.in';
+      // Use custom email for Firebase Auth (provided by admin)
+      final firebaseEmail = email.toLowerCase();
+      // Store auto-generated ID-based email for reference
+      final idBasedEmail = '${hallTicketNumber.toLowerCase()}@sru.edu.in';
       final firebasePassword = _generateStrongPassword(hallTicketNumber);
 
       // Create Firebase Auth user with timeout
@@ -58,6 +60,7 @@ class FirebaseService {
         'semester': int.tryParse(semester) ?? 1,
         'email': email,
         'firebaseEmail': firebaseEmail,
+        'idBasedEmail': idBasedEmail,
         'admissionYear': admissionYear,
         'admissionType': admissionType,
         'dateOfAdmission': dateOfAdmission,
@@ -73,8 +76,9 @@ class FirebaseService {
         'uid': uid,
         'role': 'student',
         'studentId': hallTicketNumber,
-        'email': email,
-        'firebaseEmail': firebaseEmail,
+        'email': firebaseEmail,
+        'customEmail': email,
+        'idBasedEmail': idBasedEmail,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -110,8 +114,10 @@ class FirebaseService {
     required String email,
   }) async {
     try {
-      // Generate Firebase email from Faculty ID
-      final firebaseEmail = '${facultyId.toLowerCase()}@sru.edu.in';
+      // Use custom email for Firebase Auth (provided by admin)
+      final firebaseEmail = email.toLowerCase();
+      // Store auto-generated ID-based email for reference
+      final idBasedEmail = '${facultyId.toLowerCase()}@sru.edu.in';
       final firebasePassword = _generateStrongPassword(facultyId);
 
       // Create Firebase Auth user with timeout
@@ -145,6 +151,7 @@ class FirebaseService {
         'designation': designation,
         'email': email,
         'firebaseEmail': firebaseEmail,
+        'idBasedEmail': idBasedEmail,
         'role': 'faculty',
         'status': 'active',
         'passwordHash': _hashPassword(firebasePassword),
@@ -157,8 +164,9 @@ class FirebaseService {
         'uid': uid,
         'role': 'faculty',
         'facultyId': facultyId,
-        'email': email,
-        'firebaseEmail': firebaseEmail,
+        'email': firebaseEmail,
+        'customEmail': email,
+        'idBasedEmail': idBasedEmail,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -203,7 +211,10 @@ class FirebaseService {
         throw Exception('Invalid email format');
       }
 
-      final firebaseEmail = '${normalizedId.toLowerCase()}@sru.edu.in';
+      // Use custom email for Firebase Auth (provided by admin)
+      final firebaseEmail = email.toLowerCase();
+      // Store auto-generated ID-based email for reference
+      final idBasedEmail = '${normalizedId.toLowerCase()}@sru.edu.in';
       final firebasePassword = _generateStrongPassword(normalizedId);
 
       UserCredential userCredential;
@@ -234,6 +245,7 @@ class FirebaseService {
         'department': department,
         'email': email,
         'firebaseEmail': firebaseEmail,
+        'idBasedEmail': idBasedEmail,
         'role': 'fee_payment',
         'status': 'active',
         'passwordHash': _hashPassword(firebasePassword),
@@ -245,8 +257,9 @@ class FirebaseService {
         'uid': uid,
         'role': 'fee_payment',
         'feePaymentId': normalizedId,
-        'email': email,
-        'firebaseEmail': firebaseEmail,
+        'email': firebaseEmail,
+        'customEmail': email,
+        'idBasedEmail': idBasedEmail,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -537,7 +550,107 @@ class FirebaseService {
     await _auth.signOut();
   }
 
-  static User? getCurrentUser() {
-    return _auth.currentUser;
+  // ============ PASSWORD RECOVERY ============
+  /// Send password reset email to the user's custom email address
+  /// Parameters:
+  ///   - email: The custom email (as entered by admin during account creation)
+  /// Returns: Success/failure message
+  static Future<Map<String, dynamic>> sendPasswordResetEmail({
+    required String email,
+  }) async {
+    try {
+      if (email.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Please enter your email address',
+        };
+      }
+
+      await _auth.sendPasswordResetEmail(email: email.toLowerCase());
+
+      return {
+        'success': true,
+        'message': 'Password reset email sent successfully. Check your inbox.',
+        'email': email,
+      };
+    } on FirebaseAuthException catch (e) {
+      return {
+        'success': false,
+        'message': _getPasswordResetErrorMessage(e.code),
+        'error': e.code,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error sending password reset email: $e',
+      };
+    }
+  }
+
+  /// Handle password reset with new password
+  /// This is called after user clicks the reset link from email
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String newPassword,
+  }) async {
+    try {
+      if (email.isEmpty || newPassword.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Email and password are required',
+        };
+      }
+
+      if (newPassword.length < 6) {
+        return {
+          'success': false,
+          'message': 'Password must be at least 6 characters',
+        };
+      }
+
+      // Re-authenticate and update password
+      final user = _auth.currentUser;
+      if (user == null) {
+        return {
+          'success': false,
+          'message': 'No user logged in',
+        };
+      }
+
+      await user.updatePassword(newPassword);
+
+      return {
+        'success': true,
+        'message': 'Password updated successfully',
+      };
+    } on FirebaseAuthException catch (e) {
+      return {
+        'success': false,
+        'message': _getPasswordResetErrorMessage(e.code),
+        'error': e.code,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Error resetting password: $e',
+      };
+    }
+  }
+
+  static String _getPasswordResetErrorMessage(String code) {
+    switch (code) {
+      case 'user-not-found':
+        return 'No account found with this email address';
+      case 'invalid-email':
+        return 'Invalid email address';
+      case 'too-many-requests':
+        return 'Too many requests. Please try again later';
+      case 'weak-password':
+        return 'New password is too weak';
+      case 'requires-recent-login':
+        return 'Please log in again before changing your password';
+      default:
+        return 'Error: $code';
+    }
   }
 }

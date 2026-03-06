@@ -51,7 +51,17 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       // Extract hall ticket number from Firebase email
       // Email format: [hallTicketNumber]@sru.edu.in
       final email = user.email ?? '';
-      final hallTicketNumber = email.split('@')[0].toUpperCase();
+      var hallTicketNumber = UserService.getCurrentUserId();
+      
+      // Fallback to email extraction if UserService hasn't cached yet
+      if (hallTicketNumber == null || hallTicketNumber.isEmpty) {
+        hallTicketNumber = email.split('@')[0].toUpperCase();
+      }
+      
+      if (hallTicketNumber.isEmpty) {
+        _showError('User information not found');
+        return;
+      }
 
       // Fetch student data using hall ticket number as document ID
       final studentDoc = await FirebaseFirestore.instance

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../services/user_service.dart';
 import '../../../widgets/app_header.dart';
 import '../../../services/feedback_service.dart';
 
@@ -67,7 +68,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       if (user == null) throw Exception('Not logged in');
 
       final email = user.email ?? '';
-      final rollNumber = email.split('@')[0].toUpperCase();
+      final rollNumber = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
       final studentDoc =
           await _firestore.collection('students').doc(rollNumber).get();
 

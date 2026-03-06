@@ -107,16 +107,9 @@ class FacultyAssignmentService {
             return preferences;
           }
           
-          // Also try matching email prefix with facultyEmail prefix
-          if (facultyEmail != null && facultyEmail.contains('@')) {
-            final emailPrefix = facultyEmail.split('@')[0].toLowerCase();
-            if (storedEmail.isNotEmpty && storedEmail.split('@')[0] == emailPrefix) {
-              snapshot = await _coursePreferencesCollection
-                  .where('facultyEmail', isEqualTo: data['facultyEmail'])
-                  .get();
-              break;
-            }
-          }
+          // NOTE: Email prefix matching removed - not compatible with custom email system
+          // facultyId from UserService now provides direct ID from backend
+
         }
       }
 

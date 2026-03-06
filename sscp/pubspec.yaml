@@ -43,6 +43,7 @@ dependencies:
   webview_flutter: ^4.7.0
   printing: ^5.12.0
   pdf: ^3.10.8
+  app_links: ^6.3.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

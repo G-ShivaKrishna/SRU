@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 import 'faculty_home.dart';
+import '../../../services/user_service.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
+import '../../../widgets/forgot_password_dialog.dart';
+import '../../../widgets/reset_link_helper.dart';
 
 class FacultyLoginScreen extends StatefulWidget {
   const FacultyLoginScreen({super.key});
@@ -86,12 +90,38 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final email = '${facultyId.toLowerCase()}@sru.edu.in';
+      // Normalize faculty ID to uppercase
+      final normalizedFacultyId = facultyId.toUpperCase();
+
+      // Fetch faculty data to get custom email from Firestore
+      final facultyDoc = await FirebaseFirestore.instance
+          .collection('faculty')
+          .doc(normalizedFacultyId)
+          .get();
+
+      if (!facultyDoc.exists) {
+        setState(() => _isLoading = false);
+        _showError('Faculty record not found');
+        _refreshCaptcha();
+        return;
+      }
+
+      // Use the custom email stored in Firestore for authentication
+      final customEmail = facultyDoc['email'] ?? '';
+      if (customEmail.isEmpty) {
+        setState(() => _isLoading = false);
+        _showError('Email not configured for this faculty');
+        _refreshCaptcha();
+        return;
+      }
 
       await _auth.signInWithEmailAndPassword(
-        email: email,
+        email: customEmail,
         password: password,
       );
+
+      // Fetch and cache user ID from Firestore
+      await UserService.fetchAndCacheUserId();
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -104,8 +134,12 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
 
       if (e.code == 'user-not-found') {
         _showError('Faculty account not found. Contact admin.');
-      } else if (e.code == 'wrong-password') {
-        _showError('Incorrect password');
+      } else if (e.code == 'wrong-password' || 
+                 e.code == 'invalid-credential' || 
+                 e.code == 'invalid-login-credentials' ||
+                 e.code == 'INVALID_LOGIN_CREDENTIALS') {
+        _showErrorDialog('Incorrect Password',
+            'The password you entered is incorrect. Would you like to reset your password?');
       } else if (e.code == 'invalid-email') {
         _showError('Invalid faculty ID format');
       } else {
@@ -124,6 +158,62 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
         content: Text(message),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red.shade700, size: 24),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Use the "Forgot Password?" link below to reset your password securely via email.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600,
+            ),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
@@ -185,6 +275,47 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
                   },
                 ),
               ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const ResetLinkHelper(),
+                          );
+                        },
+                  icon: const Icon(Icons.link, size: 16),
+                  label: const Text('Have a reset link?'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.green.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => const ForgotPasswordDialog(
+                              role: 'faculty',
+                            ),
+                          );
+                        },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 0),
+                  ),
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(color: Colors.blue, fontSize: 14),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             Container(

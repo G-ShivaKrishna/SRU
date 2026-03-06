@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
 import '../../services/feedback_service.dart';
+import '../../services/user_service.dart';
 import 'screens/profile_screen.dart';
 import 'screens/attendance_entry_screen.dart';
 import 'screens/multi_batch_attendance_screen.dart';
@@ -90,7 +91,7 @@ class _FacultyHomeState extends State<FacultyHome> {
 
       _currentUser = user;
       final email = _currentUser?.email ?? '';
-      final facultyId = email.split('@')[0].toUpperCase();
+      final facultyId = UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
       final doc = await _firestore.collection('faculty').doc(facultyId).get();
       if (doc.exists) {
