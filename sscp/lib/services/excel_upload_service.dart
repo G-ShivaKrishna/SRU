@@ -96,8 +96,10 @@ class ExcelUploadService {
       if (isCsv) {
         // Parse CSV file
         final csvContent = utf8.decode(bytes);
-        final lines =
-            csvContent.split('\n').where((line) => line.trim().isNotEmpty).toList();
+        final lines = csvContent
+            .split('\n')
+            .where((line) => line.trim().isNotEmpty)
+            .toList();
 
         if (lines.isEmpty) {
           return {
@@ -111,8 +113,7 @@ class ExcelUploadService {
         }
 
         rows = lines
-            .map((line) =>
-                line.split(',').map((cell) => cell.trim()).toList())
+            .map((line) => line.split(',').map((cell) => cell.trim()).toList())
             .toList();
       } else {
         // Parse Excel file
@@ -215,6 +216,8 @@ class ExcelUploadService {
       // Parse data rows
       final List<Map<String, String>> dataRows = [];
       final List<String> rowErrors = [];
+      final Map<String, int> seenPrimaryKeys = {};
+      final Map<String, int> seenEmails = {};
 
       for (int rowIndex = 1; rowIndex < rows.length; rowIndex++) {
         final row = rows[rowIndex];
@@ -296,6 +299,40 @@ class ExcelUploadService {
             rowErrorMessages.add(
                 'Row ${rowIndex + 1}: Invalid email "${rowData['email']}"');
             isValidRow = false;
+          }
+        }
+
+        // Detect duplicate IDs and emails within the same uploaded file.
+        if (isValidRow) {
+          final currentRowNumber = rowIndex + 1;
+          final primaryKey = type == 'Students'
+              ? (rowData['hallTicketNumber'] ?? '').trim().toUpperCase()
+              : type == 'Faculty'
+                  ? (rowData['facultyId'] ?? '').trim().toLowerCase()
+                  : (rowData['feePaymentId'] ?? '').trim().toUpperCase();
+          final normalizedEmail = (rowData['email'] ?? '').trim().toLowerCase();
+
+          if (primaryKey.isNotEmpty && seenPrimaryKeys.containsKey(primaryKey)) {
+            final firstRow = seenPrimaryKeys[primaryKey]!;
+            rowErrorMessages.add(
+                'Row $currentRowNumber: Duplicate ID in file (already used in row $firstRow)');
+            isValidRow = false;
+          }
+
+          if (normalizedEmail.isNotEmpty && seenEmails.containsKey(normalizedEmail)) {
+            final firstRow = seenEmails[normalizedEmail]!;
+            rowErrorMessages.add(
+                'Row $currentRowNumber: Duplicate email in file (already used in row $firstRow)');
+            isValidRow = false;
+          }
+
+          if (isValidRow) {
+            if (primaryKey.isNotEmpty) {
+              seenPrimaryKeys[primaryKey] = currentRowNumber;
+            }
+            if (normalizedEmail.isNotEmpty) {
+              seenEmails[normalizedEmail] = currentRowNumber;
+            }
           }
         }
 

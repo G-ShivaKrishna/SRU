@@ -139,8 +139,30 @@ class _AccountCreationPageState extends State<AccountCreationPage>
         'dateOfAdmission'
       ];
       sampleData = [
-        ['2203A51291', 'John Doe', 'CSE', '22CSBTB09', '2', '1', 'john.doe@student.edu', '2022', 'Regular', '2022-08-15'],
-        ['2203A51292', 'Jane Smith', 'CSE', '22CSBTB09', '2', '1', 'jane.smith@student.edu', '2022', 'Lateral', '2022-08-15'],
+        [
+          '2203A51291',
+          'John Doe',
+          'CSE',
+          '22CSBTB09',
+          '2',
+          '1',
+          'john.doe@student.edu',
+          '2022',
+          'Regular',
+          '2022-08-15'
+        ],
+        [
+          '2203A51292',
+          'Jane Smith',
+          'CSE',
+          '22CSBTB09',
+          '2',
+          '1',
+          'jane.smith@student.edu',
+          '2022',
+          'Lateral',
+          '2022-08-15'
+        ],
       ];
     } else if (type == 'Faculty') {
       headers = [
@@ -151,16 +173,23 @@ class _AccountCreationPageState extends State<AccountCreationPage>
         'email'
       ];
       sampleData = [
-        ['FAC001', 'Dr. Jane Doe', 'CSE', 'Assistant Professor', 'jane.doe@faculty.edu'],
-        ['FAC002', 'Dr. John Smith', 'CSE', 'Associate Professor', 'john.smith@faculty.edu'],
+        [
+          'FAC001',
+          'Dr. Jane Doe',
+          'CSE',
+          'Assistant Professor',
+          'jane.doe@faculty.edu'
+        ],
+        [
+          'FAC002',
+          'Dr. John Smith',
+          'CSE',
+          'Associate Professor',
+          'john.smith@faculty.edu'
+        ],
       ];
     } else {
-      headers = [
-        'feePaymentId',
-        'staffName',
-        'department',
-        'email'
-      ];
+      headers = ['feePaymentId', 'staffName', 'department', 'email'];
       sampleData = [
         ['FEE001', 'Finance Officer 1', 'Accounts', 'fee.officer1@edu'],
         ['FEE002', 'Finance Officer 2', 'Accounts', 'fee.officer2@edu'],
@@ -175,7 +204,9 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     // Add sample data rows
     for (final row in sampleData) {
       sheet.appendRow(
-        row.map((cell) => excel_package.TextCellValue(cell.toString())).toList(),
+        row
+            .map((cell) => excel_package.TextCellValue(cell.toString()))
+            .toList(),
       );
     }
 
@@ -251,8 +282,30 @@ class _AccountCreationPageState extends State<AccountCreationPage>
         'dateOfAdmission'
       ];
       sampleData = [
-        ['2203A51291', 'John Doe', 'CSE', '22CSBTB09', '2', '1', 'john.doe@student.edu', '2022', 'Regular', '2022-08-15'],
-        ['2203A51292', 'Jane Smith', 'CSE', '22CSBTB09', '2', '1', 'jane.smith@student.edu', '2022', 'Lateral', '2022-08-15'],
+        [
+          '2203A51291',
+          'John Doe',
+          'CSE',
+          '22CSBTB09',
+          '2',
+          '1',
+          'john.doe@student.edu',
+          '2022',
+          'Regular',
+          '2022-08-15'
+        ],
+        [
+          '2203A51292',
+          'Jane Smith',
+          'CSE',
+          '22CSBTB09',
+          '2',
+          '1',
+          'jane.smith@student.edu',
+          '2022',
+          'Lateral',
+          '2022-08-15'
+        ],
       ];
     } else if (type == 'Faculty') {
       headers = [
@@ -263,16 +316,23 @@ class _AccountCreationPageState extends State<AccountCreationPage>
         'email'
       ];
       sampleData = [
-        ['FAC001', 'Dr. Jane Doe', 'CSE', 'Assistant Professor', 'jane.doe@faculty.edu'],
-        ['FAC002', 'Dr. John Smith', 'CSE', 'Associate Professor', 'john.smith@faculty.edu'],
+        [
+          'FAC001',
+          'Dr. Jane Doe',
+          'CSE',
+          'Assistant Professor',
+          'jane.doe@faculty.edu'
+        ],
+        [
+          'FAC002',
+          'Dr. John Smith',
+          'CSE',
+          'Associate Professor',
+          'john.smith@faculty.edu'
+        ],
       ];
     } else {
-      headers = [
-        'feePaymentId',
-        'staffName',
-        'department',
-        'email'
-      ];
+      headers = ['feePaymentId', 'staffName', 'department', 'email'];
       sampleData = [
         ['FEE001', 'Finance Officer 1', 'Accounts', 'fee.officer1@edu'],
         ['FEE002', 'Finance Officer 2', 'Accounts', 'fee.officer2@edu'],
@@ -333,7 +393,6 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       if (mounted) setState(() => _isDownloadingTemplate = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -458,7 +517,8 @@ class _AccountCreationPageState extends State<AccountCreationPage>
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Icon(Icons.download),
@@ -466,7 +526,8 @@ class _AccountCreationPageState extends State<AccountCreationPage>
                       _isDownloadingTemplate
                           ? 'Downloading...'
                           : 'Download .xlsx',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
@@ -485,7 +546,8 @@ class _AccountCreationPageState extends State<AccountCreationPage>
                     icon: const Icon(Icons.download),
                     label: const Text(
                       'Download .csv',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal,
@@ -510,12 +572,15 @@ class _AccountCreationPageState extends State<AccountCreationPage>
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Icon(Icons.download),
                     label: Text(
-                      _isDownloadingTemplate ? 'Downloading...' : 'Download .xlsx',
+                      _isDownloadingTemplate
+                          ? 'Downloading...'
+                          : 'Download .xlsx',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -973,13 +1038,16 @@ class _AccountCreationPageState extends State<AccountCreationPage>
         scrollDirection: Axis.horizontal,
         child: DataTable(
           columns: headers
-              .map((h) => DataColumn(label: Text(h, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600))))
+              .map((h) => DataColumn(
+                  label: Text(h,
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w600))))
               .toList(),
           rows: sampleRows
               .map((row) => DataRow(
                     cells: row
-                        .map((cell) =>
-                            DataCell(Text(cell, style: const TextStyle(fontSize: 10))))
+                        .map((cell) => DataCell(
+                            Text(cell, style: const TextStyle(fontSize: 10))))
                         .toList(),
                   ))
               .toList(),

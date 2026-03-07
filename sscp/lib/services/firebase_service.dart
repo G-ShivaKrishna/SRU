@@ -21,11 +21,38 @@ class FirebaseService {
     String? dateOfAdmission,
   }) async {
     try {
+      final normalizedHallTicket = hallTicketNumber.trim().toUpperCase();
+
+      // Check if student already exists
+      DocumentSnapshot<Map<String, dynamic>> existingStudent;
+      try {
+        existingStudent = await _getDocumentFromServer(
+          collection: 'students',
+          docId: normalizedHallTicket,
+        );
+      } on FirebaseException catch (e) {
+        return {
+          'success': false,
+          'message':
+              'Unable to verify existing student on server (${e.code}). Check internet and try again.',
+          'error': 'duplicate_check_failed',
+        };
+      }
+      
+      if (existingStudent.exists) {
+        return {
+          'success': false,
+          'message':
+              'Student with ID "$normalizedHallTicket" already exists',
+          'error': 'duplicate_account',
+        };
+      }
+
       // Use custom email for Firebase Auth (provided by admin)
       final firebaseEmail = email.toLowerCase();
       // Store auto-generated ID-based email for reference
-      final idBasedEmail = '${hallTicketNumber.toLowerCase()}@sru.edu.in';
-      final firebasePassword = _generateStrongPassword(hallTicketNumber);
+      final idBasedEmail = '${normalizedHallTicket.toLowerCase()}@sru.edu.in';
+      final firebasePassword = _generateStrongPassword(normalizedHallTicket);
 
       // Create Firebase Auth user with timeout
       UserCredential userCredential;
@@ -40,7 +67,7 @@ class FirebaseService {
         if (e.code == 'email-already-in-use') {
           return {
             'success': false,
-            'message': 'Student ID already has an account',
+            'message': 'Email "$firebaseEmail" is already in use by another account',
             'error': e.code,
           };
         }
@@ -50,9 +77,9 @@ class FirebaseService {
       final uid = userCredential.user!.uid;
 
       // Create Firestore student document
-      await _firestore.collection('students').doc(hallTicketNumber).set({
+      await _firestore.collection('students').doc(normalizedHallTicket).set({
         'uid': uid,
-        'hallTicketNumber': hallTicketNumber,
+        'hallTicketNumber': normalizedHallTicket,
         'name': studentName,
         'department': department,
         'batchNumber': batchNumber,
@@ -75,7 +102,7 @@ class FirebaseService {
       await _firestore.collection('users').doc(uid).set({
         'uid': uid,
         'role': 'student',
-        'studentId': hallTicketNumber,
+        'studentId': normalizedHallTicket,
         'email': firebaseEmail,
         'customEmail': email,
         'idBasedEmail': idBasedEmail,
@@ -86,7 +113,7 @@ class FirebaseService {
         'success': true,
         'message': 'Student account created successfully',
         'uid': uid,
-        'username': hallTicketNumber,
+        'username': normalizedHallTicket,
         'password': firebasePassword,
         'email': email,
         'firebaseEmail': firebaseEmail,
@@ -114,11 +141,37 @@ class FirebaseService {
     required String email,
   }) async {
     try {
+      final normalizedFacultyId = facultyId.trim();
+
+      // Check if faculty already exists
+      DocumentSnapshot<Map<String, dynamic>> existingFaculty;
+      try {
+        existingFaculty = await _getDocumentFromServer(
+          collection: 'faculty',
+          docId: normalizedFacultyId,
+        );
+      } on FirebaseException catch (e) {
+        return {
+          'success': false,
+          'message':
+              'Unable to verify existing faculty on server (${e.code}). Check internet and try again.',
+          'error': 'duplicate_check_failed',
+        };
+      }
+      
+      if (existingFaculty.exists) {
+        return {
+          'success': false,
+          'message': 'Faculty with ID "$normalizedFacultyId" already exists',
+          'error': 'duplicate_account',
+        };
+      }
+
       // Use custom email for Firebase Auth (provided by admin)
       final firebaseEmail = email.toLowerCase();
       // Store auto-generated ID-based email for reference
-      final idBasedEmail = '${facultyId.toLowerCase()}@sru.edu.in';
-      final firebasePassword = _generateStrongPassword(facultyId);
+      final idBasedEmail = '${normalizedFacultyId.toLowerCase()}@sru.edu.in';
+      final firebasePassword = _generateStrongPassword(normalizedFacultyId);
 
       // Create Firebase Auth user with timeout
       UserCredential userCredential;
@@ -133,7 +186,7 @@ class FirebaseService {
         if (e.code == 'email-already-in-use') {
           return {
             'success': false,
-            'message': 'Faculty ID already has an account',
+            'message': 'Email "$firebaseEmail" is already in use by another account',
             'error': e.code,
           };
         }
@@ -143,9 +196,9 @@ class FirebaseService {
       final uid = userCredential.user!.uid;
 
       // Create Firestore faculty document
-      await _firestore.collection('faculty').doc(facultyId).set({
+      await _firestore.collection('faculty').doc(normalizedFacultyId).set({
         'uid': uid,
-        'facultyId': facultyId,
+        'facultyId': normalizedFacultyId,
         'name': facultyName,
         'department': department,
         'designation': designation,
@@ -163,7 +216,7 @@ class FirebaseService {
       await _firestore.collection('users').doc(uid).set({
         'uid': uid,
         'role': 'faculty',
-        'facultyId': facultyId,
+        'facultyId': normalizedFacultyId,
         'email': firebaseEmail,
         'customEmail': email,
         'idBasedEmail': idBasedEmail,
@@ -174,7 +227,7 @@ class FirebaseService {
         'success': true,
         'message': 'Faculty account created successfully',
         'uid': uid,
-        'username': facultyId,
+        'username': normalizedFacultyId,
         'password': firebasePassword,
         'email': email,
         'firebaseEmail': firebaseEmail,
@@ -211,6 +264,30 @@ class FirebaseService {
         throw Exception('Invalid email format');
       }
 
+      // Check if fee payment account already exists
+      DocumentSnapshot<Map<String, dynamic>> existingFeePayment;
+      try {
+        existingFeePayment = await _getDocumentFromServer(
+          collection: 'feePayments',
+          docId: normalizedId,
+        );
+      } on FirebaseException catch (e) {
+        return {
+          'success': false,
+          'message':
+              'Unable to verify existing fee payment account on server (${e.code}). Check internet and try again.',
+          'error': 'duplicate_check_failed',
+        };
+      }
+      
+      if (existingFeePayment.exists) {
+        return {
+          'success': false,
+          'message': 'Fee Payment ID "$normalizedId" already exists',
+          'error': 'duplicate_account',
+        };
+      }
+
       // Use custom email for Firebase Auth (provided by admin)
       final firebaseEmail = email.toLowerCase();
       // Store auto-generated ID-based email for reference
@@ -229,7 +306,8 @@ class FirebaseService {
         if (e.code == 'email-already-in-use') {
           return {
             'success': false,
-            'message': 'Fee Payment ID already has an account',
+            'message':
+                'Email "$firebaseEmail" is already in use by another account',
             'error': e.code,
           };
         }
@@ -518,6 +596,14 @@ class FirebaseService {
   }
 
   // ============ HELPER METHODS ============
+  static Future<DocumentSnapshot<Map<String, dynamic>>> _getDocumentFromServer({
+    required String collection,
+    required String docId,
+  }) async {
+    final docRef = _firestore.collection(collection).doc(docId);
+    return await docRef.get(const GetOptions(source: Source.server));
+  }
+
   static String _generateStrongPassword(String id) {
     // Password is same as the ID
     return id;
@@ -530,7 +616,7 @@ class FirebaseService {
   static String _getAuthErrorMessage(String code) {
     switch (code) {
       case 'email-already-in-use':
-        return 'This ID already has an account';
+        return 'Email is already in use by another account';
       case 'weak-password':
         return 'Password is too weak';
       case 'invalid-email':
