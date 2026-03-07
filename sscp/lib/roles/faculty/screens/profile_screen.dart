@@ -57,8 +57,9 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading)
+    if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     if (_loadError != null) {
       return Scaffold(

@@ -120,46 +120,46 @@ class _MemoContent extends StatelessWidget {
             child: DataTable(
               border: TableBorder.all(color: Colors.grey.shade400),
               headingRowColor:
-                  MaterialStateProperty.all(const Color(0xFF1e3a5f)),
-              columns: [
+                  WidgetStateProperty.all(const Color(0xFF1e3a5f)),
+              columns: const [
                 DataColumn(
                   label: Text('S.NO',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 DataColumn(
                   label: Text('COURSE CODE',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 DataColumn(
                   label: Text('COURSE TITLE',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 DataColumn(
                   label: Text('INT',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 DataColumn(
                   label: Text('EXT',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 DataColumn(
                   label: Text('TOTAL',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 DataColumn(
                   label: Text('GRADE',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
                 DataColumn(
                   label: Text('STATUS',
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ],
@@ -188,7 +188,7 @@ class _MemoContent extends StatelessWidget {
                   children: [
                     _SummaryCell('TOTAL CREDITS', data['totalCredits'] ?? '—'),
                     _SummaryCell('CREDIT POINTS', data['creditPoints'] ?? '—'),
-                    _SummaryCell('', ''),
+                    const _SummaryCell('', ''),
                   ],
                 ),
               ],

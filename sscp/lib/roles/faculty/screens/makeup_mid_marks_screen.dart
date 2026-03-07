@@ -200,7 +200,9 @@ class _MakeupMarksEntryState extends State<_MakeupMarksEntry> {
 
   @override
   void dispose() {
-    for (final c in _marksCtrl.values) c.dispose();
+    for (final c in _marksCtrl.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 

@@ -279,9 +279,9 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                         const SizedBox(height: 24),
 
                         // New Password Field
-                        Text(
+                        const Text(
                           'New Password',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -313,9 +313,9 @@ class _PasswordResetScreenState extends State<PasswordResetScreen> {
                         const SizedBox(height: 20),
 
                         // Confirm Password Field
-                        Text(
+                        const Text(
                           'Confirm Password',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),

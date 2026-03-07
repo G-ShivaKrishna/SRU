@@ -249,7 +249,9 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
       // Only show subjects matching the window's target year & semester
       if (targetYear != null && docYear != targetYear) continue;
       if (targetSemester != null &&
-          _normSem(docSem) != _normSem(targetSemester)) continue;
+          _normSem(docSem) != _normSem(targetSemester)) {
+        continue;
+      }
       subjects.add({
         'subjectCode': d['subjectCode']?.toString() ?? '',
         'subjectName': d['subjectName']?.toString() ?? '',

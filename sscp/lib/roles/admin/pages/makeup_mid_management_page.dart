@@ -172,7 +172,7 @@ class _MakeupWindowsTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 // Year dropdown
                 DropdownButtonFormField<int>(
-                  value: targetYear,
+                  initialValue: targetYear,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Target Year *',
@@ -191,7 +191,7 @@ class _MakeupWindowsTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 // Semester dropdown
                 DropdownButtonFormField<String>(
-                  value: targetSemester,
+                  initialValue: targetSemester,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Target Semester *',
@@ -849,7 +849,7 @@ class _MakeupRegistrationsTabState extends State<_MakeupRegistrationsTab> {
                     style: TextStyle(color: Colors.grey));
               }
               return DropdownButtonFormField<String>(
-                value: _selectedWindowId,
+                initialValue: _selectedWindowId,
                 isExpanded: true,
                 decoration: const InputDecoration(
                     labelText: 'Select Makeup Mid Window',
@@ -1030,7 +1030,7 @@ class _MakeupMarksTabState extends State<_MakeupMarksTab> {
                   border: OutlineInputBorder(),
                   isDense: true,
                 ),
-                value: _selectedWindowId,
+                initialValue: _selectedWindowId,
                 isExpanded: true,
                 items: _buildWindowDropdown(windows),
                 onChanged: (v) => setState(() => _selectedWindowId = v),

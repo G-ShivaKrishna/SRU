@@ -742,8 +742,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
     final csv = StringBuffer()..writeln(headers.join(','));
     for (final student in _studentRows) {
-      final row = <String>[student.studentId, student.studentName]
-        ..addAll(List.filled(_components.length, ''));
+      final row = <String>[student.studentId, student.studentName, ...List.filled(_components.length, '')]
+        ;
       csv.writeln(row.join(','));
     }
     return csv.toString();
