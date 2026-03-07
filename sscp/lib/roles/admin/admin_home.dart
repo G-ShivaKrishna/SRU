@@ -1003,8 +1003,8 @@ class _OverflowNavButton extends StatelessWidget {
                   ),
                   children: subs
                       .map((sub) => ListTile(
-                            contentPadding: const EdgeInsets.only(
-                                left: 40, right: 20),
+                            contentPadding:
+                                const EdgeInsets.only(left: 40, right: 20),
                             title: Text(
                               sub,
                               style: const TextStyle(
@@ -1023,8 +1023,7 @@ class _OverflowNavButton extends StatelessWidget {
             }
             // Regular item
             return ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 20),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
               title: Text(
                 item,
                 style: const TextStyle(
