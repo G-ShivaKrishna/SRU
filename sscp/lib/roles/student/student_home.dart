@@ -858,9 +858,7 @@ class _StudentHomeState extends State<StudentHome> {
                     );
                   }
                   return InkWell(
-                    onTap: isHome
-                        ? null
-                        : () => _navigateToPage(context, item),
+                    onTap: isHome ? null : () => _navigateToPage(context, item),
                     hoverColor: Colors.white.withOpacity(0.12),
                     child: labelWidget,
                   );

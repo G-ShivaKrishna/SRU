@@ -105,7 +105,8 @@ class _StudentLookupTabState extends State<_StudentLookupTab> {
           return m;
         }).toList();
       });
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       setState(() => _loadingAll = false);
     }
   }
@@ -267,8 +268,8 @@ class _StudentLookupTabState extends State<_StudentLookupTab> {
               style: const TextStyle(color: Colors.white, fontSize: 14),
             ),
           ),
-          title: Text(name,
-              style: const TextStyle(fontWeight: FontWeight.w600)),
+          title:
+              Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
           subtitle: Text('$roll  •  $dept  •  Sem $sem'),
           trailing: const Icon(Icons.arrow_forward_ios, size: 14),
           onTap: () => setState(() {
@@ -1232,7 +1233,8 @@ class _FacultyLookupTabState extends State<_FacultyLookupTab> {
           return m;
         }).toList();
       });
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       setState(() => _loadingAll = false);
     }
   }
@@ -1407,8 +1409,8 @@ class _FacultyLookupTabState extends State<_FacultyLookupTab> {
               style: const TextStyle(color: Colors.white, fontSize: 14),
             ),
           ),
-          title: Text(name,
-              style: const TextStyle(fontWeight: FontWeight.w600)),
+          title:
+              Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
           subtitle: Text('$id  •  $dept  •  $desig'),
           trailing: const Icon(Icons.arrow_forward_ios, size: 14),
           onTap: () => setState(() {
@@ -1480,8 +1482,7 @@ class _FacultyLookupTabState extends State<_FacultyLookupTab> {
             final dept = f['department']?.toString() ?? '';
             return ListTile(
               leading: const CircleAvatar(
-                  radius: 20,
-                  child: Icon(Icons.person_outline)),
+                  radius: 20, child: Icon(Icons.person_outline)),
               title: Text(name),
               subtitle: Text('$id  •  $dept'),
               onTap: () => _selectFaculty(f),

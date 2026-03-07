@@ -271,16 +271,18 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     try {
       final user = _auth.currentUser!;
       final facultyId = user.email!.split('@')[0].toUpperCase();
-      
+
       // Validate that assignment is still active before submitting attendance
       final assignDoc = await _firestore
           .collection('facultyAssignments')
           .doc(assignment.docId)
           .get();
-      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
-        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      if (!assignDoc.exists ||
+          (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception(
+            'This course is no longer active. Students may have been promoted. Please refresh the page.');
       }
-      
+
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
       final batches = _selectedBatch != null
           ? [_selectedBatch!]
@@ -444,8 +446,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                   items: [
                     const DropdownMenuItem(
                         value: null, child: Text('All Batches')),
-                    ...batches.map(
-                        (b) => DropdownMenuItem(value: b, child: Text(b))),
+                    ...batches
+                        .map((b) => DropdownMenuItem(value: b, child: Text(b))),
                   ],
                   onChanged: batches.isEmpty
                       ? null
@@ -468,10 +470,10 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      courseWidget,
-                      const SizedBox(height: 16),
-                      batchWidget,
-                    ]);
+                        courseWidget,
+                        const SizedBox(height: 16),
+                        batchWidget,
+                      ]);
           }),
           const SizedBox(height: 20),
           // Date + Submit

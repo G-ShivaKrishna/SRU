@@ -77,7 +77,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const AcademicCalendarManagementPage();
     } else if (pageName == 'Course Management') {
       page = const AdminCourseManagementScreen();
-    } else if (pageName == 'Sem Memo Release' || pageName == 'CIE Memo Release') {
+    } else if (pageName == 'Sem Memo Release' ||
+        pageName == 'CIE Memo Release') {
       page = const AdminCieMemoReleaseScreen();
     } else if (pageName == 'Subject Management') {
       page = const SubjectManagementPage();
@@ -322,8 +323,7 @@ class _AdminHomeState extends State<AdminHome> {
                       return PopupMenuButton<String>(
                         offset: const Offset(0, 42),
                         color: const Color(0xFF1e3a5f),
-                        onSelected: (value) =>
-                            _navigateToPage(context, value),
+                        onSelected: (value) => _navigateToPage(context, value),
                         itemBuilder: (_) => subItems
                             .map((s) => PopupMenuItem<String>(
                                   value: s,

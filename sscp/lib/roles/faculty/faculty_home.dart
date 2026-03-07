@@ -387,7 +387,6 @@ class _FacultyHomeState extends State<FacultyHome> {
     });
   }
 
-
   Widget _buildStatusBar(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
