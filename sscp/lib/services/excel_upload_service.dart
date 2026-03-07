@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert' show utf8;
 import 'package:excel/excel.dart';
 import 'firebase_service.dart';
 
@@ -74,11 +75,11 @@ class ExcelUploadService {
 
       // Validate file format
       final fileNameLower = actualFileName.toLowerCase();
-      final isValidFormat = fileNameLower.endsWith('.xlsx') ||
-          fileNameLower.endsWith('.xls') ||
-          fileNameLower.endsWith('.csv');
+      final isCsv = fileNameLower.endsWith('.csv');
+      final isExcel =
+          fileNameLower.endsWith('.xlsx') || fileNameLower.endsWith('.xls');
 
-      if (!isValidFormat) {
+      if (!isCsv && !isExcel) {
         return {
           'success': false,
           'message': 'Invalid file format. Please use .xlsx, .xls, or .csv',
@@ -89,27 +90,81 @@ class ExcelUploadService {
         };
       }
 
-      // Parse the Excel file
-      final excel = Excel.decodeBytes(bytes);
+      // Parse based on file type
+      List<List<String>> rows;
 
-      if (excel.sheets.isEmpty) {
-        return {
-          'success': false,
-          'message': 'Excel file is empty. No sheets found.',
-          'totalRows': 0,
-          'created': 0,
-          'failed': 0,
-          'failedReasons': [],
-        };
+      if (isCsv) {
+        // Parse CSV file
+        final csvContent = utf8.decode(bytes);
+        final lines =
+            csvContent.split('\n').where((line) => line.trim().isNotEmpty).toList();
+
+        if (lines.isEmpty) {
+          return {
+            'success': false,
+            'message': 'CSV file is empty. No data found.',
+            'totalRows': 0,
+            'created': 0,
+            'failed': 0,
+            'failedReasons': [],
+          };
+        }
+
+        rows = lines
+            .map((line) =>
+                line.split(',').map((cell) => cell.trim()).toList())
+            .toList();
+      } else {
+        // Parse Excel file
+        try {
+          final excel = Excel.decodeBytes(bytes);
+
+          if (excel.sheets.isEmpty) {
+            return {
+              'success': false,
+              'message': 'Excel file is empty. No sheets found.',
+              'totalRows': 0,
+              'created': 0,
+              'failed': 0,
+              'failedReasons': [],
+            };
+          }
+
+          final sheet = excel.sheets.values.first;
+
+          if (sheet.rows.isEmpty) {
+            return {
+              'success': false,
+              'message': 'Excel sheet is empty. No data found.',
+              'totalRows': 0,
+              'created': 0,
+              'failed': 0,
+              'failedReasons': [],
+            };
+          }
+
+          // Convert Excel rows to List<List<String>>
+          rows = sheet.rows
+              .map((row) => row
+                  .map((cell) => cell?.value?.toString().trim() ?? '')
+                  .toList())
+              .toList();
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Error parsing Excel file: $e',
+            'totalRows': 0,
+            'created': 0,
+            'failed': 0,
+            'failedReasons': [],
+          };
+        }
       }
 
-      // Get the first sheet
-      final sheet = excel.sheets.values.first;
-
-      if (sheet.rows.isEmpty) {
+      if (rows.isEmpty) {
         return {
           'success': false,
-          'message': 'Excel sheet is empty. No data found.',
+          'message': 'File is empty. No data found.',
           'totalRows': 0,
           'created': 0,
           'failed': 0,
@@ -125,12 +180,12 @@ class ExcelUploadService {
               : feePaymentRequiredColumns;
 
       // Parse header row (first row)
-      final headerRow = sheet.rows.first;
+      final headerRow = rows.first;
       final headers = <String>[];
       final headerIndexMap = <String, int>{};
 
       for (int i = 0; i < headerRow.length; i++) {
-        final cellValue = headerRow[i]?.value?.toString().trim() ?? '';
+        final cellValue = headerRow[i].trim();
         if (cellValue.isNotEmpty) {
           headers.add(cellValue);
           // Store with lowercase key for case-insensitive matching
@@ -150,9 +205,9 @@ class ExcelUploadService {
         return {
           'success': false,
           'message': 'Missing required columns: ${missingColumns.join(", ")}',
-          'totalRows': sheet.rows.length - 1, // Exclude header
+          'totalRows': rows.length - 1, // Exclude header
           'created': 0,
-          'failed': sheet.rows.length - 1,
+          'failed': rows.length - 1,
           'failedReasons': ['Missing columns: ${missingColumns.join(", ")}'],
         };
       }
@@ -161,8 +216,8 @@ class ExcelUploadService {
       final List<Map<String, String>> dataRows = [];
       final List<String> rowErrors = [];
 
-      for (int rowIndex = 1; rowIndex < sheet.rows.length; rowIndex++) {
-        final row = sheet.rows[rowIndex];
+      for (int rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+        final row = rows[rowIndex];
         final Map<String, String> rowData = {};
         final List<String> rowErrorMessages = [];
 
@@ -172,7 +227,7 @@ class ExcelUploadService {
         for (final column in requiredColumns) {
           final cellIndex = headerIndexMap[column.toLowerCase()] ?? -1;
           var cellValue = cellIndex != -1 && cellIndex < row.length
-              ? row[cellIndex]?.value?.toString().trim() ?? ''
+              ? row[cellIndex].trim()
               : '';
 
           // For date fields, extract just the date portion if it contains ISO 8601 format
@@ -256,10 +311,10 @@ class ExcelUploadService {
         return {
           'success': false,
           'message':
-              'No valid data found in Excel file. Please check the errors below.',
-          'totalRows': sheet.rows.length - 1,
+              'No valid data found in file. Please check the errors below.',
+          'totalRows': rows.length - 1,
           'created': 0,
-          'failed': sheet.rows.length - 1,
+          'failed': rows.length - 1,
           'failedReasons': rowErrors,
         };
       }
@@ -270,9 +325,9 @@ class ExcelUploadService {
           'success': false,
           'message':
               'Fee Payment upload blocked. Fix all row errors before creating accounts.',
-          'totalRows': sheet.rows.length - 1,
+          'totalRows': rows.length - 1,
           'created': 0,
-          'failed': sheet.rows.length - 1,
+          'failed': rows.length - 1,
           'failedReasons': rowErrors,
         };
       }
