@@ -126,12 +126,25 @@ class _AccountCreationPageState extends State<AccountCreationPage>
 
     if (type == 'Students') {
       headers = [
-        'hallTicketNumber', 'studentName', 'department', 'batchNumber',
-        'year', 'semester', 'email', 'admissionYear', 'admissionType',
+        'hallTicketNumber',
+        'studentName',
+        'department',
+        'batchNumber',
+        'year',
+        'semester',
+        'email',
+        'admissionYear',
+        'admissionType',
         'dateOfAdmission'
       ];
     } else if (type == 'Faculty') {
-      headers = ['facultyId', 'facultyName', 'department', 'designation', 'email'];
+      headers = [
+        'facultyId',
+        'facultyName',
+        'department',
+        'designation',
+        'email'
+      ];
     } else {
       headers = ['feePaymentId', 'staffName', 'department', 'email'];
     }
@@ -196,12 +209,25 @@ class _AccountCreationPageState extends State<AccountCreationPage>
 
     if (type == 'Students') {
       headers = [
-        'hallTicketNumber', 'studentName', 'department', 'batchNumber',
-        'year', 'semester', 'email', 'admissionYear', 'admissionType',
+        'hallTicketNumber',
+        'studentName',
+        'department',
+        'batchNumber',
+        'year',
+        'semester',
+        'email',
+        'admissionYear',
+        'admissionType',
         'dateOfAdmission'
       ];
     } else if (type == 'Faculty') {
-      headers = ['facultyId', 'facultyName', 'department', 'designation', 'email'];
+      headers = [
+        'facultyId',
+        'facultyName',
+        'department',
+        'designation',
+        'email'
+      ];
     } else {
       headers = ['feePaymentId', 'staffName', 'department', 'email'];
     }
@@ -800,7 +826,9 @@ class _AccountCreationPageState extends State<AccountCreationPage>
                           )
                         : const Icon(Icons.download),
                     label: Text(
-                      _isDownloadingTemplate ? 'Downloading...' : 'Download .xlsx',
+                      _isDownloadingTemplate
+                          ? 'Downloading...'
+                          : 'Download .xlsx',
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 11),
                     ),
@@ -821,7 +849,8 @@ class _AccountCreationPageState extends State<AccountCreationPage>
                     icon: const Icon(Icons.download),
                     label: const Text(
                       'Download .csv',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal,
@@ -852,7 +881,9 @@ class _AccountCreationPageState extends State<AccountCreationPage>
                           )
                         : const Icon(Icons.download),
                     label: Text(
-                      _isDownloadingTemplate ? 'Downloading...' : 'Download .xlsx',
+                      _isDownloadingTemplate
+                          ? 'Downloading...'
+                          : 'Download .xlsx',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -908,21 +939,66 @@ class _AccountCreationPageState extends State<AccountCreationPage>
 
     if (type == 'Students') {
       headers = [
-        'hallTicketNumber', 'studentName', 'department', 'batchNumber',
-        'year', 'semester', 'email', 'admissionYear', 'admissionType',
+        'hallTicketNumber',
+        'studentName',
+        'department',
+        'batchNumber',
+        'year',
+        'semester',
+        'email',
+        'admissionYear',
+        'admissionType',
         'dateOfAdmission',
       ];
       sampleRows = [
-        ['2203A51291', 'John Doe', 'CSE', '22CSBTB09', '2', '1',
-          'john@edu.com', '2022', 'Regular', '2022-08-15'],
-        ['2203A51292', 'Jane Smith', 'ECE', '22ECEBTB03', '2', '1',
-          'jane@edu.com', '2022', 'Lateral', '2022-08-15'],
+        [
+          '2203A51291',
+          'John Doe',
+          'CSE',
+          '22CSBTB09',
+          '2',
+          '1',
+          'john@edu.com',
+          '2022',
+          'Regular',
+          '2022-08-15'
+        ],
+        [
+          '2203A51292',
+          'Jane Smith',
+          'ECE',
+          '22ECEBTB03',
+          '2',
+          '1',
+          'jane@edu.com',
+          '2022',
+          'Lateral',
+          '2022-08-15'
+        ],
       ];
     } else if (type == 'Faculty') {
-      headers = ['facultyId', 'facultyName', 'department', 'designation', 'email'];
+      headers = [
+        'facultyId',
+        'facultyName',
+        'department',
+        'designation',
+        'email'
+      ];
       sampleRows = [
-        ['FAC001', 'Dr. Jane Doe', 'CSE', 'Assistant Professor', 'jane@edu.com'],
-        ['FAC002', 'Dr. John Smith', 'ECE', 'Associate Professor', 'john@edu.com'],
+        [
+          'FAC001',
+          'Dr. Jane Doe',
+          'CSE',
+          'Assistant Professor',
+          'jane@edu.com'
+        ],
+        [
+          'FAC002',
+          'Dr. John Smith',
+          'ECE',
+          'Associate Professor',
+          'john@edu.com'
+        ],
       ];
     } else {
       headers = ['feePaymentId', 'staffName', 'department', 'email'];
