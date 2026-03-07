@@ -1000,6 +1000,7 @@ class _StudentHomeState extends State<StudentHome> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildDesktopMenu(BuildContext context, List<String> menuItems) {
     return Container(
       color: const Color(0xFF1e3a5f),

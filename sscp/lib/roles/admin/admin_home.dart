@@ -347,6 +347,7 @@ class _AdminHomeState extends State<AdminHome> {
                   if (overflow.isNotEmpty)
                     _OverflowNavButton(
                       items: overflow,
+                      subMenus: allSubMenus,
                       onSelected: (item) => _navigateToPage(context, item),
                     ),
                   const Spacer(),
@@ -954,33 +955,99 @@ class _AdminHomeState extends State<AdminHome> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Overflow "More ▼" nav button — shows remaining items as a dropdown
+// Overflow "More ▼" nav button — opens a bottom sheet with expandable groups
 // ─────────────────────────────────────────────────────────────────────────────
 class _OverflowNavButton extends StatelessWidget {
   final List<String> items;
+  final Map<String, List<String>> subMenus;
   final void Function(String) onSelected;
 
-  const _OverflowNavButton({required this.items, required this.onSelected});
+  const _OverflowNavButton({
+    required this.items,
+    required this.subMenus,
+    required this.onSelected,
+  });
+
+  void _openSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1e3a5f),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+      ),
+      builder: (_) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          children: items.map((item) {
+            final subs = subMenus[item];
+            if (subs != null) {
+              // Expandable parent — sub-items shown only when tapped
+              return Theme(
+                data: ThemeData(
+                  dividerColor: Colors.transparent,
+                  colorScheme: const ColorScheme.dark(),
+                ),
+                child: ExpansionTile(
+                  tilePadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                  iconColor: Colors.white70,
+                  collapsedIconColor: Colors.white54,
+                  title: Text(
+                    item,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  children: subs
+                      .map((sub) => ListTile(
+                            contentPadding: const EdgeInsets.only(
+                                left: 40, right: 20),
+                            title: Text(
+                              sub,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              onSelected(sub);
+                            },
+                          ))
+                      .toList(),
+                ),
+              );
+            }
+            // Regular item
+            return ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20),
+              title: Text(
+                item,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                onSelected(item);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      offset: const Offset(0, 42),
-      color: const Color(0xFF1e3a5f),
-      onSelected: onSelected,
-      itemBuilder: (_) => items
-          .map((item) => PopupMenuItem<String>(
-                value: item,
-                height: 40,
-                child: Text(
-                  item,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500),
-                ),
-              ))
-          .toList(),
+    return GestureDetector(
+      onTap: () => _openSheet(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: const Row(
