@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:excel/excel.dart' as excel_package;
 import '../../../services/excel_upload_service.dart';
+import '../../../utils/web_download_stub.dart'
+    if (dart.library.html) '../../../utils/web_download_web.dart';
+import '../../../utils/file_save_stub.dart'
+    if (dart.library.io) '../../../utils/file_save_io.dart';
 
 class AccountCreationPage extends StatefulWidget {
   const AccountCreationPage({super.key});
@@ -16,6 +22,7 @@ class _AccountCreationPageState extends State<AccountCreationPage>
   late TabController _methodTabController;
   late TabController _typeTabController;
   bool _isLoading = false;
+  bool _isDownloadingTemplate = false;
   Map<String, dynamic>? _uploadResult;
   File? _selectedFile;
   FilePickerResult? _selectedFilePickerResult;
@@ -110,6 +117,145 @@ class _AccountCreationPageState extends State<AccountCreationPage>
     _feePaymentControllers.forEach((_, controller) => controller.clear());
   }
 
+  // ============ TEMPLATE GENERATION METHODS ============
+  Uint8List _createExcelTemplate(String type) {
+    final excelFile = excel_package.Excel.createExcel();
+    final sheet = excelFile['Sheet1'];
+
+    late List<String> headers;
+
+    if (type == 'Students') {
+      headers = [
+        'hallTicketNumber', 'studentName', 'department', 'batchNumber',
+        'year', 'semester', 'email', 'admissionYear', 'admissionType',
+        'dateOfAdmission'
+      ];
+    } else if (type == 'Faculty') {
+      headers = ['facultyId', 'facultyName', 'department', 'designation', 'email'];
+    } else {
+      headers = ['feePaymentId', 'staffName', 'department', 'email'];
+    }
+
+    sheet.appendRow(
+      headers.map((h) => excel_package.TextCellValue(h)).toList(),
+    );
+    for (int i = 0; i < 10; i++) {
+      sheet.appendRow(
+        headers.map((_) => excel_package.TextCellValue('')).toList(),
+      );
+    }
+
+    final encoded = excelFile.encode() ?? <int>[];
+    return Uint8List.fromList(encoded);
+  }
+
+  Future<void> _downloadExcelTemplate(String type) async {
+    try {
+      setState(() => _isDownloadingTemplate = true);
+      final bytes = _createExcelTemplate(type);
+      final nowString = DateTime.now().toString().substring(0, 10);
+      final fileName = '${type}_Account_Template_$nowString.xlsx';
+
+      if (kIsWeb) {
+        downloadBytesOnWeb(bytes, fileName);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Template downloading: $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        return;
+      }
+
+      final savedPath = await saveBytesToLocalFile(bytes, fileName);
+      if (!mounted) return;
+      if (savedPath == null) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Template saved: $savedPath'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating template: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isDownloadingTemplate = false);
+    }
+  }
+
+  // ============ CSV TEMPLATE METHODS ============
+  String _createCsvTemplate(String type) {
+    late List<String> headers;
+
+    if (type == 'Students') {
+      headers = [
+        'hallTicketNumber', 'studentName', 'department', 'batchNumber',
+        'year', 'semester', 'email', 'admissionYear', 'admissionType',
+        'dateOfAdmission'
+      ];
+    } else if (type == 'Faculty') {
+      headers = ['facultyId', 'facultyName', 'department', 'designation', 'email'];
+    } else {
+      headers = ['feePaymentId', 'staffName', 'department', 'email'];
+    }
+
+    final csv = StringBuffer()..writeln(headers.join(','));
+    final emptyRow = List<String>.filled(headers.length, '').join(',');
+    for (int i = 0; i < 10; i++) {
+      csv.writeln(emptyRow);
+    }
+    return csv.toString();
+  }
+
+  Future<void> _downloadCsvTemplate(String type) async {
+    try {
+      setState(() => _isDownloadingTemplate = true);
+      final content = _createCsvTemplate(type);
+      final bytes = Uint8List.fromList(content.codeUnits);
+      final nowString = DateTime.now().toString().substring(0, 10);
+      final fileName = '${type}_Account_Template_$nowString.csv';
+
+      if (kIsWeb) {
+        downloadBytesOnWeb(bytes, fileName);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('CSV template downloading: $fileName'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        return;
+      }
+
+      final savedPath = await saveBytesToLocalFile(bytes, fileName);
+      if (!mounted) return;
+      if (savedPath == null) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('CSV template saved: $savedPath'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating CSV template: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isDownloadingTemplate = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
@@ -136,6 +282,12 @@ class _AccountCreationPageState extends State<AccountCreationPage>
 
   // ============ EXCEL UPLOAD SECTION ============
   Widget _buildExcelUploadSection(bool isMobile) {
+    final currentType = _typeTabController.index == 0
+        ? 'Students'
+        : _typeTabController.index == 1
+            ? 'Faculty'
+            : 'Fee Payment';
+
     return SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.all(isMobile ? 12 : 16),
@@ -145,26 +297,16 @@ class _AccountCreationPageState extends State<AccountCreationPage>
             const SizedBox(height: 12),
             _buildTypeSelector(isMobile),
             const SizedBox(height: 24),
-            _buildRequiredColumnsCard(
-                _typeTabController.index == 0
-                    ? 'Students'
-                    : _typeTabController.index == 1
-                        ? 'Faculty'
-                        : 'Fee Payment',
-                isMobile),
+            _buildTemplateDownloadCard(currentType, isMobile),
+            const SizedBox(height: 24),
+            _buildRequiredColumnsCard(currentType, isMobile),
             const SizedBox(height: 24),
             _buildFileSelectionCard(isMobile),
             const SizedBox(height: 24),
             if (_selectedFile != null || _selectedFilePickerResult != null)
               _buildSelectedFileCard(isMobile),
             const SizedBox(height: 24),
-            _buildUploadButton(
-                _typeTabController.index == 0
-                    ? 'Students'
-                    : _typeTabController.index == 1
-                        ? 'Faculty'
-                        : 'Fee Payment',
-                isMobile),
+            _buildUploadButton(currentType, isMobile),
             if (_uploadResult != null) ...[
               const SizedBox(height: 24),
               _buildResultCard(isMobile),
@@ -539,12 +681,18 @@ class _AccountCreationPageState extends State<AccountCreationPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Required Excel Columns (Header Row)',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: isMobile ? 12 : 14,
-            ),
+          Row(
+            children: [
+              Icon(Icons.info, color: Colors.blue[700], size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Required Excel Columns (Header Row)',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: isMobile ? 12 : 14,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           ...columns.map((col) => Padding(
@@ -554,14 +702,19 @@ class _AccountCreationPageState extends State<AccountCreationPage>
                     const Icon(Icons.check_circle,
                         color: Colors.green, size: 16),
                     const SizedBox(width: 8),
-                    Text(col, style: const TextStyle(fontSize: 12)),
+                    Expanded(
+                      child: Text(col, style: const TextStyle(fontSize: 12)),
+                    ),
                   ],
                 ),
               )),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(8),
-            color: Colors.orange[100],
+            decoration: BoxDecoration(
+              color: Colors.orange[100],
+              borderRadius: BorderRadius.circular(4),
+            ),
             child: Text(
               '📝 One row = one account | Password auto-generated | Role auto-assigned | Status = active',
               style: TextStyle(
@@ -570,7 +723,237 @@ class _AccountCreationPageState extends State<AccountCreationPage>
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          ExpansionTile(
+            title: Row(
+              children: [
+                Icon(Icons.preview, size: 16, color: Colors.purple[700]),
+                const SizedBox(width: 8),
+                Text(
+                  'View Sample Format',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.purple[700],
+                  ),
+                ),
+              ],
+            ),
+            children: [
+              _buildSampleDataPreview(type, isMobile),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTemplateDownloadCard(String type, bool isMobile) {
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.download, color: Colors.blue[700], size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Download Templates',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: isMobile ? 12 : 14,
+                  color: Colors.blue[700],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Download pre-formatted templates with sample data. Use Excel for easier editing or CSV as a reliable fallback:',
+            style: TextStyle(fontSize: isMobile ? 11 : 12),
+          ),
+          const SizedBox(height: 12),
+          if (isMobile)
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isDownloadingTemplate
+                        ? null
+                        : () => _downloadExcelTemplate(type),
+                    icon: _isDownloadingTemplate
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.download),
+                    label: Text(
+                      _isDownloadingTemplate ? 'Downloading...' : 'Download .xlsx',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 11),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isDownloadingTemplate
+                        ? null
+                        : () => _downloadCsvTemplate(type),
+                    icon: const Icon(Icons.download),
+                    label: const Text(
+                      'Download .csv',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isDownloadingTemplate
+                        ? null
+                        : () => _downloadExcelTemplate(type),
+                    icon: _isDownloadingTemplate
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.download),
+                    label: Text(
+                      _isDownloadingTemplate ? 'Downloading...' : 'Download .xlsx',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isDownloadingTemplate
+                        ? null
+                        : () => _downloadCsvTemplate(type),
+                    icon: const Icon(Icons.download),
+                    label: const Text(
+                      'Download .csv',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue[100],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              '💡 Tip: Use .xlsx for easier editing in Excel. Use .csv if experiencing issues with Excel files. Both formats are fully supported for upload.',
+              style: TextStyle(
+                fontSize: isMobile ? 10 : 11,
+                color: Colors.blue[900],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSampleDataPreview(String type, bool isMobile) {
+    late List<String> headers;
+    late List<List<String>> sampleRows;
+
+    if (type == 'Students') {
+      headers = [
+        'hallTicketNumber', 'studentName', 'department', 'batchNumber',
+        'year', 'semester', 'email', 'admissionYear', 'admissionType',
+        'dateOfAdmission',
+      ];
+      sampleRows = [
+        ['2203A51291', 'John Doe', 'CSE', '22CSBTB09', '2', '1',
+          'john@edu.com', '2022', 'Regular', '2022-08-15'],
+        ['2203A51292', 'Jane Smith', 'ECE', '22ECEBTB03', '2', '1',
+          'jane@edu.com', '2022', 'Lateral', '2022-08-15'],
+      ];
+    } else if (type == 'Faculty') {
+      headers = ['facultyId', 'facultyName', 'department', 'designation', 'email'];
+      sampleRows = [
+        ['FAC001', 'Dr. Jane Doe', 'CSE', 'Assistant Professor', 'jane@edu.com'],
+        ['FAC002', 'Dr. John Smith', 'ECE', 'Associate Professor', 'john@edu.com'],
+      ];
+    } else {
+      headers = ['feePaymentId', 'staffName', 'department', 'email'];
+      sampleRows = [
+        ['FEE001', 'Finance Officer 1', 'Accounts', 'fee1@edu.com'],
+        ['FEE002', 'Finance Officer 2', 'Accounts', 'fee2@edu.com'],
+      ];
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columns: headers
+              .map((h) => DataColumn(
+                    label: Text(h,
+                        style: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w600)),
+                  ))
+              .toList(),
+          rows: sampleRows
+              .map((row) => DataRow(
+                    cells: row
+                        .map((cell) => DataCell(
+                              Text(cell, style: const TextStyle(fontSize: 10)),
+                            ))
+                        .toList(),
+                  ))
+              .toList(),
+        ),
       ),
     );
   }
