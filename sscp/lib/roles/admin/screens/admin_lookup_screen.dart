@@ -19,7 +19,7 @@ class _AdminLookupScreenState extends State<AdminLookupScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -44,6 +44,7 @@ class _AdminLookupScreenState extends State<AdminLookupScreen>
           tabs: const [
             Tab(icon: Icon(Icons.school), text: 'Student'),
             Tab(icon: Icon(Icons.person_pin), text: 'Faculty'),
+            Tab(icon: Icon(Icons.payment), text: 'Fee Payment'),
           ],
         ),
       ),
@@ -52,6 +53,7 @@ class _AdminLookupScreenState extends State<AdminLookupScreen>
         children: const [
           _StudentLookupTab(),
           _FacultyLookupTab(),
+          _FeePaymentLookupTab(),
         ],
       ),
     );
@@ -1790,6 +1792,529 @@ class _FacultyMarksEnteredTabState extends State<_FacultyMarksEnteredTab> {
           ),
         );
       }).toList(),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fee Payment Lookup Tab
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FeePaymentLookupTab extends StatefulWidget {
+  const _FeePaymentLookupTab();
+  @override
+  State<_FeePaymentLookupTab> createState() => _FeePaymentLookupTabState();
+}
+
+class _FeePaymentLookupTabState extends State<_FeePaymentLookupTab> {
+  final _fs = FirebaseFirestore.instance;
+  final _searchCtrl = TextEditingController();
+
+  bool _searching = false;
+  String? _error;
+
+  List<Map<String, dynamic>> _allStaff = [];
+  bool _loadingAll = false;
+
+  List<Map<String, dynamic>> _searchResults = [];
+  bool _showResults = false;
+  Map<String, dynamic>? _staffData;
+  String? _selectedId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllStaff();
+  }
+
+  Future<void> _loadAllStaff() async {
+    setState(() => _loadingAll = true);
+    try {
+      final snap = await _fs
+          .collection('feePayments')
+          .where('role', isEqualTo: 'fee_payment')
+          .get();
+      final list = snap.docs.map((d) {
+        final m = Map<String, dynamic>.from(d.data());
+        m['_feeId'] = d.id;
+        return m;
+      }).toList();
+      list.sort((a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()));
+      setState(() => _allStaff = list);
+    } catch (_) {
+    } finally {
+      setState(() => _loadingAll = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search() async {
+    final q = _searchCtrl.text.trim().toUpperCase();
+    if (q.isEmpty) return;
+    setState(() {
+      _searching = true;
+      _error = null;
+      _staffData = null;
+      _selectedId = null;
+      _showResults = false;
+      _searchResults = [];
+    });
+    try {
+      // Exact doc ID (FEE001 etc)
+      final doc = await _fs.collection('feePayments').doc(q).get();
+      if (doc.exists && doc.data()?['role'] == 'fee_payment') {
+        final data = Map<String, dynamic>.from(doc.data()!);
+        data['_feeId'] = doc.id;
+        setState(() {
+          _staffData = data;
+          _selectedId = doc.id;
+          _searching = false;
+        });
+        return;
+      }
+
+      // Name search
+      final snap = await _fs
+          .collection('feePayments')
+          .where('role', isEqualTo: 'fee_payment')
+          .where('name', isGreaterThanOrEqualTo: _searchCtrl.text.trim())
+          .where('name', isLessThanOrEqualTo: '${_searchCtrl.text.trim()}\uf8ff')
+          .limit(20)
+          .get();
+
+      if (snap.docs.isEmpty) {
+        setState(() {
+          _error = 'No fee payment staff found for "${_searchCtrl.text.trim()}"';
+          _searching = false;
+        });
+        return;
+      }
+      if (snap.docs.length == 1) {
+        final data = Map<String, dynamic>.from(snap.docs.first.data());
+        data['_feeId'] = snap.docs.first.id;
+        setState(() {
+          _staffData = data;
+          _selectedId = snap.docs.first.id;
+          _searching = false;
+        });
+        return;
+      }
+      setState(() {
+        _searchResults = snap.docs.map((d) {
+          final m = Map<String, dynamic>.from(d.data());
+          m['_feeId'] = d.id;
+          return m;
+        }).toList();
+        _showResults = true;
+        _searching = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _searching = false;
+      });
+    }
+  }
+
+  void _selectStaff(Map<String, dynamic> data) {
+    setState(() {
+      _staffData = data;
+      _selectedId = data['_feeId']?.toString();
+      _showResults = false;
+      _searchResults = [];
+    });
+  }
+
+  void _clear() {
+    _searchCtrl.clear();
+    setState(() {
+      _staffData = null;
+      _selectedId = null;
+      _error = null;
+      _searchResults = [];
+      _showResults = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _buildSearchBar(),
+        if (_searching) const LinearProgressIndicator(),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(_error!, style: const TextStyle(color: Colors.red)),
+          ),
+        if (_showResults) _buildResultsList(),
+        if (_staffData != null && _selectedId != null)
+          Expanded(
+            child: _FeePaymentDetailView(
+              data: _staffData!,
+              feeId: _selectedId!,
+            ),
+          ),
+        if (!_searching && _staffData == null && !_showResults && _error == null)
+          Expanded(child: _buildBrowseList()),
+      ],
+    );
+  }
+
+  Widget _buildBrowseList() {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? _allStaff
+        : _allStaff.where((s) {
+            final id = (s['_feeId'] ?? '').toString().toLowerCase();
+            final name = (s['name'] ?? '').toString().toLowerCase();
+            final dept = (s['department'] ?? '').toString().toLowerCase();
+            return id.contains(q) || name.contains(q) || dept.contains(q);
+          }).toList();
+    if (_loadingAll) return const Center(child: CircularProgressIndicator());
+    if (filtered.isEmpty) {
+      return const Center(
+          child: Text('No fee payment staff found',
+              style: TextStyle(fontSize: 15, color: Colors.grey)));
+    }
+    return ListView.builder(
+      itemCount: filtered.length,
+      itemBuilder: (ctx, i) {
+        final s = filtered[i];
+        final id = s['_feeId']?.toString() ?? '';
+        final name = s['name']?.toString() ?? id;
+        final dept = s['department']?.toString() ?? '';
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: const Color(0xFF1e3a5f),
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ),
+          title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text('$id  •  $dept'),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+          onTap: () => setState(() {
+            _staffData = s;
+            _selectedId = id;
+          }),
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchCtrl,
+              decoration: InputDecoration(
+                hintText: 'Enter Fee Payment ID (e.g. FEE001) or name…',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                isDense: true,
+              ),
+              textCapitalization: TextCapitalization.characters,
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) => _search(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1e3a5f),
+                foregroundColor: Colors.white),
+            onPressed: _searching ? null : _search,
+            child: const Text('Search'),
+          ),
+          if (_staffData != null || _showResults) ...[            const SizedBox(width: 6),
+            IconButton(
+                onPressed: _clear,
+                icon: const Icon(Icons.clear),
+                tooltip: 'Clear'),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultsList() {
+    return Container(
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text('${_searchResults.length} results found',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          ),
+          ..._searchResults.map((s) {
+            final id = s['_feeId']?.toString() ?? '';
+            final name = s['name']?.toString() ?? id;
+            final dept = s['department']?.toString() ?? '';
+            return ListTile(
+              leading: const CircleAvatar(
+                  radius: 20, child: Icon(Icons.payment)),
+              title: Text(name),
+              subtitle: Text('$id  •  $dept'),
+              onTap: () => _selectStaff(s),
+            );
+          }),
+          const Divider(height: 1),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fee Payment Detail – Tabbed: Profile | Payment History
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FeePaymentDetailView extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final String feeId;
+  const _FeePaymentDetailView({required this.data, required this.feeId});
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          Container(
+            color: const Color(0xFF1e3a5f).withOpacity(0.07),
+            child: const TabBar(
+              labelColor: Color(0xFF1e3a5f),
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: Color(0xFF1e3a5f),
+              tabs: [
+                Tab(text: 'Profile'),
+                Tab(text: 'Payment History'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _FeePaymentProfileTab(data: data, feeId: feeId),
+                _FeePaymentHistoryTab(feeId: feeId),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Fee Payment Profile Tab ───────────────────────────────────────────────────
+
+class _FeePaymentProfileTab extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final String feeId;
+  const _FeePaymentProfileTab({required this.data, required this.feeId});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = data['name']?.toString() ?? feeId;
+    final fields = <_FieldEntry>[
+      _FieldEntry('Fee Payment ID', feeId),
+      _FieldEntry('Name', data['name']),
+      _FieldEntry('Email', data['email']),
+      _FieldEntry('Department', data['department']),
+      _FieldEntry('Status', data['status']),
+    ];
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1e3a5f),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: Colors.white24,
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : 'F',
+                  style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(feeId,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 13)),
+                    Text(data['department']?.toString() ?? '',
+                        style: const TextStyle(
+                            color: Colors.white60, fontSize: 12)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: fields
+                  .where((f) =>
+                      f.value != null &&
+                      f.value.toString().isNotEmpty &&
+                      f.value.toString() != 'null')
+                  .map((f) =>
+                      _InfoRow(label: f.label, value: f.value!.toString()))
+                  .toList(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Fee Payment History Tab ───────────────────────────────────────────────────
+
+class _FeePaymentHistoryTab extends StatefulWidget {
+  final String feeId;
+  const _FeePaymentHistoryTab({required this.feeId});
+  @override
+  State<_FeePaymentHistoryTab> createState() => _FeePaymentHistoryTabState();
+}
+
+class _FeePaymentHistoryTabState extends State<_FeePaymentHistoryTab> {
+  final _fs = FirebaseFirestore.instance;
+  bool _loading = true;
+  String? _error;
+  List<Map<String, dynamic>> _records = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      // Payment records are updated by feeId (e.g. FEE001) and have paymentType field
+      final snap = await _fs
+          .collection('feePayments')
+          .where('updatedBy', isEqualTo: widget.feeId)
+          .get();
+      final records = snap.docs
+          .map((d) => d.data())
+          .where((d) => d.containsKey('paymentType'))
+          .toList();
+      // Sort by updatedAt descending (client-side)
+      records.sort((a, b) {
+        final tA = (a['updatedAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+        final tB = (b['updatedAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+        return tB.compareTo(tA);
+      });
+      setState(() {
+        _records = records;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) return _ErrorView(message: _error!);
+    if (_records.isEmpty) {
+      return const _EmptyView(
+          icon: Icons.receipt_long_outlined,
+          message: 'No payment updates recorded for this staff member.');
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: _records.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 6),
+      itemBuilder: (_, i) {
+        final d = _records[i];
+        final paid = (d['status']?.toString().toLowerCase() ?? '') == 'paid';
+        final type = d['paymentType']?.toString() == 'supply' ? 'Supply' : 'Makeup Mid';
+        final rollNo = d['rollNo']?.toString() ?? '-';
+        final studentName = d['studentName']?.toString() ?? '';
+        final windowTitle = d['windowTitle']?.toString() ?? d['windowId']?.toString() ?? '-';
+        final amount = (d['amount'] as num?)?.toDouble();
+        final updatedAt = (d['updatedAt'] as Timestamp?)?.toDate();
+        final dateStr = updatedAt != null
+            ? '${updatedAt.day.toString().padLeft(2, '0')}/'
+              '${updatedAt.month.toString().padLeft(2, '0')}/'              '${updatedAt.year}  '
+              '${updatedAt.hour.toString().padLeft(2, '0')}:'
+              '${updatedAt.minute.toString().padLeft(2, '0')}'
+            : '-';
+        return Card(
+          child: ListTile(
+            leading: Icon(
+              paid ? Icons.check_circle : Icons.cancel,
+              color: paid ? Colors.green : Colors.orange,
+            ),
+            title: Text(
+              '$rollNo${studentName.isNotEmpty ? '  –  $studentName' : ''}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            subtitle: Text(
+              '$type  •  $windowTitle\n$dateStr',
+            ),
+            isThreeLine: true,
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  paid ? 'PAID' : 'UNPAID',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: paid ? Colors.green : Colors.orange,
+                    fontSize: 12,
+                  ),
+                ),
+                if (amount != null && amount > 0)
+                  Text('₹${amount.toStringAsFixed(0)}',
+                      style: const TextStyle(fontSize: 11, color: Colors.grey)),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

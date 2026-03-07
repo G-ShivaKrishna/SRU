@@ -91,30 +91,34 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
       // Normalize fee ID to uppercase
       final normalizedFeeId = feeId.toUpperCase();
 
-      // Fetch fee payment staff data to get custom email from Firestore
+      // Fetch fee payment staff data from Firestore
       final feePaymentDoc = await FirebaseFirestore.instance
-          .collection('feePaymentStaff')
+          .collection('feePayments')
           .doc(normalizedFeeId)
           .get();
 
       if (!feePaymentDoc.exists) {
         setState(() => _isLoading = false);
-        _showError('Fee Payment staff record not found');
+        _showError('Fee Payment staff record not found. Contact admin.');
         _refreshCaptcha();
         return;
       }
 
-      // Use the custom email stored in Firestore for authentication
-      final customEmail = feePaymentDoc['email'] ?? '';
-      if (customEmail.isEmpty) {
+      final docData = feePaymentDoc.data() as Map<String, dynamic>;
+
+      // Prefer firebaseEmail (exact email used when creating Firebase Auth
+      // account), fall back to email field
+      final authEmail = (docData['firebaseEmail'] as String?)?.trim() ??
+          (docData['email'] as String?)?.trim() ?? '';
+      if (authEmail.isEmpty) {
         setState(() => _isLoading = false);
-        _showError('Email not configured for this staff');
+        _showError('Email not configured for this staff. Contact admin.');
         _refreshCaptcha();
         return;
       }
 
       await _auth.signInWithEmailAndPassword(
-          email: customEmail, password: password);
+          email: authEmail, password: password);
 
       // Fetch and cache user ID from Firestore
       await UserService.fetchAndCacheUserId();
