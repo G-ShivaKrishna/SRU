@@ -201,7 +201,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       ),
       body: Column(
         children: [
-          const AppHeader(),
+          const AppHeader(showBack: false),
           _buildHeaderSection(context),
           if (!_isRegistrationOpen()) _buildDisabledMessage(context),
           Container(

@@ -554,7 +554,14 @@ class _StudentHomeState extends State<StudentHome> {
       case 'Home':
         return;
       case 'Academics':
+      case 'Calendar':
         page = const AcademicsScreen();
+        break;
+      case 'Handbook':
+        page = const StudentHandbookScreen();
+        break;
+      case 'Syllabus':
+        page = const SyllabusScreen();
         break;
       case 'Profile':
         page = const ProfileScreen();
@@ -723,9 +730,11 @@ class _StudentHomeState extends State<StudentHome> {
     );
   }
 
+  // Width estimate matching admin nav bar.
+  double _navItemWidth(String label) => label.length * 7.5 + 46;
+
   Widget _buildNavigationMenu(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    final menuItems = [
+    const topItems = <String>[
       'Home',
       'Academics',
       'Profile',
@@ -738,14 +747,139 @@ class _StudentHomeState extends State<StudentHome> {
       'University Clubs',
       'Central Library',
     ];
+    const subMenus = <String, List<String>>{
+      'Academics': ['Calendar', 'Handbook', 'Syllabus'],
+      'Results': [
+        'CIE Marks',
+        'Semester Memo',
+        'Supply Exam Memo',
+        'Backlogs',
+        'Supply Exam',
+        'Makeup Mid',
+      ],
+      'Grievance': ['Submit Grievance', 'Grievance Status'],
+    };
 
-    if (isMobile) {
-      return _buildMobileMenu(context, menuItems);
-    } else {
-      return _buildDesktopMenu(context, menuItems);
-    }
+    return LayoutBuilder(builder: (context, constraints) {
+      final available = constraints.maxWidth;
+      const moreButtonWidth = 90.0;
+      final budget = available - 8;
+      final totalWidth =
+          topItems.fold(0.0, (s, item) => s + _navItemWidth(item));
+
+      List<String> visible;
+      List<String> overflowFlat;
+
+      if (totalWidth <= budget) {
+        visible = List<String>.from(topItems);
+        overflowFlat = [];
+      } else {
+        visible = [];
+        final overflowTop = <String>[];
+        double used = 0;
+        for (final item in topItems) {
+          final w = _navItemWidth(item);
+          if (used + w + moreButtonWidth <= budget) {
+            visible.add(item);
+            used += w;
+          } else {
+            overflowTop.add(item);
+          }
+        }
+        overflowFlat = [];
+        for (final item in overflowTop) {
+          final subs = subMenus[item];
+          if (subs != null) {
+            overflowFlat.addAll(subs);
+          } else {
+            overflowFlat.add(item);
+          }
+        }
+      }
+
+      return SizedBox(
+        width: available,
+        child: Container(
+          color: const Color(0xFF1e3a5f),
+          height: 42,
+          child: ClipRect(
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                ...visible.map((item) {
+                  final isHome = item == 'Home';
+                  final subs = subMenus[item];
+                  final showChevron =
+                      item != visible.last || overflowFlat.isNotEmpty;
+                  final labelWidget = Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isHome)
+                          const Icon(Icons.home,
+                              color: Colors.white70, size: 14),
+                        if (isHome) const SizedBox(width: 4),
+                        Text(
+                          item,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (showChevron)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 6),
+                            child: Icon(Icons.chevron_right,
+                                color: Colors.white38, size: 14),
+                          ),
+                      ],
+                    ),
+                  );
+                  if (subs != null) {
+                    return PopupMenuButton<String>(
+                      offset: const Offset(0, 42),
+                      color: const Color(0xFF1e3a5f),
+                      onSelected: (value) => _navigateToPage(context, value),
+                      itemBuilder: (_) => subs
+                          .map((s) => PopupMenuItem<String>(
+                                value: s,
+                                height: 40,
+                                child: Text(s,
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500)),
+                              ))
+                          .toList(),
+                      child: labelWidget,
+                    );
+                  }
+                  return InkWell(
+                    onTap: isHome
+                        ? null
+                        : () => _navigateToPage(context, item),
+                    hoverColor: Colors.white.withOpacity(0.12),
+                    child: labelWidget,
+                  );
+                }),
+                if (overflowFlat.isNotEmpty)
+                  _StudentOverflowNavButton(
+                    items: overflowFlat,
+                    onSelected: (item) => _navigateToPage(context, item),
+                  ),
+                const Spacer(),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
   }
 
+  // ignore: unused_element
   Widget _buildMobileMenu(BuildContext context, List<String> menuItems) {
     // Remove 'Results' from main items; add sub-items directly
     final visibleItems =
@@ -1630,6 +1764,49 @@ class _StudentHomeState extends State<StudentHome> {
             fontWeight: FontWeight.bold,
           ),
           textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+class _StudentOverflowNavButton extends StatelessWidget {
+  final List<String> items;
+  final void Function(String) onSelected;
+
+  const _StudentOverflowNavButton(
+      {required this.items, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      offset: const Offset(0, 42),
+      color: const Color(0xFF1e3a5f),
+      onSelected: onSelected,
+      itemBuilder: (_) => items
+          .map((item) => PopupMenuItem<String>(
+                value: item,
+                height: 40,
+                child: Text(item,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500)),
+              ))
+          .toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('More',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500)),
+            SizedBox(width: 4),
+            Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
+          ],
         ),
       ),
     );

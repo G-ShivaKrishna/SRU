@@ -24,7 +24,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const AppHeader(),
+            const AppHeader(showBack: false),
             if (hasPdfUploaded)
               Padding(
                 padding: EdgeInsets.all(isMobile ? 12 : 16),

@@ -57,7 +57,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       ),
       body: Column(
         children: [
-          const AppHeader(),
+          const AppHeader(showBack: false),
           Expanded(
             child: TabBarView(
               controller: _tab,

@@ -157,7 +157,7 @@ class _ViewUpdateDeleteAttendanceScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppHeader(),
+            const AppHeader(showBack: false),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(

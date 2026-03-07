@@ -79,7 +79,7 @@ class _FacultyFeedbackScreenState extends State<FacultyFeedbackScreen> {
       ),
       body: Column(
         children: [
-          const AppHeader(),
+          const AppHeader(showBack: false),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())

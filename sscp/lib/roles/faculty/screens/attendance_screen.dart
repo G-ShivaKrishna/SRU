@@ -44,7 +44,7 @@ class _FacultyAttendanceScreenState extends State<FacultyAttendanceScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const AppHeader(),
+            const AppHeader(showBack: false),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(

@@ -155,7 +155,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       ),
       body: Column(
         children: [
-          const AppHeader(),
+          const AppHeader(showBack: false),
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(isMobile ? 12 : 20),

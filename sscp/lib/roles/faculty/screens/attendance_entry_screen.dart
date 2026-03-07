@@ -384,6 +384,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 900),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
@@ -398,82 +399,79 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           // Class & Course + Batch
           LayoutBuilder(builder: (ctx, cst) {
             final wide = cst.maxWidth > 580;
-            final courseField = Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Class & Course',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<_Assignment>(
-                    initialValue: _selectedAssignment,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                    items: _assignments
-                        .map((a) => DropdownMenuItem(
-                              value: a,
-                              child: Text(a.displayLabel,
-                                  overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setState(() {
-                      _selectedAssignment = v;
-                      _selectedBatch = null;
-                    }),
+            final courseWidget = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Class & Course',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<_Assignment>(
+                  initialValue: _selectedAssignment,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
-                ],
-              ),
+                  items: _assignments
+                      .map((a) => DropdownMenuItem(
+                            value: a,
+                            child: Text(a.displayLabel,
+                                overflow: TextOverflow.ellipsis),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() {
+                    _selectedAssignment = v;
+                    _selectedBatch = null;
+                  }),
+                ),
+              ],
             );
-            final batchField = Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Batch (for Electives)',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedBatch,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                          value: null, child: Text('All Batches')),
-                      ...batches.map(
-                          (b) => DropdownMenuItem(value: b, child: Text(b))),
-                    ],
-                    onChanged: batches.isEmpty
-                        ? null
-                        : (v) => setState(() => _selectedBatch = v),
+            final batchWidget = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Batch (for Electives)',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedBatch,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
-                  const SizedBox(height: 4),
-                  const Text('(Batch 1 or 2.. Selection only for Labs)',
-                      style: TextStyle(color: Colors.red, fontSize: 11)),
-                  const Text('(Select E1 or E2... for Subject Batches)',
-                      style: TextStyle(color: Color(0xFF1565C0), fontSize: 11)),
-                ],
-              ),
+                  items: [
+                    const DropdownMenuItem(
+                        value: null, child: Text('All Batches')),
+                    ...batches.map(
+                        (b) => DropdownMenuItem(value: b, child: Text(b))),
+                  ],
+                  onChanged: batches.isEmpty
+                      ? null
+                      : (v) => setState(() => _selectedBatch = v),
+                ),
+                const SizedBox(height: 4),
+                const Text('(Batch 1 or 2.. Selection only for Labs)',
+                    style: TextStyle(color: Colors.red, fontSize: 11)),
+                const Text('(Select E1 or E2... for Subject Batches)',
+                    style: TextStyle(color: Color(0xFF1565C0), fontSize: 11)),
+              ],
             );
             return wide
                 ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    courseField,
+                    Expanded(child: courseWidget),
                     const SizedBox(width: 24),
-                    batchField
+                    Expanded(child: batchWidget),
                   ])
                 : Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                        courseField,
-                        const SizedBox(height: 16),
-                        batchField
-                      ]);
+                      courseWidget,
+                      const SizedBox(height: 16),
+                      batchWidget,
+                    ]);
           }),
           const SizedBox(height: 20),
           // Date + Submit

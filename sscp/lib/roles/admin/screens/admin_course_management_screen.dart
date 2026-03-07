@@ -79,7 +79,7 @@ class _AdminCourseManagementScreenState
         ),
         body: Column(
           children: [
-            const AppHeader(),
+            const AppHeader(showBack: false),
             if (_isLoading)
               const Expanded(
                 child: Center(child: CircularProgressIndicator()),

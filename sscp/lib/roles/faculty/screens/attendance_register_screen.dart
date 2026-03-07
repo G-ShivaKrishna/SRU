@@ -36,7 +36,7 @@ class _AttendanceRegisterScreenState extends State<AttendanceRegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppHeader(),
+            const AppHeader(showBack: false),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(

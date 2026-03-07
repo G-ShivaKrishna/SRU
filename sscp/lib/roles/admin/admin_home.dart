@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pages/mentor_assignment_page.dart';
 import '../../screens/role_selection_screen.dart';
-import 'pages/view_only_page.dart';
 import 'pages/unified_permissions_page.dart';
 import 'pages/account_creation_page.dart';
 import 'pages/student_name_edit_page.dart';
@@ -73,12 +72,12 @@ class _AdminHomeState extends State<AdminHome> {
         pageName == 'Student Promotion') {
       page = const StudentPromotionPage();
     } else if (pageName == 'View Only') {
-      page = const ViewOnlyPage();
+      page = const AdminLookupScreen();
     } else if (pageName == 'Academic Calendar') {
       page = const AcademicCalendarManagementPage();
     } else if (pageName == 'Course Management') {
       page = const AdminCourseManagementScreen();
-    } else if (pageName == 'CIE Memo Release') {
+    } else if (pageName == 'Sem Memo Release' || pageName == 'CIE Memo Release') {
       page = const AdminCieMemoReleaseScreen();
     } else if (pageName == 'Subject Management') {
       page = const SubjectManagementPage();
@@ -213,34 +212,47 @@ class _AdminHomeState extends State<AdminHome> {
       'Accounts',
       'Manage Access',
       'Edit Names',
-      'Edit Admission',
-      'Year Management',
-      'Academic Calendar',
-      'Subject Management',
-      'Faculty Assignment',
-      'Mentor Assignment',
-      'Course Management',
-      'CIE Memo Release',
-      'Feedback Management',
-      'Regulations',
-      'Syllabus',
+      'Management',
+      'Academic',
+      'Assignments',
       'Grievances',
+      'Lookup',
+    ];
+
+    const managementSubItems = [
+      'Year Management',
+      'Sem Memo Release',
+      'Subject Management',
+      'Course Management',
+      'Feedback Management',
       'Attendance Management',
       'Supply Exam',
       'Makeup Mid',
-      'Audit Trail',
-      'View Only',
-      'Lookup',
     ];
+
+    const academicSubItems = [
+      'Academic Calendar',
+      'Regulations',
+      'Syllabus',
+    ];
+
+    const assignmentsSubItems = [
+      'Faculty Assignment',
+      'Mentor Assignment',
+    ];
+
+    const allSubMenus = <String, List<String>>{
+      'Management': managementSubItems,
+      'Academic': academicSubItems,
+      'Assignments': assignmentsSubItems,
+    };
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final available = constraints.maxWidth;
         const moreButtonWidth = 90.0;
-        // Safety margin to absorb font/DPI rendering differences
         final budget = available - 8;
 
-        // Check if everything fits without a "More" button
         final totalWidth =
             menuItems.fold(0.0, (s, item) => s + _itemWidth(item));
 
@@ -256,7 +268,6 @@ class _AdminHomeState extends State<AdminHome> {
           double used = 0;
           for (final item in menuItems) {
             final w = _itemWidth(item);
-            // Reserve moreButtonWidth for the "More" button
             if (used + w + moreButtonWidth <= budget) {
               visible.add(item);
               used += w;
@@ -271,45 +282,66 @@ class _AdminHomeState extends State<AdminHome> {
           child: Container(
             color: const Color(0xFF1e3a5f),
             height: 42,
-            // Clip so that any remaining sub-pixel rounding never causes a stripe
             child: ClipRect(
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   ...visible.map((item) {
                     final isHome = item == 'Home';
+                    final subItems = allSubMenus[item];
                     final showChevron =
                         item != visible.last || overflow.isNotEmpty;
+                    final labelWidget = Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 10),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isHome)
+                            const Icon(Icons.home,
+                                color: Colors.white70, size: 14),
+                          if (isHome) const SizedBox(width: 4),
+                          Text(
+                            item,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (showChevron)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 6),
+                              child: Icon(Icons.chevron_right,
+                                  color: Colors.white38, size: 14),
+                            ),
+                        ],
+                      ),
+                    );
+                    if (subItems != null) {
+                      return PopupMenuButton<String>(
+                        offset: const Offset(0, 42),
+                        color: const Color(0xFF1e3a5f),
+                        onSelected: (value) =>
+                            _navigateToPage(context, value),
+                        itemBuilder: (_) => subItems
+                            .map((s) => PopupMenuItem<String>(
+                                  value: s,
+                                  height: 40,
+                                  child: Text(s,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500)),
+                                ))
+                            .toList(),
+                        child: labelWidget,
+                      );
+                    }
                     return InkWell(
                       onTap: () => _navigateToPage(context, item),
                       hoverColor: Colors.white.withOpacity(0.12),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (isHome)
-                              const Icon(Icons.home,
-                                  color: Colors.white70, size: 14),
-                            if (isHome) const SizedBox(width: 4),
-                            Text(
-                              item,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            if (showChevron)
-                              const Padding(
-                                padding: EdgeInsets.only(left: 6),
-                                child: Icon(Icons.chevron_right,
-                                    color: Colors.white38, size: 14),
-                              ),
-                          ],
-                        ),
-                      ),
+                      child: labelWidget,
                     );
                   }),
                   if (overflow.isNotEmpty)
@@ -317,7 +349,6 @@ class _AdminHomeState extends State<AdminHome> {
                       items: overflow,
                       onSelected: (item) => _navigateToPage(context, item),
                     ),
-                  // Spacer absorbs any leftover space (keeps Row from "min" overflow)
                   const Spacer(),
                 ],
               ),
@@ -694,7 +725,7 @@ class _AdminHomeState extends State<AdminHome> {
           Icons.assignment_turned_in,
           Colors.indigo,
           context,
-          () => _navigateToPage(context, 'CIE Memo Release'),
+          () => _navigateToPage(context, 'Sem Memo Release'),
         ),
         _buildActionCard(
           'Lookup',
@@ -903,9 +934,7 @@ class _AdminHomeState extends State<AdminHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return GestureDetector(
-      onTap: () {
-        // Navigate to system overview or external resource
-      },
+      onTap: () => _navigateToPage(context, 'Audit Trail'),
       child: Container(
         color: Colors.blue,
         padding: EdgeInsets.all(isMobile ? 10 : 12),

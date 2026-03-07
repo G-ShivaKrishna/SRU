@@ -333,11 +333,55 @@ class _AccountCreationPageState extends State<AccountCreationPage>
           isMobile,
         ),
         const SizedBox(height: 12),
-        _buildFormField(
-          'Date of Admission',
-          'e.g., 2022-08-15',
-          _studentControllers['dateOfAdmission']!,
-          isMobile,
+        TextField(
+          controller: _studentControllers['dateOfAdmission']!,
+          readOnly: true,
+          decoration: InputDecoration(
+            labelText: 'Date of Admission',
+            hintText: 'Select date',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: isMobile ? 10 : 12,
+            ),
+            prefixIcon: const Icon(Icons.calendar_month),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.edit_calendar),
+              tooltip: 'Pick date',
+              onPressed: () async {
+                final now = DateTime.now();
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: now,
+                  firstDate: DateTime(2000),
+                  lastDate: now,
+                );
+                if (picked != null) {
+                  _studentControllers['dateOfAdmission']!.text =
+                      '${picked.year.toString().padLeft(4, '0')}-'
+                      '${picked.month.toString().padLeft(2, '0')}-'
+                      '${picked.day.toString().padLeft(2, '0')}';
+                }
+              },
+            ),
+          ),
+          onTap: () async {
+            final now = DateTime.now();
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: now,
+              firstDate: DateTime(2000),
+              lastDate: now,
+            );
+            if (picked != null) {
+              _studentControllers['dateOfAdmission']!.text =
+                  '${picked.year.toString().padLeft(4, '0')}-'
+                  '${picked.month.toString().padLeft(2, '0')}-'
+                  '${picked.day.toString().padLeft(2, '0')}';
+            }
+          },
         ),
       ],
     );

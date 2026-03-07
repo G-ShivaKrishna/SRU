@@ -33,7 +33,7 @@ class _AdminLookupScreenState extends State<AdminLookupScreen>
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Admin Lookup'),
+        title: const Text('Lookup & View'),
         backgroundColor: const Color(0xFF1e3a5f),
         foregroundColor: Colors.white,
         bottom: TabBar(
@@ -76,6 +76,10 @@ class _StudentLookupTabState extends State<_StudentLookupTab> {
   bool _searching = false;
   String? _error;
 
+  // Browse all
+  List<Map<String, dynamic>> _allStudents = [];
+  bool _loadingAll = false;
+
   // List results (when searching by name)
   List<Map<String, dynamic>> _searchResults = [];
   bool _showResults = false;
@@ -83,6 +87,28 @@ class _StudentLookupTabState extends State<_StudentLookupTab> {
   // Full single-student data
   Map<String, dynamic>? _studentData;
   String? _selectedRoll;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllStudents();
+  }
+
+  Future<void> _loadAllStudents() async {
+    setState(() => _loadingAll = true);
+    try {
+      final snap = await _fs.collection('students').orderBy('name').get();
+      setState(() {
+        _allStudents = snap.docs.map((d) {
+          final m = Map<String, dynamic>.from(d.data());
+          m['_rollNumber'] = d.id;
+          return m;
+        }).toList();
+      });
+    } catch (_) {} finally {
+      setState(() => _loadingAll = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -204,8 +230,53 @@ class _StudentLookupTabState extends State<_StudentLookupTab> {
             _studentData == null &&
             !_showResults &&
             _error == null)
-          const Expanded(child: _SearchPrompt(forStudent: true)),
+          Expanded(child: _buildBrowseList()),
       ],
+    );
+  }
+
+  Widget _buildBrowseList() {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? _allStudents
+        : _allStudents.where((s) {
+            final roll = (s['_rollNumber'] ?? '').toString().toLowerCase();
+            final name = (s['name'] ?? '').toString().toLowerCase();
+            final dept = (s['department'] ?? '').toString().toLowerCase();
+            return roll.contains(q) || name.contains(q) || dept.contains(q);
+          }).toList();
+    if (_loadingAll) return const Center(child: CircularProgressIndicator());
+    if (filtered.isEmpty) {
+      return const Center(
+          child: Text('No students found',
+              style: TextStyle(fontSize: 15, color: Colors.grey)));
+    }
+    return ListView.builder(
+      itemCount: filtered.length,
+      itemBuilder: (ctx, i) {
+        final s = filtered[i];
+        final roll = s['_rollNumber']?.toString() ?? '';
+        final name = s['name']?.toString() ?? roll;
+        final dept = s['department']?.toString() ?? '';
+        final sem = s['semester']?.toString() ?? '';
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: const Color(0xFF1e3a5f),
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ),
+          title: Text(name,
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text('$roll  •  $dept  •  Sem $sem'),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+          onTap: () => setState(() {
+            _studentData = s;
+            _selectedRoll = roll;
+          }),
+        );
+      },
     );
   }
 
@@ -228,6 +299,7 @@ class _StudentLookupTabState extends State<_StudentLookupTab> {
                 isDense: true,
               ),
               textCapitalization: TextCapitalization.characters,
+              onChanged: (_) => setState(() {}),
               onSubmitted: (_) => _search(),
             ),
           ),
@@ -1133,10 +1205,37 @@ class _FacultyLookupTabState extends State<_FacultyLookupTab> {
 
   bool _searching = false;
   String? _error;
+
+  // Browse all
+  List<Map<String, dynamic>> _allFaculty = [];
+  bool _loadingAll = false;
+
   List<Map<String, dynamic>> _searchResults = [];
   bool _showResults = false;
   Map<String, dynamic>? _facultyData;
   String? _selectedId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllFaculty();
+  }
+
+  Future<void> _loadAllFaculty() async {
+    setState(() => _loadingAll = true);
+    try {
+      final snap = await _fs.collection('faculty').orderBy('name').get();
+      setState(() {
+        _allFaculty = snap.docs.map((d) {
+          final m = Map<String, dynamic>.from(d.data());
+          m['_facultyId'] = d.id;
+          return m;
+        }).toList();
+      });
+    } catch (_) {} finally {
+      setState(() => _loadingAll = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -1271,8 +1370,53 @@ class _FacultyLookupTabState extends State<_FacultyLookupTab> {
             _facultyData == null &&
             !_showResults &&
             _error == null)
-          const Expanded(child: _SearchPrompt(forStudent: false)),
+          Expanded(child: _buildBrowseList()),
       ],
+    );
+  }
+
+  Widget _buildBrowseList() {
+    final q = _searchCtrl.text.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? _allFaculty
+        : _allFaculty.where((f) {
+            final id = (f['_facultyId'] ?? '').toString().toLowerCase();
+            final name = (f['name'] ?? '').toString().toLowerCase();
+            final dept = (f['department'] ?? '').toString().toLowerCase();
+            return id.contains(q) || name.contains(q) || dept.contains(q);
+          }).toList();
+    if (_loadingAll) return const Center(child: CircularProgressIndicator());
+    if (filtered.isEmpty) {
+      return const Center(
+          child: Text('No faculty found',
+              style: TextStyle(fontSize: 15, color: Colors.grey)));
+    }
+    return ListView.builder(
+      itemCount: filtered.length,
+      itemBuilder: (ctx, i) {
+        final f = filtered[i];
+        final id = f['_facultyId']?.toString() ?? '';
+        final name = f['name']?.toString() ?? id;
+        final dept = f['department']?.toString() ?? '';
+        final desig = f['designation']?.toString() ?? '';
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: const Color(0xFF1e3a5f),
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+            ),
+          ),
+          title: Text(name,
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text('$id  •  $dept  •  $desig'),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+          onTap: () => setState(() {
+            _facultyData = f;
+            _selectedId = id;
+          }),
+        );
+      },
     );
   }
 
@@ -1294,6 +1438,7 @@ class _FacultyLookupTabState extends State<_FacultyLookupTab> {
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 isDense: true,
               ),
+              onChanged: (_) => setState(() {}),
               onSubmitted: (_) => _search(),
             ),
           ),
@@ -1727,33 +1872,6 @@ class _EmptyView extends StatelessWidget {
                 style: TextStyle(fontSize: 14, color: Colors.grey.shade500)),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SearchPrompt extends StatelessWidget {
-  final bool forStudent;
-  const _SearchPrompt({required this.forStudent});
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            forStudent ? Icons.manage_search : Icons.person_search,
-            size: 80,
-            color: Colors.grey.shade300,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            forStudent
-                ? 'Search by roll number or student name'
-                : 'Search by faculty ID or name',
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-          ),
-        ],
       ),
     );
   }
