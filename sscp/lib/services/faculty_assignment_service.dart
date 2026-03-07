@@ -116,7 +116,7 @@ class FacultyAssignmentService {
         }
       }
 
-      if (snapshot == null || snapshot.docs.isEmpty) return [];
+      if (snapshot.docs.isEmpty) return [];
 
       final List<FacultyPreferredCourse> preferences = [];
       for (final doc in snapshot.docs) {

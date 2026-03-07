@@ -38,37 +38,6 @@ class _ExamsScreenState extends State<ExamsScreen> {
     );
   }
 
-  Widget _buildHeaderSection(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
-    return Container(
-      color: const Color(0xFF1e3a5f),
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
-      child: Column(
-        children: [
-          Text(
-            'Exam Timetable',
-            style: TextStyle(
-              color: Colors.yellow,
-              fontSize: isMobile ? 14 : 16,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '4-2 (2025-26)',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: isMobile ? 12 : 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildNoDataMessage(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 

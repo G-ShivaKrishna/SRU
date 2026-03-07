@@ -176,21 +176,24 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: const Color(0xFFEAF0F6),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(color: const Color(0xFF9EB0C7)),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  Icon(Icons.info_outline,
-                      color: Colors.blue.shade700, size: 20),
-                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.info_outline,
+                    color: Color(0xFF1e3a5f),
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Use the "Forgot Password?" link below to reset your password securely via email.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blue.shade700,
+                        color: Color(0xFF1e3a5f),
                       ),
                     ),
                   ),
@@ -203,7 +206,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade600,
+              backgroundColor: const Color(0xFF1e3a5f),
+              foregroundColor: Colors.white,
             ),
             child: const Text('OK'),
           ),
@@ -214,6 +218,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Fee Payment Login'),
@@ -224,156 +230,210 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
           onPressed: () {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
-                  builder: (context) => const RoleSelectionScreen()),
+                builder: (context) => const RoleSelectionScreen(),
+              ),
             );
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _feeIdController,
-              enabled: !_isLoading,
-              decoration: InputDecoration(
-                labelText: 'Fee Payment ID',
-                hintText: 'e.g., FEE001',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                prefixIcon: const Icon(Icons.badge),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40),
+              Icon(
+                Icons.receipt,
+                size: isMobile ? 60 : 80,
+                color: const Color(0xFF1e3a5f),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              enabled: !_isLoading,
-              obscureText: _obscurePassword,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                prefixIcon: const Icon(Icons.lock),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword
-                      ? Icons.visibility_off
-                      : Icons.visibility),
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
+              const SizedBox(height: 24),
+              Text(
+                'Fee Payment Login',
+                style: TextStyle(
+                  fontSize: isMobile ? 20 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1e3a5f),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton.icon(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => const ResetLinkHelper(),
-                          );
-                        },
-                  icon: const Icon(Icons.link, size: 16),
-                  label: const Text('Have a reset link?'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.green.shade700,
-                    padding: const EdgeInsets.symmetric(horizontal: 0),
-                  ),
+              const SizedBox(height: 8),
+              Text(
+                'Manage fee payments',
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  color: Colors.grey[600],
                 ),
-                TextButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => const ForgotPasswordDialog(
-                              role: 'feePayment',
-                            ),
-                          );
-                        },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 0),
-                  ),
-                  child: const Text(
-                    'Forgot Password?',
-                    style: TextStyle(color: Colors.blue, fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Enter Captcha:'),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _captchaText,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      IconButton(
-                        onPressed: _isLoading ? null : _refreshCaptcha,
-                        icon: const Icon(Icons.refresh),
-                      ),
-                    ],
+              const SizedBox(height: 48),
+              TextField(
+                controller: _feeIdController,
+                enabled: !_isLoading,
+                keyboardType: TextInputType.text,
+                decoration: InputDecoration(
+                  labelText: 'Fee Payment ID',
+                  hintText: 'e.g., FEE001',
+                  prefixIcon: const Icon(Icons.badge),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _captchaController,
-                    enabled: !_isLoading,
-                    decoration: InputDecoration(
-                      hintText: 'Enter captcha text',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                enabled: !_isLoading,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Enter your password',
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                     ),
+                    onPressed: () {
+                      setState(
+                        () => _obscurePassword = !_obscurePassword,
+                      );
+                    },
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const ResetLinkHelper(),
+                            );
+                          },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1e3a5f),
+                    ),
+                    icon: const Icon(Icons.link, size: 16),
+                    label: const Text('Have a reset link?'),
+                  ),
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const ForgotPasswordDialog(
+                                role: 'feePayment',
+                              ),
+                            );
+                          },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1e3a5f),
+                    ),
+                    child: const Text('Forgot Password?'),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1e3a5f),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF0F6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF1e3a5f)),
                 ),
-                onPressed: _isLoading ? null : _handleLogin,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Login',
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Enter CAPTCHA: $_captchaText',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                        color: Color(0xFF1e3a5f),
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _captchaController,
+                            enabled: !_isLoading,
+                            decoration: InputDecoration(
+                              hintText: 'Enter captcha text',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: _isLoading ? null : _refreshCaptcha,
+                          icon: const Icon(Icons.refresh),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1e3a5f),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'LOGIN',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

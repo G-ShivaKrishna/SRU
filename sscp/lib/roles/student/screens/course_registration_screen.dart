@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/course_model.dart';
 import '../../../models/student_course_selection_model.dart';
 import '../../../services/student_course_service.dart';
+import '../../../services/user_service.dart';
 import '../../../widgets/app_header.dart';
 
 class CourseRegistrationScreen extends StatefulWidget {
@@ -59,7 +60,17 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       }
 
       if (hallTicketNumber.isEmpty) {
-        _showError('User information not found');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('User information not found'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
 
