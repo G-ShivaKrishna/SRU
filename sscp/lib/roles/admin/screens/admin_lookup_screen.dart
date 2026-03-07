@@ -1839,7 +1839,8 @@ class _FeePaymentLookupTabState extends State<_FeePaymentLookupTab> {
         m['_feeId'] = d.id;
         return m;
       }).toList();
-      list.sort((a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()));
+      list.sort((a, b) =>
+          (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()));
       setState(() => _allStaff = list);
     } catch (_) {
     } finally {
@@ -1883,13 +1884,15 @@ class _FeePaymentLookupTabState extends State<_FeePaymentLookupTab> {
           .collection('feePayments')
           .where('role', isEqualTo: 'fee_payment')
           .where('name', isGreaterThanOrEqualTo: _searchCtrl.text.trim())
-          .where('name', isLessThanOrEqualTo: '${_searchCtrl.text.trim()}\uf8ff')
+          .where('name',
+              isLessThanOrEqualTo: '${_searchCtrl.text.trim()}\uf8ff')
           .limit(20)
           .get();
 
       if (snap.docs.isEmpty) {
         setState(() {
-          _error = 'No fee payment staff found for "${_searchCtrl.text.trim()}"';
+          _error =
+              'No fee payment staff found for "${_searchCtrl.text.trim()}"';
           _searching = false;
         });
         return;
@@ -1960,7 +1963,10 @@ class _FeePaymentLookupTabState extends State<_FeePaymentLookupTab> {
               feeId: _selectedId!,
             ),
           ),
-        if (!_searching && _staffData == null && !_showResults && _error == null)
+        if (!_searching &&
+            _staffData == null &&
+            !_showResults &&
+            _error == null)
           Expanded(child: _buildBrowseList()),
       ],
     );
@@ -1997,7 +2003,8 @@ class _FeePaymentLookupTabState extends State<_FeePaymentLookupTab> {
               style: const TextStyle(color: Colors.white, fontSize: 14),
             ),
           ),
-          title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+          title:
+              Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
           subtitle: Text('$id  •  $dept'),
           trailing: const Icon(Icons.arrow_forward_ios, size: 14),
           onTap: () => setState(() {
@@ -2021,8 +2028,10 @@ class _FeePaymentLookupTabState extends State<_FeePaymentLookupTab> {
               decoration: InputDecoration(
                 hintText: 'Enter Fee Payment ID (e.g. FEE001) or name…',
                 prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 isDense: true,
               ),
               textCapitalization: TextCapitalization.characters,
@@ -2038,7 +2047,8 @@ class _FeePaymentLookupTabState extends State<_FeePaymentLookupTab> {
             onPressed: _searching ? null : _search,
             child: const Text('Search'),
           ),
-          if (_staffData != null || _showResults) ...[            const SizedBox(width: 6),
+          if (_staffData != null || _showResults) ...[
+            const SizedBox(width: 6),
             IconButton(
                 onPressed: _clear,
                 icon: const Icon(Icons.clear),
@@ -2058,15 +2068,16 @@ class _FeePaymentLookupTabState extends State<_FeePaymentLookupTab> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text('${_searchResults.length} results found',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ),
           ..._searchResults.map((s) {
             final id = s['_feeId']?.toString() ?? '';
             final name = s['name']?.toString() ?? id;
             final dept = s['department']?.toString() ?? '';
             return ListTile(
-              leading: const CircleAvatar(
-                  radius: 20, child: Icon(Icons.payment)),
+              leading:
+                  const CircleAvatar(radius: 20, child: Icon(Icons.payment)),
               title: Text(name),
               subtitle: Text('$id  •  $dept'),
               onTap: () => _selectStaff(s),
@@ -2269,17 +2280,20 @@ class _FeePaymentHistoryTabState extends State<_FeePaymentHistoryTab> {
       itemBuilder: (_, i) {
         final d = _records[i];
         final paid = (d['status']?.toString().toLowerCase() ?? '') == 'paid';
-        final type = d['paymentType']?.toString() == 'supply' ? 'Supply' : 'Makeup Mid';
+        final type =
+            d['paymentType']?.toString() == 'supply' ? 'Supply' : 'Makeup Mid';
         final rollNo = d['rollNo']?.toString() ?? '-';
         final studentName = d['studentName']?.toString() ?? '';
-        final windowTitle = d['windowTitle']?.toString() ?? d['windowId']?.toString() ?? '-';
+        final windowTitle =
+            d['windowTitle']?.toString() ?? d['windowId']?.toString() ?? '-';
         final amount = (d['amount'] as num?)?.toDouble();
         final updatedAt = (d['updatedAt'] as Timestamp?)?.toDate();
         final dateStr = updatedAt != null
             ? '${updatedAt.day.toString().padLeft(2, '0')}/'
-              '${updatedAt.month.toString().padLeft(2, '0')}/'              '${updatedAt.year}  '
-              '${updatedAt.hour.toString().padLeft(2, '0')}:'
-              '${updatedAt.minute.toString().padLeft(2, '0')}'
+                '${updatedAt.month.toString().padLeft(2, '0')}/'
+                '${updatedAt.year}  '
+                '${updatedAt.hour.toString().padLeft(2, '0')}:'
+                '${updatedAt.minute.toString().padLeft(2, '0')}'
             : '-';
         return Card(
           child: ListTile(

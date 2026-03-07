@@ -109,7 +109,8 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
       // Prefer firebaseEmail (exact email used when creating Firebase Auth
       // account), fall back to email field
       final authEmail = (docData['firebaseEmail'] as String?)?.trim() ??
-          (docData['email'] as String?)?.trim() ?? '';
+          (docData['email'] as String?)?.trim() ??
+          '';
       if (authEmail.isEmpty) {
         setState(() => _isLoading = false);
         _showError('Email not configured for this staff. Contact admin.');
