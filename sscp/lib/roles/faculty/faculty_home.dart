@@ -321,6 +321,7 @@ class _FacultyHomeState extends State<FacultyHome> {
             child: Row(
               mainAxisSize: MainAxisSize.max,
               children: [
+                const Spacer(),
                 ...visible.map((item) {
                   final isHome = item == 'Home';
                   final subs = subMenus[item];
@@ -387,7 +388,6 @@ class _FacultyHomeState extends State<FacultyHome> {
                     onSelected: (item) =>
                         _handleMenuSelection(context, '', item),
                   ),
-                const Spacer(),
               ],
             ),
           ),
@@ -400,12 +400,14 @@ class _FacultyHomeState extends State<FacultyHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
+      width: double.infinity,
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : 16,
         vertical: 8,
       ),
       child: const Row(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Text(
             'Active Faculty',
@@ -426,6 +428,7 @@ class _FacultyHomeState extends State<FacultyHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
+      width: double.infinity,
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       child: Text(
@@ -435,7 +438,7 @@ class _FacultyHomeState extends State<FacultyHome> {
           fontSize: isMobile ? 12 : 14,
           fontWeight: FontWeight.bold,
         ),
-        textAlign: TextAlign.center,
+        textAlign: TextAlign.right,
       ),
     );
   }

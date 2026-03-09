@@ -380,6 +380,7 @@ class _AdminHomeState extends State<AdminHome> {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
+                  const Spacer(),
                   ...visible.map((item) {
                     final isHome = item == 'Home';
                     final subItems = allSubMenus[item];
@@ -443,7 +444,6 @@ class _AdminHomeState extends State<AdminHome> {
                       subMenus: allSubMenus,
                       onSelected: (item) => _navigateToPage(context, item),
                     ),
-                  const Spacer(),
                 ],
               ),
             ),
@@ -457,12 +457,14 @@ class _AdminHomeState extends State<AdminHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
+      width: double.infinity,
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : 16,
         vertical: 8,
       ),
       child: const Row(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Icon(Icons.check_circle, color: Colors.green, size: 16),
           SizedBox(width: 8),
@@ -480,6 +482,7 @@ class _AdminHomeState extends State<AdminHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
+      width: double.infinity,
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       child: Text(
@@ -489,7 +492,7 @@ class _AdminHomeState extends State<AdminHome> {
           fontSize: isMobile ? 12 : 14,
           fontWeight: FontWeight.bold,
         ),
-        textAlign: TextAlign.center,
+        textAlign: TextAlign.right,
       ),
     );
   }
