@@ -274,14 +274,14 @@ class _FacultyHomeState extends State<FacultyHome> {
           topItems.fold(0.0, (s, item) => s + _navItemWidth(item));
 
       List<String> visible;
-      List<String> overflowFlat;
+      List<String> overflowTop;
 
       if (totalWidth <= budget) {
         visible = List<String>.from(topItems);
-        overflowFlat = [];
+        overflowTop = [];
       } else {
         visible = [];
-        final overflowTop = <String>[];
+        overflowTop = [];
         double used = 0;
         for (final item in topItems) {
           final w = _navItemWidth(item);
@@ -292,16 +292,25 @@ class _FacultyHomeState extends State<FacultyHome> {
             overflowTop.add(item);
           }
         }
-        overflowFlat = [];
-        for (final item in overflowTop) {
-          final subs = subMenus[item];
-          if (subs != null) {
-            overflowFlat.addAll(subs);
-          } else {
-            overflowFlat.add(item);
-          }
-        }
       }
+
+      const moreSubMenus = <String, List<String>>{
+        'Profile': ['View Profile', 'Update Basic Data'],
+        'Course': [
+          'Course Preference',
+          'Course View',
+          'Preference Report',
+        ],
+        'Marks': [
+          'Check & Define CIE Format (UG/PG)',
+          'Total Marks',
+          'Makeup Mid Marks',
+          'Consolidated Marks Report(New)',
+          'Supply Exam Marks',
+        ],
+        'Employee Directory': ['Employee Directory'],
+        'Mentorship': ['Mentorship'],
+      };
 
       return SizedBox(
         width: available,
@@ -316,7 +325,7 @@ class _FacultyHomeState extends State<FacultyHome> {
                   final isHome = item == 'Home';
                   final subs = subMenus[item];
                   final showChevron =
-                      item != visible.last || overflowFlat.isNotEmpty;
+                      item != visible.last || overflowTop.isNotEmpty;
                   final labelWidget = Padding(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 10),
@@ -372,9 +381,9 @@ class _FacultyHomeState extends State<FacultyHome> {
                     child: labelWidget,
                   );
                 }),
-                if (overflowFlat.isNotEmpty)
+                if (overflowTop.isNotEmpty)
                   _FacultyOverflowNavButton(
-                    items: overflowFlat,
+                    subMenus: moreSubMenus,
                     onSelected: (item) =>
                         _handleMenuSelection(context, '', item),
                   ),
@@ -1185,29 +1194,77 @@ class _DownloadSubMenu extends StatelessWidget {
 }
 
 class _FacultyOverflowNavButton extends StatelessWidget {
-  final List<String> items;
+  final Map<String, List<String>> subMenus;
   final void Function(String) onSelected;
 
   const _FacultyOverflowNavButton(
-      {required this.items, required this.onSelected});
+      {required this.subMenus, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      offset: const Offset(0, 42),
-      color: const Color(0xFF1e3a5f),
-      onSelected: onSelected,
-      itemBuilder: (_) => items
-          .map((item) => PopupMenuItem<String>(
-                value: item,
-                height: 40,
-                child: Text(item,
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: const Color(0xFF1e3a5f),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          isScrollControlled: true,
+          builder: (_) => DraggableScrollableSheet(
+            initialChildSize: 0.5,
+            minChildSize: 0.3,
+            maxChildSize: 0.85,
+            expand: false,
+            builder: (_, scrollController) => ListView(
+              controller: scrollController,
+              children: subMenus.entries.map((entry) {
+                // Single-item group → render as direct ListTile
+                if (entry.value.length == 1 &&
+                    entry.value.first == entry.key) {
+                  return ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16),
+                    title: Text(entry.key,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onSelected(entry.value.first);
+                    },
+                  );
+                }
+                return ExpansionTile(
+                  title: Text(
+                    entry.key,
                     style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500)),
-              ))
-          .toList(),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13),
+                  ),
+                  iconColor: Colors.white70,
+                  collapsedIconColor: Colors.white54,
+                  children: entry.value
+                      .map((item) => ListTile(
+                            contentPadding:
+                                const EdgeInsets.only(left: 32, right: 16),
+                            title: Text(item,
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 13)),
+                            onTap: () {
+                              Navigator.pop(context);
+                              onSelected(item);
+                            },
+                          ))
+                      .toList(),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: const Row(
