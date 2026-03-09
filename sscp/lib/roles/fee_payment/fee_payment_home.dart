@@ -341,9 +341,10 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
         setState(() {
           _backlogs = result;
           // Auto-select all registered subjects
-          _selectedSubjectCodes =
-              result.map((b) => b['subjectCode']?.toString() ?? '').toSet()
-                ..remove('');
+          _selectedSubjectCodes = result
+              .map((b) => b['subjectCode']?.toString() ?? '')
+              .toSet()
+            ..remove('');
           _backlogsLoading = false;
         });
       }
@@ -363,7 +364,8 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: Text(_isSupply ? 'Select Backlog Subjects' : 'Select Subjects'),
+          title:
+              Text(_isSupply ? 'Select Backlog Subjects' : 'Select Subjects'),
           content: SizedBox(
             width: double.maxFinite,
             child: _backlogs.isEmpty
@@ -628,7 +630,9 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                           });
                           // Re-fetch if roll is already filled
                           final roll = _rollCtrl.text.trim().toUpperCase();
-                          if (_needsSubjectPicker && roll.isNotEmpty && v != null) {
+                          if (_needsSubjectPicker &&
+                              roll.isNotEmpty &&
+                              v != null) {
                             _triggerSubjectLoad(roll);
                           }
                         },
@@ -681,7 +685,8 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                             : () => _openSubjectPicker(context),
                         child: InputDecorator(
                           decoration: InputDecoration(
-                            labelText: _isSupply ? 'Backlog Subjects' : 'Subjects',
+                            labelText:
+                                _isSupply ? 'Backlog Subjects' : 'Subjects',
                             border: const OutlineInputBorder(),
                             isDense: true,
                             suffixIcon: _backlogsLoading
@@ -699,7 +704,9 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                             _backlogsLoading
                                 ? 'Loading...'
                                 : _backlogs.isEmpty
-                                    ? (_isSupply ? 'No backlogs found' : 'No subjects found')
+                                    ? (_isSupply
+                                        ? 'No backlogs found'
+                                        : 'No subjects found')
                                     : _selectedSubjectCodes.isEmpty
                                         ? 'Tap to select subjects (${_backlogs.length} subject${_backlogs.length == 1 ? '' : 's'})'
                                         : '${_selectedSubjectCodes.length} of ${_backlogs.length} selected',

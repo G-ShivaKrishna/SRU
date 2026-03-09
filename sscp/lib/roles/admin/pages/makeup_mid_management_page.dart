@@ -242,8 +242,7 @@ class _MakeupWindowsTab extends StatelessWidget {
                     startDate == null ||
                     endDate == null) {
                   ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                      content: Text(
-                          'Please fill all required fields.')));
+                      content: Text('Please fill all required fields.')));
                   return;
                 }
                 final maxMarks = int.tryParse(maxMarksCtrl.text.trim()) ?? 30;
@@ -701,8 +700,7 @@ class _MakeupWindowCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _infoRow('Max Marks:', '${data['maxMarks'] ?? 30}'),
-                if (data['fee'] != null)
-                  _infoRow('Fee:', '₹${data['fee']}'),
+                if (data['fee'] != null) _infoRow('Fee:', '₹${data['fee']}'),
                 if (start != null)
                   _infoRow('Start:', DateFormat('dd MMM yyyy').format(start)),
                 if (end != null)
