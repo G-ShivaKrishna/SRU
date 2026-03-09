@@ -1220,11 +1220,9 @@ class _FacultyOverflowNavButton extends StatelessWidget {
               controller: scrollController,
               children: subMenus.entries.map((entry) {
                 // Single-item group → render as direct ListTile
-                if (entry.value.length == 1 &&
-                    entry.value.first == entry.key) {
+                if (entry.value.length == 1 && entry.value.first == entry.key) {
                   return ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                     title: Text(entry.key,
                         style: const TextStyle(
                             color: Colors.white,

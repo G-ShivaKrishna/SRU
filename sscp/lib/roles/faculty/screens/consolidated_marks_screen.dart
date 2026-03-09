@@ -378,8 +378,8 @@ class _SubjectCard extends StatelessWidget {
                 // Table header
                 Container(
                   color: const Color(0xFF1e3a5f).withOpacity(0.07),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
                     children: const [
                       SizedBox(
