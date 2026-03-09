@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 import 'student_home.dart';
 import '../../../services/user_service.dart';
+import '../../../services/session_service.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
 import '../../../widgets/forgot_password_dialog.dart';
@@ -124,6 +125,7 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
       // Fetch and cache user ID from Firestore
       await UserService.fetchAndCacheUserId();
+      await SessionService.saveRole('student');
 
       if (mounted) {
         Navigator.of(context).pushReplacement(

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../services/audit_log_service.dart';
 import '../../services/user_service.dart';
+import '../../services/session_service.dart';
 
 // ─── Fee type configuration ───────────────────────────────────────────────────
 class _FeeTypeConfig {
@@ -61,9 +62,15 @@ class _FeePaymentHomeState extends State<FeePaymentHome> {
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
-          ),
+          onPressed: () async {
+            await SessionService.clearRole();
+            await FirebaseAuth.instance.signOut();
+            if (context.mounted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
+              );
+            }
+          },
         ),
       ),
       body: Column(

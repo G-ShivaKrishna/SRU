@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../config/dev_config.dart';
 import '../../services/user_service.dart';
+import '../../services/session_service.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../widgets/forgot_password_dialog.dart';
 import '../../widgets/reset_link_helper.dart';
@@ -123,6 +124,7 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
 
       // Fetch and cache user ID from Firestore
       await UserService.fetchAndCacheUserId();
+      await SessionService.saveRole('fee_payment');
 
       if (!mounted) return;
       Navigator.of(context).pushReplacement(

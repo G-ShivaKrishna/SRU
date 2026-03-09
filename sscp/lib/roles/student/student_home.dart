@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
 import '../../services/user_service.dart';
+import '../../services/session_service.dart';
 import '../faculty/screens/student_handbook_screen.dart';
 import '../faculty/screens/syllabus_screen.dart';
 import 'screens/academics_screen.dart';
@@ -630,6 +631,7 @@ class _StudentHomeState extends State<StudentHome> {
   }
 
   Future<void> _logout() async {
+    await SessionService.clearRole();
     await _auth.signOut();
     if (mounted) {
       Navigator.of(context).pushReplacement(

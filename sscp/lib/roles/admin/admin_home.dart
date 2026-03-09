@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'pages/mentor_assignment_page.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../services/user_service.dart';
+import '../../services/session_service.dart';
 import 'pages/unified_permissions_page.dart';
 import 'pages/account_creation_page.dart';
 import 'pages/student_name_edit_page.dart';
@@ -209,9 +210,13 @@ class _AdminHomeState extends State<AdminHome> {
   }
 
   Future<void> _logout() async {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
-    );
+    await FirebaseAuth.instance.signOut();
+    await SessionService.clearRole();
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+      );
+    }
   }
 
   @override

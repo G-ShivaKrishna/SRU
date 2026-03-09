@@ -6,6 +6,7 @@ import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
 import '../../services/feedback_service.dart';
 import '../../services/user_service.dart';
+import '../../services/session_service.dart';
 import 'screens/profile_screen.dart';
 import 'screens/attendance_entry_screen.dart';
 import 'screens/multi_batch_attendance_screen.dart';
@@ -121,6 +122,7 @@ class _FacultyHomeState extends State<FacultyHome> {
   }
 
   Future<void> _logout() async {
+    await SessionService.clearRole();
     await _auth.signOut();
     if (mounted) {
       Navigator.of(context).pushReplacement(
