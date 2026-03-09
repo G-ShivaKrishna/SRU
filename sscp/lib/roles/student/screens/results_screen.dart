@@ -642,14 +642,8 @@ class _SupplyExamTabState extends State<_SupplyExamTab> {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        final now = DateTime.now();
-        final windows = (snap.data?.docs ?? []).where((doc) {
-          final d = doc.data() as Map<String, dynamic>;
-          final start = (d['startDate'] as Timestamp?)?.toDate();
-          final end = (d['endDate'] as Timestamp?)?.toDate();
-          if (start == null || end == null) return false;
-          return now.isAfter(start) && now.isBefore(end);
-        }).toList();
+        // Trust isActive flag set by admin — no date filtering
+        final windows = (snap.data?.docs ?? []).toList();
 
         if (windows.isEmpty) {
           return const Center(
