@@ -584,10 +584,7 @@ class _StudentHomeState extends State<StudentHome> {
       case 'Supply Exam Memo':
         page = const SupplyExamMemoScreen();
         break;
-      case 'Backlogs':
-        page = const ResultsScreen(initialTab: 0);
-        break;
-      case 'Supply Exam':
+      case 'Backlogs & Supply Exam Registrations':
         page = const ResultsScreen(initialTab: 1);
         break;
       case 'Makeup Mid':
@@ -753,8 +750,7 @@ class _StudentHomeState extends State<StudentHome> {
         'CIE Marks',
         'Semester Memo',
         'Supply Exam Memo',
-        'Backlogs',
-        'Supply Exam',
+        'Backlogs & Supply Exam Registrations',
         'Makeup Mid',
       ],
       'Grievance': ['Submit Grievance', 'Grievance Status'],
@@ -786,15 +782,7 @@ class _StudentHomeState extends State<StudentHome> {
             overflowTop.add(item);
           }
         }
-        overflowFlat = [];
-        for (final item in overflowTop) {
-          final subs = subMenus[item];
-          if (subs != null) {
-            overflowFlat.addAll(subs);
-          } else {
-            overflowFlat.add(item);
-          }
-        }
+        overflowFlat = List<String>.from(overflowTop);
       }
 
       return SizedBox(
@@ -866,6 +854,7 @@ class _StudentHomeState extends State<StudentHome> {
                 if (overflowFlat.isNotEmpty)
                   _StudentOverflowNavButton(
                     items: overflowFlat,
+                    subMenus: subMenus,
                     onSelected: (item) => _navigateToPage(context, item),
                   ),
                 const Spacer(),
@@ -963,18 +952,10 @@ class _StudentHomeState extends State<StudentHome> {
                   ),
                 ),
                 const PopupMenuItem<String>(
-                  value: 'Backlogs',
+                  value: 'Backlogs & Supply Exam Registrations',
                   child: Padding(
                     padding: EdgeInsets.only(left: 12),
-                    child:
-                        Text('Backlogs', style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'Supply Exam',
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 12),
-                    child: Text('Supply Exam',
+                    child: Text('Backlogs & Supply Exam Registrations',
                         style: TextStyle(color: Colors.white)),
                   ),
                 ),
@@ -1093,13 +1074,8 @@ class _StudentHomeState extends State<StudentHome> {
                         style: TextStyle(color: Colors.white)),
                   ),
                   const PopupMenuItem(
-                    value: 'Backlogs',
-                    child:
-                        Text('Backlogs', style: TextStyle(color: Colors.white)),
-                  ),
-                  const PopupMenuItem(
-                    value: 'Supply Exam',
-                    child: Text('Supply Exam',
+                    value: 'Backlogs & Supply Exam Registrations',
+                    child: Text('Backlogs & Supply Exam Registrations',
                         style: TextStyle(color: Colors.white)),
                   ),
                   const PopupMenuItem(
@@ -1771,28 +1747,66 @@ class _StudentHomeState extends State<StudentHome> {
 
 class _StudentOverflowNavButton extends StatelessWidget {
   final List<String> items;
+  final Map<String, List<String>> subMenus;
   final void Function(String) onSelected;
 
-  const _StudentOverflowNavButton(
-      {required this.items, required this.onSelected});
+  const _StudentOverflowNavButton({
+    required this.items,
+    required this.subMenus,
+    required this.onSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      offset: const Offset(0, 42),
-      color: const Color(0xFF1e3a5f),
-      onSelected: onSelected,
-      itemBuilder: (_) => items
-          .map((item) => PopupMenuItem<String>(
-                value: item,
-                height: 40,
-                child: Text(item,
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: const Color(0xFF1e3a5f),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          builder: (_) => ListView(
+            shrinkWrap: true,
+            children: items.map((item) {
+              final subs = subMenus[item];
+              if (subs != null) {
+                return ExpansionTile(
+                  title: Text(item,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600)),
+                  iconColor: Colors.white70,
+                  collapsedIconColor: Colors.white70,
+                  children: subs
+                      .map((sub) => ListTile(
+                            contentPadding: const EdgeInsets.only(
+                                left: 32, right: 16),
+                            title: Text(sub,
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 13)),
+                            onTap: () {
+                              Navigator.pop(context);
+                              onSelected(sub);
+                            },
+                          ))
+                      .toList(),
+                );
+              }
+              return ListTile(
+                title: Text(item,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500)),
-              ))
-          .toList(),
+                        color: Colors.white, fontSize: 14)),
+                onTap: () {
+                  Navigator.pop(context);
+                  onSelected(item);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: const Row(
