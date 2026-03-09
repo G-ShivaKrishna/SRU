@@ -321,7 +321,6 @@ class _FacultyHomeState extends State<FacultyHome> {
             child: Row(
               mainAxisSize: MainAxisSize.max,
               children: [
-                const Spacer(),
                 ...visible.map((item) {
                   final isHome = item == 'Home';
                   final subs = subMenus[item];
@@ -388,6 +387,7 @@ class _FacultyHomeState extends State<FacultyHome> {
                     onSelected: (item) =>
                         _handleMenuSelection(context, '', item),
                   ),
+                const Spacer(),
               ],
             ),
           ),
@@ -407,7 +407,6 @@ class _FacultyHomeState extends State<FacultyHome> {
         vertical: 8,
       ),
       child: const Row(
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Text(
             'Active Faculty',

@@ -794,7 +794,6 @@ class _StudentHomeState extends State<StudentHome> {
             child: Row(
               mainAxisSize: MainAxisSize.max,
               children: [
-                const Spacer(),
                 ...visible.map((item) {
                   final isHome = item == 'Home';
                   final subs = subMenus[item];
@@ -858,6 +857,7 @@ class _StudentHomeState extends State<StudentHome> {
                     subMenus: subMenus,
                     onSelected: (item) => _navigateToPage(context, item),
                   ),
+                const Spacer(),
               ],
             ),
           ),
@@ -1174,7 +1174,6 @@ class _StudentHomeState extends State<StudentHome> {
         vertical: 8,
       ),
       child: const Row(
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Text(
             'No Due',

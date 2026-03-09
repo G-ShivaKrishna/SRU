@@ -380,7 +380,6 @@ class _AdminHomeState extends State<AdminHome> {
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  const Spacer(),
                   ...visible.map((item) {
                     final isHome = item == 'Home';
                     final subItems = allSubMenus[item];
@@ -444,6 +443,7 @@ class _AdminHomeState extends State<AdminHome> {
                       subMenus: allSubMenus,
                       onSelected: (item) => _navigateToPage(context, item),
                     ),
+                  const Spacer(),
                 ],
               ),
             ),
@@ -464,7 +464,6 @@ class _AdminHomeState extends State<AdminHome> {
         vertical: 8,
       ),
       child: const Row(
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Icon(Icons.check_circle, color: Colors.green, size: 16),
           SizedBox(width: 8),
