@@ -109,7 +109,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       }
 
       // Use the firebase email stored in Firestore for authentication
-      final customEmail = (studentDoc['firebaseEmail'] ?? studentDoc['email'] ?? '') as String;
+      final customEmail =
+          (studentDoc['firebaseEmail'] ?? studentDoc['email'] ?? '') as String;
       if (customEmail.isEmpty) {
         setState(() => _isLoading = false);
         _showError('Email not configured for this student');
@@ -144,7 +145,8 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       } else if (e.code == 'invalid-email') {
         _showError('Invalid roll number format');
       } else if (e.code == 'network-request-failed') {
-        _showError('Network error. Please check your internet connection and try again.');
+        _showError(
+            'Network error. Please check your internet connection and try again.');
       } else {
         _showError('Login failed: ${e.message}');
       }

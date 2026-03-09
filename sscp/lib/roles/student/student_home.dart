@@ -1781,8 +1781,8 @@ class _StudentOverflowNavButton extends StatelessWidget {
                   collapsedIconColor: Colors.white70,
                   children: subs
                       .map((sub) => ListTile(
-                            contentPadding: const EdgeInsets.only(
-                                left: 32, right: 16),
+                            contentPadding:
+                                const EdgeInsets.only(left: 32, right: 16),
                             title: Text(sub,
                                 style: const TextStyle(
                                     color: Colors.white70, fontSize: 13)),
@@ -1796,8 +1796,7 @@ class _StudentOverflowNavButton extends StatelessWidget {
               }
               return ListTile(
                 title: Text(item,
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 14)),
+                    style: const TextStyle(color: Colors.white, fontSize: 14)),
                 onTap: () {
                   Navigator.pop(context);
                   onSelected(item);
