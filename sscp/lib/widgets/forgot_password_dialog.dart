@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// Forgot Password Dialog - works for all roles
 /// User enters their ID, system looks up email and sends reset link
 class ForgotPasswordDialog extends StatefulWidget {
-  final String role; // 'student', 'faculty', or 'feePayment'
+  final String role; // 'student', 'faculty', 'admin', or 'feePayment'
 
   const ForgotPasswordDialog({
     super.key,
@@ -33,6 +33,8 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
     switch (widget.role) {
       case 'faculty':
         return 'faculty';
+      case 'admin':
+        return 'admin';
       case 'feePayment':
         return 'feePayments';
       default:
@@ -44,6 +46,8 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
     switch (widget.role) {
       case 'faculty':
         return 'facultyId';
+      case 'admin':
+        return 'adminId';
       case 'feePayment':
         return 'feePaymentId';
       default:
@@ -74,7 +78,19 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
           _firestore.collection(collection).where(idField, isEqualTo: idInput);
       final QuerySnapshot snapshot = await query.limit(1).get();
 
-      if (snapshot.docs.isEmpty) {
+      Map<String, dynamic>? userData;
+
+      if (snapshot.docs.isNotEmpty) {
+        userData = snapshot.docs.first.data() as Map<String, dynamic>;
+      } else {
+        // Fallback: support schemas where the identifier is the document ID.
+        final directDoc = await _firestore.collection(collection).doc(idInput).get();
+        if (directDoc.exists) {
+          userData = directDoc.data();
+        }
+      }
+
+      if (userData == null) {
         setState(() {
           _isLoading = false;
           _errorMessage =
@@ -84,8 +100,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
       }
 
       // Get the custom email from the document
-      final userDoc = snapshot.docs.first;
-      final customEmail = userDoc['email']?.toString() ?? '';
+      final customEmail = userData['email']?.toString() ?? '';
 
       if (customEmail.isEmpty) {
         setState(() {
@@ -145,6 +160,8 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                     ? 'e.g., 22CSB001'
                     : widget.role == 'faculty'
                         ? 'e.g., FAC001'
+                    : widget.role == 'admin'
+                      ? 'e.g., ADM001'
                         : 'e.g., FEE001',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),

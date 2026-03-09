@@ -6,6 +6,7 @@ import '../roles/faculty/faculty_login_screen.dart';
 import '../roles/faculty/faculty_home.dart';
 import '../roles/fee_payment/fee_payment_login_screen.dart';
 import '../roles/fee_payment/fee_payment_home.dart';
+import '../roles/admin/admin_login_screen.dart';
 import '../roles/admin/admin_home.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
@@ -126,7 +127,9 @@ class RoleSelectionScreen extends StatelessWidget {
                               onPressed: () {
                                 Navigator.of(context).pushReplacement(
                                   MaterialPageRoute(
-                                    builder: (context) => const AdminHome(),
+                                    builder: (context) => DevConfig.bypassLogin
+                                        ? const AdminHome()
+                                        : const AdminLoginScreen(),
                                   ),
                                 );
                               },

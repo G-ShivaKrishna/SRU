@@ -18,7 +18,7 @@ class UserService {
 
   UserService._internal();
 
-  /// Get current user ID (hallTicketNumber, facultyId, or feePaymentId)
+  /// Get current user ID (hallTicketNumber, facultyId, adminId, or feePaymentId)
   static String? getCurrentUserId() => _currentUserId;
 
   /// Get current user role
@@ -108,6 +108,38 @@ class UserService {
       }
 
       print('❌ UserService: Faculty not found with email: $email');
+
+      // Try to find in admin collection by custom email field
+      var adminQuery = await _firestore
+          .collection('admin')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (adminQuery.docs.isNotEmpty) {
+        final adminDoc = adminQuery.docs.first;
+        _currentUserId = adminDoc['adminId']?.toString() ?? adminDoc.id;
+        _currentUserRole = 'admin';
+        _currentUserData = adminDoc.data();
+        print('✅ UserService: Found admin - ID: $_currentUserId');
+        return _currentUserId;
+      }
+
+      // Fallback: Search all admins
+      final allAdmins = await _firestore.collection('admin').get();
+      for (final doc in allAdmins.docs) {
+        final storedEmail =
+            (doc['email'] ?? '').toString().toLowerCase().trim();
+        if (storedEmail == email) {
+          _currentUserId = doc['adminId']?.toString() ?? doc.id;
+          _currentUserRole = 'admin';
+          _currentUserData = doc.data();
+          print('✅ UserService: Found admin (fallback) - ID: $_currentUserId');
+          return _currentUserId;
+        }
+      }
+
+      print('❌ UserService: Admin not found with email: $email');
 
       // Try to find in feePayments collection by custom email field
       var feeQuery = await _firestore

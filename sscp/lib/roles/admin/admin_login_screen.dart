@@ -6,6 +6,8 @@ import 'admin_home.dart';
 import '../../services/user_service.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
+import '../../widgets/forgot_password_dialog.dart';
+import '../../widgets/reset_link_helper.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -186,11 +188,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   Icon(
                     Icons.info_outline,
                     color: Color(0xFF1e3a5f),
+                    size: 20,
                   ),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Click OK to continue',
+                      'Use the "Forgot Password?" link below to reset your password securely via email.',
                       style: TextStyle(
                         fontSize: 12,
                         color: Color(0xFF1e3a5f),
@@ -318,15 +321,31 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   TextButton.icon(
-                    onPressed: _refreshCaptcha,
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const ResetLinkHelper(),
+                            );
+                          },
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFF1e3a5f),
                     ),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Refresh'),
+                    icon: const Icon(Icons.link, size: 16),
+                    label: const Text('Have a reset link?'),
                   ),
                   TextButton(
-                    onPressed: _isLoading ? null : () {},
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const ForgotPasswordDialog(
+                                role: 'admin',
+                              ),
+                            );
+                          },
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFF1e3a5f),
                     ),
@@ -355,19 +374,30 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: _captchaController,
-                      enabled: !_isLoading,
-                      decoration: InputDecoration(
-                        hintText: 'Enter captcha text',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _captchaController,
+                            enabled: !_isLoading,
+                            decoration: InputDecoration(
+                              hintText: 'Enter captcha text',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                            ),
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: _isLoading ? null : _refreshCaptcha,
+                          icon: const Icon(Icons.refresh),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
