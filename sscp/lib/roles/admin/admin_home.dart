@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'pages/mentor_assignment_page.dart';
 import '../../screens/role_selection_screen.dart';
+import '../../services/user_service.dart';
 import 'pages/unified_permissions_page.dart';
 import 'pages/account_creation_page.dart';
 import 'pages/student_name_edit_page.dart';
@@ -41,18 +44,108 @@ class _AdminHomeState extends State<AdminHome> {
   }
 
   Future<void> _loadAdminData() async {
-    // Load admin data - for now using demo data
-    setState(() {
-      _adminData = {
-        'name': 'Admin User',
-        'adminId': 'ADM001',
-        'department': 'Administration',
-        'email': 'admin@sru.edu.in',
-        'phone': '9876543210',
-        'designation': 'System Administrator',
+    setState(() => _isLoading = true);
+
+    try {
+      final authUser = FirebaseAuth.instance.currentUser;
+      final userEmail = authUser?.email?.trim() ?? '';
+      String? adminId = UserService.getCurrentUserId();
+
+      if (adminId == null || adminId.isEmpty) {
+        adminId = await UserService.fetchAndCacheUserId();
+      }
+
+      Map<String, dynamic>? backendData;
+      String resolvedAdminId = (adminId ?? '').trim().toUpperCase();
+
+      // Preferred lookup: document ID based on adminId.
+      if (resolvedAdminId.isNotEmpty) {
+        final byIdDoc = await FirebaseFirestore.instance
+            .collection('admin')
+            .doc(resolvedAdminId)
+            .get();
+        if (byIdDoc.exists) {
+          backendData = byIdDoc.data();
+          resolvedAdminId = byIdDoc.id;
+        }
+      }
+
+      // Fallback lookup: email.
+      if (backendData == null && userEmail.isNotEmpty) {
+        final byEmail = await FirebaseFirestore.instance
+            .collection('admin')
+            .where('email', isEqualTo: userEmail.toLowerCase())
+            .limit(1)
+            .get();
+
+        if (byEmail.docs.isNotEmpty) {
+          final doc = byEmail.docs.first;
+          backendData = doc.data();
+          resolvedAdminId = doc.id;
+        }
+
+        // Additional fallback for case-mismatched stored emails.
+        if (backendData == null) {
+          final allAdmins =
+              await FirebaseFirestore.instance.collection('admin').get();
+          for (final doc in allAdmins.docs) {
+            final storedEmail =
+                (doc.data()['email'] ?? '').toString().toLowerCase().trim();
+            if (storedEmail == userEmail.toLowerCase()) {
+              backendData = doc.data();
+              resolvedAdminId = doc.id;
+              break;
+            }
+          }
+        }
+      }
+
+      final roleValue =
+          _readString(backendData, ['role', 'designation']).isNotEmpty
+              ? _readString(backendData, ['role', 'designation'])
+              : 'admin';
+
+      final mappedData = <String, dynamic>{
+        'name': _readString(backendData, ['name', 'adminName']).isNotEmpty
+            ? _readString(backendData, ['name', 'adminName'])
+            : 'Admin User',
+        'adminId': _readString(backendData, ['adminId']).isNotEmpty
+            ? _readString(backendData, ['adminId'])
+            : (resolvedAdminId.isNotEmpty ? resolvedAdminId : 'ADM001'),
+        'email': _readString(backendData, ['email']).isNotEmpty
+            ? _readString(backendData, ['email'])
+            : userEmail,
+        // As requested, designation is treated as backend role.
+        'designation': roleValue,
       };
-      _isLoading = false;
-    });
+
+      if (!mounted) return;
+      setState(() {
+        _adminData = mappedData;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _adminData = {
+          'name': 'Admin User',
+          'adminId': 'ADM001',
+          'email': FirebaseAuth.instance.currentUser?.email ??
+              'admin@sru.edu.in',
+          'designation': 'admin',
+        };
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _readString(Map<String, dynamic>? data, List<String> keys) {
+    if (data == null) return '';
+    for (final key in keys) {
+      final value = data[key]?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    return '';
   }
 
   void _navigateToPage(BuildContext context, String pageName) {
