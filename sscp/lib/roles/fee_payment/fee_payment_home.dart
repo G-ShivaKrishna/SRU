@@ -166,8 +166,7 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
 
       String studentName = '';
       if (status == 'paid') {
-        final studentDoc =
-            await _db.collection('students').doc(rollNo).get();
+        final studentDoc = await _db.collection('students').doc(rollNo).get();
         studentName = studentDoc.data()?['name']?.toString() ?? '';
       }
 
@@ -298,8 +297,7 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                         items: windows.map((doc) {
                           final d = doc.data() as Map<String, dynamic>;
                           final title = d['title']?.toString() ?? doc.id;
-                          final session =
-                              d['examSession']?.toString() ?? '';
+                          final session = d['examSession']?.toString() ?? '';
                           final fee = d['fee'];
                           return DropdownMenuItem(
                             value: doc.id,
@@ -313,8 +311,7 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                             ),
                           );
                         }).toList(),
-                        onChanged: (v) =>
-                            setState(() => _selectedWindowId = v),
+                        onChanged: (v) => setState(() => _selectedWindowId = v),
                       ),
 
                     const SizedBox(height: 12),
@@ -338,23 +335,19 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed:
-                                canAct ? () => _update('paid') : null,
+                            onPressed: canAct ? () => _update('paid') : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green.shade700,
                               foregroundColor: Colors.white,
-                              disabledBackgroundColor:
-                                  Colors.green.shade200,
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12),
+                              disabledBackgroundColor: Colors.green.shade200,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                             icon: _saving
                                 ? const SizedBox(
                                     width: 16,
                                     height: 16,
                                     child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2),
+                                        color: Colors.white, strokeWidth: 2),
                                   )
                                 : const Icon(Icons.check_circle_outline),
                             label: const Text('Mark PAID'),
@@ -363,14 +356,11 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed:
-                                canAct ? () => _update('unpaid') : null,
+                            onPressed: canAct ? () => _update('unpaid') : null,
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.orange.shade800,
-                              side: BorderSide(
-                                  color: Colors.orange.shade400),
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12),
+                              side: BorderSide(color: Colors.orange.shade400),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                             icon: const Icon(Icons.cancel_outlined),
                             label: const Text('Mark UNPAID'),
@@ -455,14 +445,12 @@ class _PaymentRecords extends StatelessWidget {
             Row(
               children: [
                 const Text('Payment Records',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 15)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 const Spacer(),
                 _Badge(label: 'Paid: $paidCount', color: Colors.green),
                 const SizedBox(width: 6),
-                _Badge(
-                    label: 'Unpaid: $unpaidCount',
-                    color: Colors.orange),
+                _Badge(label: 'Unpaid: $unpaidCount', color: Colors.orange),
               ],
             ),
             const SizedBox(height: 8),
@@ -546,8 +534,7 @@ class _InfoBox extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String text;
-  const _InfoBox(
-      {required this.icon, required this.color, required this.text});
+  const _InfoBox({required this.icon, required this.color, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -591,4 +578,3 @@ class _Badge extends StatelessWidget {
     );
   }
 }
-
