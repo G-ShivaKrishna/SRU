@@ -166,8 +166,7 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
       final releaseMap = <String, int>{};
       for (final d in relSnap.docs) {
         final r = d.data();
-        final key =
-            '${r['year']}_${normSem(r['semester']?.toString() ?? '')}';
+        final key = '${r['year']}_${normSem(r['semester']?.toString() ?? '')}';
         releaseMap[key] = (r['minPassMarks'] is int)
             ? r['minPassMarks'] as int
             : int.tryParse(r['minPassMarks']?.toString() ?? '') ?? 40;
@@ -237,8 +236,7 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
             final lKey =
                 '${later['year']}_${normSem(later['semester']?.toString() ?? '')}';
             final lMin = releaseMap[lKey] ?? 40;
-            final lRaw =
-                later['componentMarks'] as Map<String, dynamic>? ?? {};
+            final lRaw = later['componentMarks'] as Map<String, dynamic>? ?? {};
             int lTotal = 0;
             for (final v in lRaw.values) {
               lTotal += (v is int) ? v : int.tryParse(v.toString()) ?? 0;
@@ -288,9 +286,11 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                     shrinkWrap: true,
                     children: _backlogs.map((b) {
                       final code = b['subjectCode']?.toString() ??
-                          b['code']?.toString() ?? '';
+                          b['code']?.toString() ??
+                          '';
                       final name = b['subjectName']?.toString() ??
-                          b['name']?.toString() ?? code;
+                          b['name']?.toString() ??
+                          code;
                       final sem = b['semester']?.toString() ?? '';
                       return CheckboxListTile(
                         dense: true,
@@ -302,8 +302,7 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                             tmp.remove(code);
                           }
                         }),
-                        title: Text(name,
-                            style: const TextStyle(fontSize: 13)),
+                        title: Text(name, style: const TextStyle(fontSize: 13)),
                         subtitle: code.isNotEmpty
                             ? Text(
                                 '$code${sem.isNotEmpty ? ' · Sem $sem' : ''}',
@@ -370,13 +369,19 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
       }
 
       // Collect selected subject details
-      final selectedSubjects = _backlogs.where((b) {
-        final code = b['subjectCode']?.toString() ?? b['code']?.toString() ?? '';
-        return _selectedSubjectCodes.contains(code);
-      }).map((b) => {
-        'code': b['subjectCode']?.toString() ?? b['code']?.toString() ?? '',
-        'name': b['subjectName']?.toString() ?? b['name']?.toString() ?? '',
-      }).toList();
+      final selectedSubjects = _backlogs
+          .where((b) {
+            final code =
+                b['subjectCode']?.toString() ?? b['code']?.toString() ?? '';
+            return _selectedSubjectCodes.contains(code);
+          })
+          .map((b) => {
+                'code':
+                    b['subjectCode']?.toString() ?? b['code']?.toString() ?? '',
+                'name':
+                    b['subjectName']?.toString() ?? b['name']?.toString() ?? '',
+              })
+          .toList();
 
       final staffEmail = FirebaseAuth.instance.currentUser?.email ?? '';
       final staffId = UserService.getCurrentUserId() ??
@@ -558,14 +563,16 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                       onChanged: (_) => setState(() {}),
                       onSubmitted: (v) {
                         final roll = v.trim().toUpperCase();
-                        if (_isSupply && roll.isNotEmpty &&
+                        if (_isSupply &&
+                            roll.isNotEmpty &&
                             _selectedWindowId != null) {
                           _loadBacklogs(roll);
                         }
                       },
                       onEditingComplete: () {
                         final roll = _rollCtrl.text.trim().toUpperCase();
-                        if (_isSupply && roll.isNotEmpty &&
+                        if (_isSupply &&
+                            roll.isNotEmpty &&
                             _selectedWindowId != null) {
                           _loadBacklogs(roll);
                         }
@@ -574,7 +581,9 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                     ),
 
                     // ── Subject dropdown (supply only) ─────────────────
-                    if (_isSupply && rollFilled && _selectedWindowId != null) ...[
+                    if (_isSupply &&
+                        rollFilled &&
+                        _selectedWindowId != null) ...[
                       const SizedBox(height: 12),
                       GestureDetector(
                         onTap: _backlogsLoading
@@ -618,36 +627,32 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                         Wrap(
                           spacing: 4,
                           runSpacing: 4,
-                          children: _backlogs
-                              .where((b) {
-                                final code =
-                                    b['subjectCode']?.toString() ??
-                                        b['code']?.toString() ?? '';
-                                return _selectedSubjectCodes.contains(code);
-                              })
-                              .map((b) {
-                                final code =
-                                    b['subjectCode']?.toString() ??
-                                        b['code']?.toString() ?? '';
-                                final name =
-                                    b['subjectName']?.toString() ??
-                                        b['name']?.toString() ?? code;
-                                return Chip(
-                                  label: Text(
-                                    name.length > 20
-                                        ? '${name.substring(0, 20)}…'
-                                        : name,
-                                    style: const TextStyle(fontSize: 11),
-                                  ),
-                                  deleteIcon:
-                                      const Icon(Icons.close, size: 14),
-                                  onDeleted: () => setState(() =>
-                                      _selectedSubjectCodes.remove(code)),
-                                  backgroundColor: const Color(0xFF1e3a5f)
-                                      .withValues(alpha: 0.08),
-                                );
-                              })
-                              .toList(),
+                          children: _backlogs.where((b) {
+                            final code = b['subjectCode']?.toString() ??
+                                b['code']?.toString() ??
+                                '';
+                            return _selectedSubjectCodes.contains(code);
+                          }).map((b) {
+                            final code = b['subjectCode']?.toString() ??
+                                b['code']?.toString() ??
+                                '';
+                            final name = b['subjectName']?.toString() ??
+                                b['name']?.toString() ??
+                                code;
+                            return Chip(
+                              label: Text(
+                                name.length > 20
+                                    ? '${name.substring(0, 20)}…'
+                                    : name,
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              deleteIcon: const Icon(Icons.close, size: 14),
+                              onDeleted: () => setState(
+                                  () => _selectedSubjectCodes.remove(code)),
+                              backgroundColor: const Color(0xFF1e3a5f)
+                                  .withValues(alpha: 0.08),
+                            );
+                          }).toList(),
                         ),
                       ],
                     ],
