@@ -130,8 +130,8 @@ class _AdminHomeState extends State<AdminHome> {
         _adminData = {
           'name': 'Admin User',
           'adminId': 'ADM001',
-          'email': FirebaseAuth.instance.currentUser?.email ??
-              'admin@sru.edu.in',
+          'email':
+              FirebaseAuth.instance.currentUser?.email ?? 'admin@sru.edu.in',
           'designation': 'admin',
         };
         _isLoading = false;
