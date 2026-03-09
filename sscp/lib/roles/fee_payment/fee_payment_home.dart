@@ -21,12 +21,6 @@ class _FeeTypeConfig {
 
 const _feeTypes = <_FeeTypeConfig>[
   _FeeTypeConfig(
-    label: 'Regular Fee',
-    paymentType: 'regular_fee',
-    windowsCollection: 'regularFeeWindows',
-    windowIdField: 'regularFeeWindowId',
-  ),
-  _FeeTypeConfig(
     label: 'Supply Exam Fee',
     paymentType: 'supply',
     windowsCollection: 'supplyWindows',
@@ -143,6 +137,8 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
   }
 
   bool get _isSupply => widget.config.paymentType == 'supply';
+  bool get _isMakeupMid => widget.config.paymentType == 'makeup_mid';
+  bool get _needsSubjectPicker => _isSupply || _isMakeupMid;
 
   /// Computes active backlogs from studentMarks + cieMemoReleases + supplyMarks,
   /// mirroring the same logic used in student_home.dart / results_screen.dart.
@@ -271,17 +267,109 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
     }
   }
 
+  /// Fetches subjects the student registered for in course registrations (studentSubjectSelections).
+  Future<void> _loadMakeupSubjects(String rollNo) async {
+    if (!_isMakeupMid || rollNo.isEmpty || _selectedWindowId == null) return;
+    if (rollNo == _lastFetchedRoll) return;
+    setState(() {
+      _backlogsLoading = true;
+      _backlogs = [];
+      _selectedSubjectCodes = {};
+      _lastFetchedRoll = rollNo;
+    });
+    try {
+      // 1. Get student's current year + semester
+      final studentDoc = await _db.collection('students').doc(rollNo).get();
+      String yearStr = '';
+      String semStr = '';
+      if (studentDoc.exists) {
+        final sData = studentDoc.data()!;
+        yearStr = sData['year']?.toString() ?? '';
+        semStr = sData['semester']?.toString() ?? '';
+      }
+
+      // 2. Query studentSubjectSelections by studentId, match current year+sem
+      final selSnap = await _db
+          .collection('studentSubjectSelections')
+          .where('studentId', isEqualTo: rollNo)
+          .get();
+
+      Map<String, dynamic>? selData;
+      if (selSnap.docs.isNotEmpty) {
+        if (yearStr.isNotEmpty && semStr.isNotEmpty) {
+          final match = selSnap.docs.where((d) {
+            final data = d.data();
+            return data['year']?.toString() == yearStr &&
+                data['semester']?.toString() == semStr;
+          });
+          selData = match.isNotEmpty ? match.first.data() : null;
+        }
+        selData ??= selSnap.docs.last.data();
+      }
+
+      final result = <Map<String, dynamic>>[];
+      if (selData != null) {
+        final allIds = [
+          ...List<String>.from(selData['coreSubjectIds'] ?? []),
+          ...List<String>.from(selData['selectedOEIds'] ?? []),
+          ...List<String>.from(selData['selectedPEIds'] ?? []),
+        ];
+        for (int i = 0; i < allIds.length; i += 10) {
+          final chunk = allIds.sublist(
+              i, i + 10 > allIds.length ? allIds.length : i + 10);
+          final snap = await _db
+              .collection('subjects')
+              .where(FieldPath.documentId, whereIn: chunk)
+              .get();
+          for (final doc in snap.docs) {
+            final d = doc.data();
+            final code = d['code']?.toString() ?? '';
+            if (code.isEmpty) continue;
+            result.add({
+              'subjectCode': code,
+              'subjectName': d['name']?.toString() ?? code,
+              'semester': d['semester']?.toString() ?? semStr,
+              'year': d['year']?.toString() ?? yearStr,
+            });
+          }
+        }
+      }
+
+      result.sort((a, b) =>
+          (a['subjectCode'] as String).compareTo(b['subjectCode'] as String));
+      if (mounted) {
+        setState(() {
+          _backlogs = result;
+          // Auto-select all registered subjects
+          _selectedSubjectCodes =
+              result.map((b) => b['subjectCode']?.toString() ?? '').toSet()
+                ..remove('');
+          _backlogsLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _backlogsLoading = false);
+    }
+  }
+
+  void _triggerSubjectLoad(String rollNo) {
+    if (_isSupply) _loadBacklogs(rollNo);
+    if (_isMakeupMid) _loadMakeupSubjects(rollNo);
+  }
+
   Future<void> _openSubjectPicker(BuildContext context) async {
     final tmp = Set<String>.from(_selectedSubjectCodes);
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: const Text('Select Backlog Subjects'),
+          title: Text(_isSupply ? 'Select Backlog Subjects' : 'Select Subjects'),
           content: SizedBox(
             width: double.maxFinite,
             child: _backlogs.isEmpty
-                ? const Text('No backlogs found for this student.')
+                ? Text(_isSupply
+                    ? 'No backlogs found for this student.'
+                    : 'No subjects found for this student.')
                 : ListView(
                     shrinkWrap: true,
                     children: _backlogs.map((b) {
@@ -400,7 +488,7 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
         'examSession': examSession,
         'amount': amount,
         'status': status,
-        if (_isSupply && selectedSubjects.isNotEmpty)
+        if (_needsSubjectPicker && selectedSubjects.isNotEmpty)
           'subjects': selectedSubjects,
         'updatedBy': staffId,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -540,8 +628,8 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                           });
                           // Re-fetch if roll is already filled
                           final roll = _rollCtrl.text.trim().toUpperCase();
-                          if (_isSupply && roll.isNotEmpty && v != null) {
-                            _loadBacklogs(roll);
+                          if (_needsSubjectPicker && roll.isNotEmpty && v != null) {
+                            _triggerSubjectLoad(roll);
                           }
                         },
                       ),
@@ -552,36 +640,38 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                       controller: _rollCtrl,
                       textCapitalization: TextCapitalization.characters,
                       textInputAction: TextInputAction.search,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Student Roll Number',
                         hintText: 'e.g. 2203A51001',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                         isDense: true,
-                        prefixIcon: Icon(Icons.person_outline),
-                        helperText: 'Press Enter / Search to load backlogs',
+                        prefixIcon: const Icon(Icons.person_outline),
+                        helperText: _needsSubjectPicker
+                            ? 'Press Enter / Search to load subjects'
+                            : null,
                       ),
                       onChanged: (_) => setState(() {}),
                       onSubmitted: (v) {
                         final roll = v.trim().toUpperCase();
-                        if (_isSupply &&
+                        if (_needsSubjectPicker &&
                             roll.isNotEmpty &&
                             _selectedWindowId != null) {
-                          _loadBacklogs(roll);
+                          _triggerSubjectLoad(roll);
                         }
                       },
                       onEditingComplete: () {
                         final roll = _rollCtrl.text.trim().toUpperCase();
-                        if (_isSupply &&
+                        if (_needsSubjectPicker &&
                             roll.isNotEmpty &&
                             _selectedWindowId != null) {
-                          _loadBacklogs(roll);
+                          _triggerSubjectLoad(roll);
                         }
                         FocusScope.of(context).unfocus();
                       },
                     ),
 
-                    // ── Subject dropdown (supply only) ─────────────────
-                    if (_isSupply &&
+                    // ── Subject picker (supply & makeup mid) ──────────
+                    if (_needsSubjectPicker &&
                         rollFilled &&
                         _selectedWindowId != null) ...[
                       const SizedBox(height: 12),
@@ -591,7 +681,7 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                             : () => _openSubjectPicker(context),
                         child: InputDecorator(
                           decoration: InputDecoration(
-                            labelText: 'Backlog Subjects',
+                            labelText: _isSupply ? 'Backlog Subjects' : 'Subjects',
                             border: const OutlineInputBorder(),
                             isDense: true,
                             suffixIcon: _backlogsLoading
@@ -609,9 +699,9 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                             _backlogsLoading
                                 ? 'Loading...'
                                 : _backlogs.isEmpty
-                                    ? 'No backlogs found'
+                                    ? (_isSupply ? 'No backlogs found' : 'No subjects found')
                                     : _selectedSubjectCodes.isEmpty
-                                        ? 'Tap to select subjects (${_backlogs.length} backlog${_backlogs.length == 1 ? '' : 's'})'
+                                        ? 'Tap to select subjects (${_backlogs.length} subject${_backlogs.length == 1 ? '' : 's'})'
                                         : '${_selectedSubjectCodes.length} of ${_backlogs.length} selected',
                             style: TextStyle(
                               fontSize: 14,

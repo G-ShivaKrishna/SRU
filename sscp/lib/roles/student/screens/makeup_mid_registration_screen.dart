@@ -4,23 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../../services/user_service.dart';
 
-/// Normalises semester values so numeric ("1") and Roman ("I") match.
-String _normSem(String? s) {
-  if (s == null || s.isEmpty) return '';
-  const roman = {
-    'I': '1',
-    'II': '2',
-    'III': '3',
-    'IV': '4',
-    'V': '5',
-    'VI': '6',
-    'VII': '7',
-    'VIII': '8'
-  };
-  final up = s.trim().toUpperCase();
-  return roman[up] ?? s.trim();
-}
-
 /// Student: Makeup Mid Exam Registration & Results
 /// - Shows active makeup mid windows
 /// - Student registers for subjects from their enrolled courses
@@ -142,28 +125,17 @@ class _RegistrationTab extends StatelessWidget {
           final end = (d['endDate'] as Timestamp?)?.toDate();
           if (start == null || end == null) return false;
           if (!now.isAfter(start) || !now.isBefore(end)) return false;
-          // Filter by student's year and semester if window specifies them
-          final ty = d['targetYear'];
-          final ts = d['targetSemester']?.toString();
-          if (ty != null && studentYear != null) {
-            if (ty.toString() != studentYear) return false;
-          }
-          if (ts != null && studentSemester != null) {
-            if (_normSem(ts) != _normSem(studentSemester)) return false;
-          }
           return true;
         }).toList();
 
         if (windows.isEmpty) {
-          return Center(
+          return const Center(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(24),
               child: Text(
-                studentYear != null
-                    ? 'No makeup mid windows open for Year $studentYear, Semester $studentSemester right now.'
-                    : 'No makeup mid registration windows are open right now.',
+                'No makeup mid registration windows are open right now.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
+                style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
             ),
           );
@@ -218,10 +190,10 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
     final db = FirebaseFirestore.instance;
 
     final results = await Future.wait([
-      // Enrolled subjects filtered by this window's target year+semester
+      // Subjects selected by fee payment staff for this student+window
       db
-          .collection('studentMarks')
-          .where('studentId', isEqualTo: widget.rollNo)
+          .collection('feePayments')
+          .doc('makeup_mid_${widget.windowDoc.id}_${widget.rollNo}')
           .get(),
       // Existing registration for this window
       db
@@ -234,31 +206,26 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
 
     if (!mounted) return;
 
-    final marksSnap = results[0] as QuerySnapshot;
+    final feeDoc = results[0] as DocumentSnapshot;
     final regSnap = results[1] as QuerySnapshot;
 
-    final winData = widget.windowDoc.data() as Map<String, dynamic>;
-    final targetYear = winData['targetYear']?.toString();
-    final targetSemester = winData['targetSemester']?.toString();
-
+    // Extract subjects saved during fee payment
     final subjects = <Map<String, dynamic>>[];
-    for (final doc in marksSnap.docs) {
-      final d = doc.data() as Map<String, dynamic>;
-      final docYear = d['year']?.toString();
-      final docSem = d['semester']?.toString();
-      // Only show subjects matching the window's target year & semester
-      if (targetYear != null && docYear != targetYear) continue;
-      if (targetSemester != null &&
-          _normSem(docSem) != _normSem(targetSemester)) continue;
-      subjects.add({
-        'subjectCode': d['subjectCode']?.toString() ?? '',
-        'subjectName': d['subjectName']?.toString() ?? '',
-        'year': d['year'],
-        'semester': d['semester']?.toString() ?? '',
-      });
+    if (feeDoc.exists) {
+      final feeData = feeDoc.data() as Map<String, dynamic>;
+      final raw = feeData['subjects'] as List? ?? [];
+      for (final s in raw) {
+        final m = Map<String, dynamic>.from(s as Map);
+        subjects.add({
+          'subjectCode': m['code']?.toString() ?? '',
+          'subjectName': m['name']?.toString() ?? '',
+          'year': m['year'] ?? '',
+          'semester': m['semester']?.toString() ?? '',
+        });
+      }
+      subjects.sort((a, b) =>
+          (a['subjectCode'] as String).compareTo(b['subjectCode'] as String));
     }
-    subjects.sort((a, b) =>
-        (a['subjectCode'] as String).compareTo(b['subjectCode'] as String));
 
     final regDocs = regSnap.docs;
     setState(() {
@@ -517,11 +484,6 @@ class _MakeupWindowWidgetState extends State<_MakeupWindowWidget> {
                   fontSize: 15)),
           Text(winData['examSession'] ?? '',
               style: const TextStyle(color: Colors.white70, fontSize: 12)),
-          if (winData['targetYear'] != null)
-            Text(
-              'Year ${winData['targetYear']}  —  Semester ${winData['targetSemester'] ?? '—'}',
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
-            ),
           if (end != null)
             Text(
                 'Registration closes: ${DateFormat('dd MMM yyyy').format(end)}',

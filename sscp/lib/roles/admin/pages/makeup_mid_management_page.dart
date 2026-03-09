@@ -141,11 +141,11 @@ class _MakeupWindowsTab extends StatelessWidget {
     final sessionCtrl = TextEditingController(text: data?['examSession'] ?? '');
     final maxMarksCtrl = TextEditingController(
         text: (data?['maxMarks'] as num?)?.toString() ?? '30');
+    final feeCtrl = TextEditingController(
+        text: data?['fee'] != null ? data!['fee'].toString() : '');
     DateTime? startDate = (data?['startDate'] as Timestamp?)?.toDate();
     DateTime? endDate = (data?['endDate'] as Timestamp?)?.toDate();
     bool isActive = data?['isActive'] as bool? ?? true;
-    int? targetYear = (data?['targetYear'] as num?)?.toInt();
-    String? targetSemester = data?['targetSemester'] as String?;
 
     await showDialog(
       context: context,
@@ -170,54 +170,22 @@ class _MakeupWindowsTab extends StatelessWidget {
                       const InputDecoration(labelText: 'Exam Session *'),
                 ),
                 const SizedBox(height: 10),
-                // Year dropdown
-                DropdownButtonFormField<int>(
-                  value: targetYear,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Target Year *',
-                    helperText: 'Which year students can register',
-                    border: UnderlineInputBorder(),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 1, child: Text('Year 1')),
-                    DropdownMenuItem(value: 2, child: Text('Year 2')),
-                    DropdownMenuItem(value: 3, child: Text('Year 3')),
-                    DropdownMenuItem(value: 4, child: Text('Year 4')),
-                  ],
-                  onChanged: (v) => setSt(() => targetYear = v),
-                ),
-                const SizedBox(height: 10),
-                // Semester dropdown
-                DropdownButtonFormField<String>(
-                  value: targetSemester,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Target Semester *',
-                    helperText: 'Which semester this makeup mid is for',
-                    border: UnderlineInputBorder(),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: '1', child: Text('Semester 1')),
-                    DropdownMenuItem(value: '2', child: Text('Semester 2')),
-                    DropdownMenuItem(value: '3', child: Text('Semester 3')),
-                    DropdownMenuItem(value: '4', child: Text('Semester 4')),
-                    DropdownMenuItem(value: '5', child: Text('Semester 5')),
-                    DropdownMenuItem(value: '6', child: Text('Semester 6')),
-                    DropdownMenuItem(value: '7', child: Text('Semester 7')),
-                    DropdownMenuItem(value: '8', child: Text('Semester 8')),
-                  ],
-                  onChanged: (v) => setSt(() => targetSemester = v),
-                ),
-                const SizedBox(height: 10),
                 TextField(
                   controller: maxMarksCtrl,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                       labelText: 'Max Marks (e.g. 30)',
                       helperText: 'Maximum marks for the mid exam'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: feeCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Fee Amount (₹)',
+                    border: UnderlineInputBorder(),
+                    prefixIcon: Icon(Icons.currency_rupee, size: 16),
+                  ),
                 ),
                 const SizedBox(height: 10),
                 ListTile(
@@ -272,21 +240,19 @@ class _MakeupWindowsTab extends StatelessWidget {
                 if (title.isEmpty ||
                     session.isEmpty ||
                     startDate == null ||
-                    endDate == null ||
-                    targetYear == null ||
-                    targetSemester == null) {
+                    endDate == null) {
                   ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
                       content: Text(
-                          'Please fill all fields including year and semester.')));
+                          'Please fill all required fields.')));
                   return;
                 }
                 final maxMarks = int.tryParse(maxMarksCtrl.text.trim()) ?? 30;
+                final fee = double.tryParse(feeCtrl.text.trim());
                 final payload = {
                   'title': title,
                   'examSession': session,
-                  'targetYear': targetYear,
-                  'targetSemester': targetSemester,
                   'maxMarks': maxMarks,
+                  if (fee != null) 'fee': fee,
                   'startDate': Timestamp.fromDate(startDate!),
                   'endDate': Timestamp.fromDate(endDate!),
                   'isActive': isActive,
@@ -735,9 +701,8 @@ class _MakeupWindowCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _infoRow('Max Marks:', '${data['maxMarks'] ?? 30}'),
-                if (data['targetYear'] != null)
-                  _infoRow('Year / Sem:',
-                      'Year ${data['targetYear']}  —  Sem ${data['targetSemester'] ?? '—'}'),
+                if (data['fee'] != null)
+                  _infoRow('Fee:', '₹${data['fee']}'),
                 if (start != null)
                   _infoRow('Start:', DateFormat('dd MMM yyyy').format(start)),
                 if (end != null)
