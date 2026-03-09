@@ -84,7 +84,8 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
         userData = snapshot.docs.first.data() as Map<String, dynamic>;
       } else {
         // Fallback: support schemas where the identifier is the document ID.
-        final directDoc = await _firestore.collection(collection).doc(idInput).get();
+        final directDoc =
+            await _firestore.collection(collection).doc(idInput).get();
         if (directDoc.exists) {
           userData = directDoc.data();
         }
@@ -160,9 +161,9 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                     ? 'e.g., 22CSB001'
                     : widget.role == 'faculty'
                         ? 'e.g., FAC001'
-                    : widget.role == 'admin'
-                      ? 'e.g., ADM001'
-                        : 'e.g., FEE001',
+                        : widget.role == 'admin'
+                            ? 'e.g., ADM001'
+                            : 'e.g., FEE001',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
