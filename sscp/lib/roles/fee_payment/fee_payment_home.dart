@@ -130,10 +130,209 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
   bool _saving = false;
   String? _selectedWindowId;
 
+  // Backlog / subjects state (supply only)
+  List<Map<String, dynamic>> _backlogs = [];
+  Set<String> _selectedSubjectCodes = {};
+  bool _backlogsLoading = false;
+  String _lastFetchedRoll = '';
+
   @override
   void dispose() {
     _rollCtrl.dispose();
     super.dispose();
+  }
+
+  bool get _isSupply => widget.config.paymentType == 'supply';
+
+  /// Computes active backlogs from studentMarks + cieMemoReleases + supplyMarks,
+  /// mirroring the same logic used in student_home.dart / results_screen.dart.
+  Future<void> _loadBacklogs(String rollNo) async {
+    if (!_isSupply || rollNo.isEmpty || _selectedWindowId == null) return;
+    if (rollNo == _lastFetchedRoll) return;
+    setState(() {
+      _backlogsLoading = true;
+      _backlogs = [];
+      _selectedSubjectCodes = {};
+      _lastFetchedRoll = rollNo;
+    });
+    try {
+      String normSem(String s) {
+        const m = {'i': '1', 'ii': '2', 'iii': '3', 'iv': '4'};
+        return m[s.toLowerCase().trim()] ?? s.trim();
+      }
+
+      // 1. Release map: year_sem -> minPassMarks
+      final relSnap = await _db.collection('cieMemoReleases').get();
+      final releaseMap = <String, int>{};
+      for (final d in relSnap.docs) {
+        final r = d.data();
+        final key =
+            '${r['year']}_${normSem(r['semester']?.toString() ?? '')}';
+        releaseMap[key] = (r['minPassMarks'] is int)
+            ? r['minPassMarks'] as int
+            : int.tryParse(r['minPassMarks']?.toString() ?? '') ?? 40;
+      }
+
+      // 2. Supply PASS set: codes cleared via supply exam
+      final supplySnap = await _db
+          .collection('supplyMarks')
+          .where('rollNo', isEqualTo: rollNo)
+          .get();
+      final supplyPassSet = <String>{};
+      for (final d in supplySnap.docs) {
+        final data = d.data();
+        if ((data['result'] as String? ?? '') == 'PASS') {
+          final code = data['subjectCode']?.toString() ?? '';
+          if (code.isNotEmpty) supplyPassSet.add(code);
+        }
+      }
+
+      // 3. All marks for this student
+      final marksSnap = await _db
+          .collection('studentMarks')
+          .where('studentId', isEqualTo: rollNo)
+          .get();
+
+      if (marksSnap.docs.isEmpty) {
+        if (mounted) setState(() => _backlogsLoading = false);
+        return;
+      }
+
+      // 4. Group by subjectCode
+      final bySubject = <String, List<Map<String, dynamic>>>{};
+      for (final doc in marksSnap.docs) {
+        final d = Map<String, dynamic>.from(doc.data());
+        final code = d['subjectCode']?.toString() ?? '';
+        if (code.isEmpty) continue;
+        bySubject.putIfAbsent(code, () => []).add(d);
+      }
+
+      // 5. Determine active (uncleared) backlogs
+      final result = <Map<String, dynamic>>[];
+      for (final entries in bySubject.values) {
+        entries.sort((a, b) {
+          final ya = int.tryParse(a['year']?.toString() ?? '') ?? 0;
+          final yb = int.tryParse(b['year']?.toString() ?? '') ?? 0;
+          if (ya != yb) return ya.compareTo(yb);
+          return normSem(a['semester']?.toString() ?? '')
+              .compareTo(normSem(b['semester']?.toString() ?? ''));
+        });
+
+        for (int i = 0; i < entries.length; i++) {
+          final e = entries[i];
+          final key =
+              '${e['year']}_${normSem(e['semester']?.toString() ?? '')}';
+          final minPass = releaseMap[key] ?? 40;
+          final raw = e['componentMarks'] as Map<String, dynamic>? ?? {};
+          int total = 0;
+          for (final v in raw.values) {
+            total += (v is int) ? v : int.tryParse(v.toString()) ?? 0;
+          }
+          if (total >= minPass) continue; // passed — not a backlog
+
+          final code = e['subjectCode']?.toString() ?? '';
+          bool clearedLater = false;
+          for (int j = i + 1; j < entries.length; j++) {
+            final later = entries[j];
+            final lKey =
+                '${later['year']}_${normSem(later['semester']?.toString() ?? '')}';
+            final lMin = releaseMap[lKey] ?? 40;
+            final lRaw =
+                later['componentMarks'] as Map<String, dynamic>? ?? {};
+            int lTotal = 0;
+            for (final v in lRaw.values) {
+              lTotal += (v is int) ? v : int.tryParse(v.toString()) ?? 0;
+            }
+            if (lTotal >= lMin) {
+              clearedLater = true;
+              break;
+            }
+          }
+          if (!clearedLater && supplyPassSet.contains(code)) {
+            clearedLater = true;
+          }
+          if (!clearedLater) {
+            result.add({
+              'subjectCode': code,
+              'subjectName': e['subjectName']?.toString() ?? code,
+              'semester': e['semester']?.toString() ?? '',
+              'year': e['year']?.toString() ?? '',
+            });
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _backlogs = result;
+          _backlogsLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _backlogsLoading = false);
+    }
+  }
+
+  Future<void> _openSubjectPicker(BuildContext context) async {
+    final tmp = Set<String>.from(_selectedSubjectCodes);
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: const Text('Select Backlog Subjects'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: _backlogs.isEmpty
+                ? const Text('No backlogs found for this student.')
+                : ListView(
+                    shrinkWrap: true,
+                    children: _backlogs.map((b) {
+                      final code = b['subjectCode']?.toString() ??
+                          b['code']?.toString() ?? '';
+                      final name = b['subjectName']?.toString() ??
+                          b['name']?.toString() ?? code;
+                      final sem = b['semester']?.toString() ?? '';
+                      return CheckboxListTile(
+                        dense: true,
+                        value: tmp.contains(code),
+                        onChanged: (v) => setS(() {
+                          if (v == true) {
+                            tmp.add(code);
+                          } else {
+                            tmp.remove(code);
+                          }
+                        }),
+                        title: Text(name,
+                            style: const TextStyle(fontSize: 13)),
+                        subtitle: code.isNotEmpty
+                            ? Text(
+                                '$code${sem.isNotEmpty ? ' · Sem $sem' : ''}',
+                                style: const TextStyle(fontSize: 11))
+                            : null,
+                        activeColor: const Color(0xFF1e3a5f),
+                        controlAffinity: ListTileControlAffinity.leading,
+                      );
+                    }).toList(),
+                  ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () {
+                setState(() => _selectedSubjectCodes = tmp);
+                Navigator.pop(ctx);
+              },
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1e3a5f),
+                  foregroundColor: Colors.white),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _update(String status) async {
@@ -170,6 +369,15 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
         studentName = studentDoc.data()?['name']?.toString() ?? '';
       }
 
+      // Collect selected subject details
+      final selectedSubjects = _backlogs.where((b) {
+        final code = b['subjectCode']?.toString() ?? b['code']?.toString() ?? '';
+        return _selectedSubjectCodes.contains(code);
+      }).map((b) => {
+        'code': b['subjectCode']?.toString() ?? b['code']?.toString() ?? '',
+        'name': b['subjectName']?.toString() ?? b['name']?.toString() ?? '',
+      }).toList();
+
       final staffEmail = FirebaseAuth.instance.currentUser?.email ?? '';
       final staffId = UserService.getCurrentUserId() ??
           staffEmail.split('@').first.toUpperCase();
@@ -187,6 +395,8 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
         'examSession': examSession,
         'amount': amount,
         'status': status,
+        if (_isSupply && selectedSubjects.isNotEmpty)
+          'subjects': selectedSubjects,
         'updatedBy': staffId,
         'updatedAt': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
@@ -204,11 +414,17 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
           'examSession': examSession,
           'studentName': studentName,
           'feeType': widget.config.label,
+          if (selectedSubjects.isNotEmpty) 'subjects': selectedSubjects,
         },
       );
 
       _snack('$rollNo marked as ${status.toUpperCase()}');
       _rollCtrl.clear();
+      setState(() {
+        _selectedSubjectCodes = {};
+        _backlogs = [];
+        _lastFetchedRoll = '';
+      });
     } catch (e) {
       _snack('Failed: $e', error: true);
     } finally {
@@ -242,7 +458,8 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
           _selectedWindowId = null;
         }
 
-        final rollFilled = _rollCtrl.text.trim().isNotEmpty;
+        final rollNo = _rollCtrl.text.trim().toUpperCase();
+        final rollFilled = rollNo.isNotEmpty;
         final canAct = !_saving && rollFilled && _selectedWindowId != null;
 
         return ListView(
@@ -311,7 +528,17 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                             ),
                           );
                         }).toList(),
-                        onChanged: (v) => setState(() => _selectedWindowId = v),
+                        onChanged: (v) {
+                          setState(() {
+                            _selectedWindowId = v;
+                            _lastFetchedRoll = ''; // reset so backlogs reload
+                          });
+                          // Re-fetch if roll is already filled
+                          final roll = _rollCtrl.text.trim().toUpperCase();
+                          if (_isSupply && roll.isNotEmpty && v != null) {
+                            _loadBacklogs(roll);
+                          }
+                        },
                       ),
 
                     const SizedBox(height: 12),
@@ -319,15 +546,112 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                     TextField(
                       controller: _rollCtrl,
                       textCapitalization: TextCapitalization.characters,
+                      textInputAction: TextInputAction.search,
                       decoration: const InputDecoration(
                         labelText: 'Student Roll Number',
                         hintText: 'e.g. 2203A51001',
                         border: OutlineInputBorder(),
                         isDense: true,
                         prefixIcon: Icon(Icons.person_outline),
+                        helperText: 'Press Enter / Search to load backlogs',
                       ),
                       onChanged: (_) => setState(() {}),
+                      onSubmitted: (v) {
+                        final roll = v.trim().toUpperCase();
+                        if (_isSupply && roll.isNotEmpty &&
+                            _selectedWindowId != null) {
+                          _loadBacklogs(roll);
+                        }
+                      },
+                      onEditingComplete: () {
+                        final roll = _rollCtrl.text.trim().toUpperCase();
+                        if (_isSupply && roll.isNotEmpty &&
+                            _selectedWindowId != null) {
+                          _loadBacklogs(roll);
+                        }
+                        FocusScope.of(context).unfocus();
+                      },
                     ),
+
+                    // ── Subject dropdown (supply only) ─────────────────
+                    if (_isSupply && rollFilled && _selectedWindowId != null) ...[
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: _backlogsLoading
+                            ? null
+                            : () => _openSubjectPicker(context),
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Backlog Subjects',
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                            suffixIcon: _backlogsLoading
+                                ? const Padding(
+                                    padding: EdgeInsets.all(10),
+                                    child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2)),
+                                  )
+                                : const Icon(Icons.arrow_drop_down),
+                          ),
+                          child: Text(
+                            _backlogsLoading
+                                ? 'Loading...'
+                                : _backlogs.isEmpty
+                                    ? 'No backlogs found'
+                                    : _selectedSubjectCodes.isEmpty
+                                        ? 'Tap to select subjects (${_backlogs.length} backlog${_backlogs.length == 1 ? '' : 's'})'
+                                        : '${_selectedSubjectCodes.length} of ${_backlogs.length} selected',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _selectedSubjectCodes.isNotEmpty
+                                  ? Colors.black87
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_selectedSubjectCodes.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: _backlogs
+                              .where((b) {
+                                final code =
+                                    b['subjectCode']?.toString() ??
+                                        b['code']?.toString() ?? '';
+                                return _selectedSubjectCodes.contains(code);
+                              })
+                              .map((b) {
+                                final code =
+                                    b['subjectCode']?.toString() ??
+                                        b['code']?.toString() ?? '';
+                                final name =
+                                    b['subjectName']?.toString() ??
+                                        b['name']?.toString() ?? code;
+                                return Chip(
+                                  label: Text(
+                                    name.length > 20
+                                        ? '${name.substring(0, 20)}…'
+                                        : name,
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                  deleteIcon:
+                                      const Icon(Icons.close, size: 14),
+                                  onDeleted: () => setState(() =>
+                                      _selectedSubjectCodes.remove(code)),
+                                  backgroundColor: const Color(0xFF1e3a5f)
+                                      .withValues(alpha: 0.08),
+                                );
+                              })
+                              .toList(),
+                        ),
+                      ],
+                    ],
+
                     const SizedBox(height: 14),
 
                     // Buttons
@@ -379,14 +703,13 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
             ),
 
             // ── Payment records ─────────────────────────────────────────
-            if (_selectedWindowId != null &&
-                _rollCtrl.text.trim().isNotEmpty) ...[
+            if (_selectedWindowId != null && rollFilled) ...[
               const SizedBox(height: 14),
               _PaymentRecords(
                 db: _db,
                 paymentType: widget.config.paymentType,
                 windowId: _selectedWindowId!,
-                rollNo: _rollCtrl.text.trim().toUpperCase(),
+                rollNo: rollNo,
               ),
             ],
           ],
@@ -529,6 +852,10 @@ class _PaymentRecords extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Backlog list for a student — shown in supply fee payment panel
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _InfoBox extends StatelessWidget {
   final IconData icon;
