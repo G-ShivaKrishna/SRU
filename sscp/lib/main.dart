@@ -70,7 +70,9 @@ class _SessionRouteState extends State<_SessionRoute> {
   }
 
   Future<void> _redirect() async {
-    final user = FirebaseAuth.instance.currentUser;
+    // Wait for Firebase Auth to restore its state — currentUser can be null
+    // briefly on startup even when a session exists.
+    final user = await FirebaseAuth.instance.authStateChanges().first;
     final role = await SessionService.getSavedRole();
 
     if (!mounted) return;
