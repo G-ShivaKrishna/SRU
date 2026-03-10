@@ -73,14 +73,12 @@ class CoursePreferenceService {
     final all = snap.docs.map((d) => SubjectItem.fromFirestore(d)).toList();
     if (dept != null && dept.isNotEmpty) {
       // Keep department-specific subjects and global OE subjects.
-      return all
-          .where((s) {
-            final matchesDept = s.dept.toLowerCase() == dept.toLowerCase();
-            final isGlobalOe = s.subjectType.toUpperCase() == 'OE' &&
-                s.dept.toUpperCase() == 'ALL_BRANCHES';
-            return matchesDept || isGlobalOe;
-          })
-          .toList();
+      return all.where((s) {
+        final matchesDept = s.dept.toLowerCase() == dept.toLowerCase();
+        final isGlobalOe = s.subjectType.toUpperCase() == 'OE' &&
+            s.dept.toUpperCase() == 'ALL_BRANCHES';
+        return matchesDept || isGlobalOe;
+      }).toList();
     }
     return all;
   }

@@ -39,7 +39,16 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
 
   // Predefined departments (fallback if none found in DB)
   final List<String> _fallbackDepartments = [
-    'CSE', 'ECE', 'EEE', 'ME', 'CE', 'IT', 'CSBS', 'AIDS', 'AIML', 'CSD'
+    'CSE',
+    'ECE',
+    'EEE',
+    'ME',
+    'CE',
+    'IT',
+    'CSBS',
+    'AIDS',
+    'AIML',
+    'CSD'
   ];
 
   @override
@@ -70,10 +79,11 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
       setState(() {
         _subjects = results[0] as List<Subject>;
         final fetchedDepts = results[1] as List<String>;
-        
+
         // Combine fetched departments with fallback, remove duplicates
-        _departments = {...fetchedDepts, ..._fallbackDepartments}.toList()..sort();
-        
+        _departments = {...fetchedDepts, ..._fallbackDepartments}.toList()
+          ..sort();
+
         _isLoading = false;
       });
     } catch (e) {
@@ -318,7 +328,8 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: () => _showAddSubjectDialog(context, prefilledYear: year),
+            onPressed: () =>
+                _showAddSubjectDialog(context, prefilledYear: year),
             icon: const Icon(Icons.add),
             label: const Text('Add Subject'),
             style: ElevatedButton.styleFrom(
@@ -385,7 +396,8 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
           backgroundColor: _getDepartmentColor(subject.department),
           child: Text(
             subject.code.isNotEmpty
-                ? subject.code.substring(0, subject.code.length > 2 ? 2 : subject.code.length)
+                ? subject.code.substring(
+                    0, subject.code.length > 2 ? 2 : subject.code.length)
                 : 'SB',
             style: const TextStyle(
               color: Colors.white,
@@ -437,7 +449,8 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
               tooltip: 'Edit',
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+              icon:
+                  const Icon(Icons.delete_outline, size: 20, color: Colors.red),
               onPressed: () => _confirmDeleteSubject(subject),
               tooltip: 'Delete',
             ),
@@ -489,7 +502,8 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
     final codeController = TextEditingController();
     final nameController = TextEditingController();
     final creditsController = TextEditingController(text: '3');
-    String? selectedDepartment = _selectedDepartment ?? (_departments.isNotEmpty ? _departments.first : null);
+    String? selectedDepartment = _selectedDepartment ??
+        (_departments.isNotEmpty ? _departments.first : null);
     int selectedYear = prefilledYear ?? (_tabController.index + 1);
     String selectedSemester = 'I';
     SubjectType selectedSubjectType = SubjectType.core;
@@ -735,7 +749,8 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
   void _showEditSubjectDialog(BuildContext context, Subject subject) {
     final codeController = TextEditingController(text: subject.code);
     final nameController = TextEditingController(text: subject.name);
-    final creditsController = TextEditingController(text: subject.credits.toString());
+    final creditsController =
+        TextEditingController(text: subject.credits.toString());
     String selectedDepartment = subject.department;
     int selectedYear = subject.year;
     String selectedSemester = subject.semester;
@@ -1034,7 +1049,8 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.info, color: Colors.blue.shade700, size: 18),
+                                Icon(Icons.info,
+                                    color: Colors.blue.shade700, size: 18),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Required Columns:',
@@ -1063,10 +1079,12 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
 
                       // File selection
                       InkWell(
-                        onTap: _isUploading ? null : () async {
-                          await _pickExcelFile();
-                          setDialogState(() {});
-                        },
+                        onTap: _isUploading
+                            ? null
+                            : () async {
+                                await _pickExcelFile();
+                                setDialogState(() {});
+                              },
                         child: Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
@@ -1095,7 +1113,8 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                _selectedFileName ?? 'Click to select Excel file',
+                                _selectedFileName ??
+                                    'Click to select Excel file',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w500,
                                   color: _selectedFileName != null
@@ -1130,24 +1149,28 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
               ),
               actions: [
                 TextButton(
-                  onPressed: _isUploading ? null : () {
-                    setState(() {
-                      _selectedFile = null;
-                      _selectedFilePickerResult = null;
-                      _selectedFileName = null;
-                      _uploadResult = null;
-                    });
-                    Navigator.pop(context);
-                  },
+                  onPressed: _isUploading
+                      ? null
+                      : () {
+                          setState(() {
+                            _selectedFile = null;
+                            _selectedFilePickerResult = null;
+                            _selectedFileName = null;
+                            _uploadResult = null;
+                          });
+                          Navigator.pop(context);
+                        },
                   child: const Text('Close'),
                 ),
                 if (_selectedFileName != null && _uploadResult == null)
                   ElevatedButton.icon(
-                    onPressed: _isUploading ? null : () async {
-                      setDialogState(() => _isUploading = true);
-                      await _handleExcelUpload();
-                      setDialogState(() => _isUploading = false);
-                    },
+                    onPressed: _isUploading
+                        ? null
+                        : () async {
+                            setDialogState(() => _isUploading = true);
+                            await _handleExcelUpload();
+                            setDialogState(() => _isUploading = false);
+                          },
                     icon: _isUploading
                         ? const SizedBox(
                             width: 16,
@@ -1223,7 +1246,8 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                   message,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: success ? Colors.green.shade700 : Colors.red.shade700,
+                    color:
+                        success ? Colors.green.shade700 : Colors.red.shade700,
                   ),
                 ),
               ),
@@ -1232,17 +1256,20 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
           if (totalRows > 0) ...[
             const SizedBox(height: 8),
             Text('Total rows: $totalRows'),
-            Text('Created: $created', style: const TextStyle(color: Colors.green)),
+            Text('Created: $created',
+                style: const TextStyle(color: Colors.green)),
             if (failed > 0)
-              Text('Failed: $failed', style: const TextStyle(color: Colors.red)),
+              Text('Failed: $failed',
+                  style: const TextStyle(color: Colors.red)),
           ],
           if (failedReasons.isNotEmpty) ...[
             const SizedBox(height: 8),
-            const Text('Errors:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Errors:',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             ...failedReasons.take(5).map((reason) => Text(
-              '• $reason',
-              style: const TextStyle(fontSize: 12, color: Colors.red),
-            )),
+                  '• $reason',
+                  style: const TextStyle(fontSize: 12, color: Colors.red),
+                )),
             if (failedReasons.length > 5)
               Text('... and ${failedReasons.length - 5} more errors'),
           ],
@@ -1298,7 +1325,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
 
     try {
       List<int> bytes;
-      
+
       if (_selectedFile != null) {
         bytes = await _selectedFile!.readAsBytes();
       } else if (_selectedFilePickerResult?.files.single.bytes != null) {
@@ -1347,10 +1374,15 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
           .toList();
 
       // Check required columns
-      final requiredColumns = ['code', 'name', 'department', 'year', 'semester'];
-      final missingColumns = requiredColumns
-          .where((col) => !headers.contains(col))
-          .toList();
+      final requiredColumns = [
+        'code',
+        'name',
+        'department',
+        'year',
+        'semester'
+      ];
+      final missingColumns =
+          requiredColumns.where((col) => !headers.contains(col)).toList();
 
       if (missingColumns.isNotEmpty) {
         setState(() {
@@ -1400,8 +1432,11 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
           if (code.isEmpty && name.isEmpty) continue;
 
           // Validate required fields
-          if (code.isEmpty || name.isEmpty || department.isEmpty ||
-              yearStr.isEmpty || semester.isEmpty) {
+          if (code.isEmpty ||
+              name.isEmpty ||
+              department.isEmpty ||
+              yearStr.isEmpty ||
+              semester.isEmpty) {
             failedReasons.add('Row ${i + 1}: Missing required fields');
             failed++;
             continue;
@@ -1417,12 +1452,16 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
 
           // Normalize semester
           String normalizedSemester = semester.toUpperCase();
-          if (normalizedSemester == '1' || normalizedSemester == 'SEM 1' ||
-              normalizedSemester == 'SEMESTER 1' || normalizedSemester == 'SEM I' ||
+          if (normalizedSemester == '1' ||
+              normalizedSemester == 'SEM 1' ||
+              normalizedSemester == 'SEMESTER 1' ||
+              normalizedSemester == 'SEM I' ||
               normalizedSemester == 'SEMESTER I') {
             normalizedSemester = 'I';
-          } else if (normalizedSemester == '2' || normalizedSemester == 'SEM 2' ||
-              normalizedSemester == 'SEMESTER 2' || normalizedSemester == 'SEM II' ||
+          } else if (normalizedSemester == '2' ||
+              normalizedSemester == 'SEM 2' ||
+              normalizedSemester == 'SEMESTER 2' ||
+              normalizedSemester == 'SEM II' ||
               normalizedSemester == 'SEMESTER II') {
             normalizedSemester = 'II';
           }
@@ -1449,7 +1488,6 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
 
           await _service.createSubject(subject);
           created++;
-
         } catch (e) {
           failedReasons.add('Row ${i + 1}: Error - $e');
           failed++;
@@ -1468,7 +1506,6 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
           'failedReasons': failedReasons,
         };
       });
-
     } catch (e) {
       setState(() {
         _uploadResult = {
@@ -1518,21 +1555,27 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                     children: const [
                       Padding(
                         padding: EdgeInsets.all(8),
-                        child: Text('Column', style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: Text('Column',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                       Padding(
                         padding: EdgeInsets.all(8),
-                        child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: Text('Description',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
                   _buildTableRow('Code *', 'Subject code (e.g., CS301, EC201)'),
                   _buildTableRow('Name *', 'Full subject name'),
-                  _buildTableRow('Department *', 'Department code (e.g., CSE, ECE)'),
+                  _buildTableRow(
+                      'Department *', 'Department code (e.g., CSE, ECE)'),
                   _buildTableRow('Year *', 'Year number: 1, 2, 3, or 4'),
-                  _buildTableRow('Semester *', 'I or II (also accepts 1, 2, SEM I, etc.)'),
-                  _buildTableRow('Type', 'Core, OE, or PE (optional, default: Core)'),
-                  _buildTableRow('Credits', 'Number of credits (optional, default: 3)'),
+                  _buildTableRow(
+                      'Semester *', 'I or II (also accepts 1, 2, SEM I, etc.)'),
+                  _buildTableRow(
+                      'Type', 'Core, OE, or PE (optional, default: Core)'),
+                  _buildTableRow(
+                      'Credits', 'Number of credits (optional, default: 3)'),
                 ],
               ),
               const SizedBox(height: 16),
@@ -1574,7 +1617,8 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
       children: [
         Padding(
           padding: const EdgeInsets.all(8),
-          child: Text(column, style: const TextStyle(fontWeight: FontWeight.w500)),
+          child:
+              Text(column, style: const TextStyle(fontWeight: FontWeight.w500)),
         ),
         Padding(
           padding: const EdgeInsets.all(8),
