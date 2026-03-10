@@ -15,6 +15,9 @@ class SubjectManagementPage extends StatefulWidget {
 
 class _SubjectManagementPageState extends State<SubjectManagementPage>
     with SingleTickerProviderStateMixin {
+  static const String _allBranchesDepartmentValue = 'ALL_BRANCHES';
+  static const String _allBranchesDepartmentLabel = 'All Branches (OE Only)';
+
   final FacultyAssignmentService _service = FacultyAssignmentService();
   late TabController _tabController;
 
@@ -86,8 +89,10 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
   List<Subject> _getFilteredSubjects(int year) {
     return _subjects.where((s) {
       bool matchesYear = s.year == year;
-      bool matchesDept =
-          _selectedDepartment == null || s.department == _selectedDepartment;
+      bool matchesDept = _selectedDepartment == null ||
+          s.department == _selectedDepartment ||
+          (s.subjectType == SubjectType.oe &&
+              s.department == _allBranchesDepartmentValue);
       bool matchesSem =
           _selectedSemester == null || s.semester == _selectedSemester;
       return matchesYear && matchesDept && matchesSem;
@@ -420,7 +425,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
           ],
         ),
         subtitle: Text(
-          '${subject.code} • ${subject.department} • ${subject.credits} Credits',
+          '${subject.code} • ${_formatDepartmentLabel(subject.department)} • ${subject.credits} Credits',
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
         trailing: Row(
@@ -452,6 +457,31 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
       'IT': Colors.indigo,
     };
     return colors[department] ?? const Color(0xFF1e3a5f);
+  }
+
+  String _formatDepartmentLabel(String department) {
+    if (department == _allBranchesDepartmentValue) {
+      return 'All Branches';
+    }
+    return department;
+  }
+
+  List<DropdownMenuItem<String>> _buildDepartmentItems(
+      SubjectType subjectType) {
+    final items = <DropdownMenuItem<String>>[];
+
+    if (subjectType == SubjectType.oe) {
+      items.add(const DropdownMenuItem(
+        value: _allBranchesDepartmentValue,
+        child: Text(_allBranchesDepartmentLabel),
+      ));
+    }
+
+    items.addAll(_departments.map((dept) {
+      return DropdownMenuItem(value: dept, child: Text(dept));
+    }));
+
+    return items;
   }
 
   // ============ DIALOGS ============
@@ -517,9 +547,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                           prefixIcon: Icon(Icons.business),
                         ),
                         initialValue: selectedDepartment,
-                        items: _departments.map((dept) {
-                          return DropdownMenuItem(value: dept, child: Text(dept));
-                        }).toList(),
+                        items: _buildDepartmentItems(selectedSubjectType),
                         onChanged: (value) {
                           setDialogState(() {
                             selectedDepartment = value;
@@ -545,9 +573,23 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                         onChanged: (value) {
                           setDialogState(() {
                             selectedSubjectType = value ?? SubjectType.core;
+                            if (selectedSubjectType != SubjectType.oe &&
+                                selectedDepartment ==
+                                    _allBranchesDepartmentValue) {
+                              selectedDepartment = _departments.isNotEmpty
+                                  ? _departments.first
+                                  : null;
+                            }
                           });
                         },
                       ),
+                      if (selectedSubjectType == SubjectType.oe) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Tip: Select "All Branches (OE Only)" to add this OE for the whole semester across branches.',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
                       const SizedBox(height: 16),
 
                       // Year and Semester Row
@@ -626,6 +668,18 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Please fill all required fields'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (selectedDepartment == _allBranchesDepartmentValue &&
+                        selectedSubjectType != SubjectType.oe) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'All Branches option is allowed only for OE subjects'),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -733,9 +787,7 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                           prefixIcon: Icon(Icons.business),
                         ),
                         initialValue: selectedDepartment,
-                        items: _departments.map((dept) {
-                          return DropdownMenuItem(value: dept, child: Text(dept));
-                        }).toList(),
+                        items: _buildDepartmentItems(selectedSubjectType),
                         onChanged: (value) {
                           setDialogState(() {
                             selectedDepartment = value ?? selectedDepartment;
@@ -760,9 +812,23 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                         onChanged: (value) {
                           setDialogState(() {
                             selectedSubjectType = value ?? selectedSubjectType;
+                            if (selectedSubjectType != SubjectType.oe &&
+                                selectedDepartment ==
+                                    _allBranchesDepartmentValue) {
+                              selectedDepartment = _departments.isNotEmpty
+                                  ? _departments.first
+                                  : selectedDepartment;
+                            }
                           });
                         },
                       ),
+                      if (selectedSubjectType == SubjectType.oe) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Tip: Select "All Branches (OE Only)" to make this OE common across branches.',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Row(
                         children: [
@@ -835,6 +901,18 @@ class _SubjectManagementPageState extends State<SubjectManagementPage>
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Please fill all required fields'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (selectedDepartment == _allBranchesDepartmentValue &&
+                        selectedSubjectType != SubjectType.oe) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'All Branches option is allowed only for OE subjects'),
                           backgroundColor: Colors.red,
                         ),
                       );
