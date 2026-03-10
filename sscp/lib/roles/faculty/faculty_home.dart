@@ -225,9 +225,11 @@ class _FacultyHomeState extends State<FacultyHome> {
     const topItems = <String>[
       'Home',
       'Academics',
-      'Professional',
+      'Profile',
+      'Course',
       'Attendance',
-      'Marks Entry',
+      'Marks',
+      'Employee Directory',
       'Mentorship',
     ];
     const subMenus = <String, List<String>>{
@@ -243,13 +245,14 @@ class _FacultyHomeState extends State<FacultyHome> {
         'Staff Handbook',
         'Student Handbook',
       ],
-      'Professional': [
+      'Profile': [
         'View Profile',
         'Update Basic Data',
-        'Course View',
+      ],
+      'Course': [
         'Course Preference',
+        'Course View',
         'Preference Report',
-        'Employee Directory',
       ],
       'Attendance': [
         'Attendance Entry',
@@ -259,7 +262,7 @@ class _FacultyHomeState extends State<FacultyHome> {
         'Register View',
         'SSM',
       ],
-      'Marks Entry': [
+      'Marks': [
         'Check & Define CIE Format (UG/PG)',
         'Total Marks',
         'Makeup Mid Marks',
@@ -302,6 +305,14 @@ class _FacultyHomeState extends State<FacultyHome> {
           'Course Preference',
           'Course View',
           'Preference Report',
+        ],
+        'Attendance': [
+          'Attendance Entry',
+          'Attendance Entry-Multi Batch Selection',
+          'Lab/Tutorial Attendance Entry',
+          'View | Update | Delete Day Attendance',
+          'Register View',
+          'SSM',
         ],
         'Marks': [
           'Check & Define CIE Format (UG/PG)',
