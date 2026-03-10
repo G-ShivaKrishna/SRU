@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../services/user_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Consolidated Marks Report – all students' marks for subjects taught by this
@@ -41,23 +40,40 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
     super.dispose();
   }
 
-  String _resolveFacultyId() {
-    final user = _auth.currentUser;
-    if (user == null) return '';
-    final email = user.email ?? '';
-    return UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
-  }
-
   Future<void> _load() async {
     try {
-      _facultyId = _resolveFacultyId();
-      if (_facultyId.isEmpty) {
+      // Get actual facultyId by querying faculty collection with email
+      final user = _auth.currentUser;
+      if (user == null) {
+        setState(() {
+          _error = 'Not logged in. Please log in again.';
+          _loading = false;
+        });
+        return;
+      }
+      final userEmail = user.email;
+      if (userEmail == null) {
         setState(() {
           _error = 'Could not determine faculty identity. Please log in again.';
           _loading = false;
         });
         return;
       }
+
+      // Query faculty collection by email to get actual facultyId (doc ID)
+      final facultyDocs = await _fs
+          .collection('faculty')
+          .where('email', isEqualTo: userEmail)
+          .limit(1)
+          .get();
+      if (facultyDocs.docs.isEmpty) {
+        setState(() {
+          _error = 'Faculty profile not found. Please contact administrator.';
+          _loading = false;
+        });
+        return;
+      }
+      _facultyId = facultyDocs.docs.first.id;
 
       // 1. Fetch all active assignments for this faculty
       final assignSnap = await _fs

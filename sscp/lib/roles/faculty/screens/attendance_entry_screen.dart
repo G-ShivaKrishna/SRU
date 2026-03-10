@@ -126,7 +126,18 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
-      final facultyId = user.email!.split('@')[0].toUpperCase();
+      final userEmail = user.email!;
+
+      // Query faculty collection by email to get actual facultyId (doc ID)
+      final facultyDocs = await _firestore
+          .collection('faculty')
+          .where('email', isEqualTo: userEmail)
+          .limit(1)
+          .get();
+      if (facultyDocs.docs.isEmpty) {
+        throw Exception('Faculty profile not found');
+      }
+      final facultyId = facultyDocs.docs.first.id;
 
       final snap = await _firestore
           .collection('facultyAssignments')

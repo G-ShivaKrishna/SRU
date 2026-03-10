@@ -74,8 +74,24 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
 
-      // facultyId matches how admin saves it: email prefix uppercase
-      final facultyId = user.email!.split('@')[0].toUpperCase();
+      // Fetch facultyId from faculty collection using custom email
+      // Email prefix doesn't match facultyId (e.g., email="ravi@edu.com" but facultyId="FAC001")
+      final userEmail = user.email?.toLowerCase().trim() ?? '';
+      String? facultyId;
+
+      // Query faculty collection by custom email
+      final facultyDocs = await _firestore
+          .collection('faculty')
+          .where('email', isEqualTo: userEmail)
+          .limit(1)
+          .get();
+
+      if (facultyDocs.docs.isEmpty) {
+        throw Exception(
+            'Faculty record not found. Please contact admin to verify your email.');
+      }
+
+      facultyId = facultyDocs.docs.first.id; // Get actual facultyId from doc ID
 
       // Single where clause avoids composite index requirement;
       // isActive filtering is done in Dart.
