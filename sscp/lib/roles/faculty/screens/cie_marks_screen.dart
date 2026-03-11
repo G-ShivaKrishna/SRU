@@ -251,8 +251,10 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
       // 5. Build rows
       final rows = students.map((student) {
-        final sid = student['studentId']?.toString() ?? student['rollNo'].toString();
-        final name = (student['studentName'] ?? student['name'] ?? '').toString();
+        final sid =
+            student['studentId']?.toString() ?? student['rollNo'].toString();
+        final name =
+            (student['studentName'] ?? student['name'] ?? '').toString();
         final saved = existingMarks[sid];
         final controllers = <String, TextEditingController>{};
         for (final comp in compList) {
@@ -298,7 +300,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     final batch = _selectedBatch!;
     setState(() => row.isSaving = true);
     try {
-      final facultyId = _facultyId ?? await _scopeService.resolveCurrentFacultyId();
+      final facultyId =
+          _facultyId ?? await _scopeService.resolveCurrentFacultyId();
 
       // Validate that assignment is still active before saving
       final assignDoc = await _fs
@@ -420,7 +423,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     setState(() => _savingAll = true);
     final assignment = _selectedAssignment!;
     final batch = _selectedBatch!;
-    final facultyId = _facultyId ?? await _scopeService.resolveCurrentFacultyId();
+    final facultyId =
+        _facultyId ?? await _scopeService.resolveCurrentFacultyId();
     final now = FieldValue.serverTimestamp();
 
     try {

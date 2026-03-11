@@ -54,14 +54,16 @@ class StudentAiAssistantService {
     final text = question.trim();
     if (text.isEmpty) {
       return const AiAssistantAnswer(
-        text: 'Ask me anything about your academic data. Example: "show my latest CIE marks".',
+        text:
+            'Ask me anything about your academic data. Example: "show my latest CIE marks".',
       );
     }
 
     final user = _auth.currentUser;
     if (user == null) {
       return const AiAssistantAnswer(
-        text: 'Please login again. I cannot read student data without an active session.',
+        text:
+            'Please login again. I cannot read student data without an active session.',
       );
     }
 
@@ -193,7 +195,8 @@ class StudentAiAssistantService {
     final releaseMap = <String, int>{};
     for (final d in releaseSnap.docs) {
       final data = d.data();
-      final key = '${data['year']}_${normSem(data['semester']?.toString() ?? '')}';
+      final key =
+          '${data['year']}_${normSem(data['semester']?.toString() ?? '')}';
       releaseMap[key] = (data['minPassMarks'] is int)
           ? data['minPassMarks'] as int
           : int.tryParse(data['minPassMarks']?.toString() ?? '') ?? 40;
@@ -282,7 +285,8 @@ class StudentAiAssistantService {
 
     final preview = activeBacklogs.take(5).join(', ');
     return AiAssistantAnswer(
-      text: 'You currently have ${activeBacklogs.length} active backlog(s): $preview',
+      text:
+          'You currently have ${activeBacklogs.length} active backlog(s): $preview',
       suggestions: const [
         'Show my latest marks',
         'Show my attendance percentage',
@@ -397,7 +401,8 @@ class StudentAiAssistantService {
       final total = _sumMarks(data['componentMarks']);
       final credits = _asInt(data['credits'], fallback: 3);
       final gp = gradePoint((total / maxMarks) * 100);
-      semCreditPoints[semKey] = (semCreditPoints[semKey] ?? 0.0) + (gp * credits);
+      semCreditPoints[semKey] =
+          (semCreditPoints[semKey] ?? 0.0) + (gp * credits);
       semCredits[semKey] = (semCredits[semKey] ?? 0) + credits;
     }
 
@@ -451,7 +456,8 @@ class StudentAiAssistantService {
 
   AiAssistantAnswer _helpAnswer() {
     return const AiAssistantAnswer(
-      text: 'You can ask me:\n- Show my latest CIE marks\n- Show marks for DBMS\n- How many backlogs do I have?\n- Show my attendance percentage\n- What is my CGPA?\n- Show my profile details',
+      text:
+          'You can ask me:\n- Show my latest CIE marks\n- Show marks for DBMS\n- How many backlogs do I have?\n- Show my attendance percentage\n- What is my CGPA?\n- Show my profile details',
       suggestions: [
         'Show my latest CIE marks',
         'What is my CGPA?',

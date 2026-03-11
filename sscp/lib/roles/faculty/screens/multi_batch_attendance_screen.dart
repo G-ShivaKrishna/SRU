@@ -170,7 +170,8 @@ class _MultiBatchAttendanceScreenState
     try {
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
       final batches = _selectedBatches.toList();
-      final facultyId = _facultyId ?? await _scopeService.resolveCurrentFacultyId();
+      final facultyId =
+          _facultyId ?? await _scopeService.resolveCurrentFacultyId();
       final locked = <int>{};
       for (var i = 0; i < batches.length; i += 10) {
         final chunk = batches.sublist(i, (i + 10).clamp(0, batches.length));
@@ -227,10 +228,12 @@ class _MultiBatchAttendanceScreenState
           .collection('facultyAssignments')
           .doc(assignment.docId)
           .get();
-      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
-        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      if (!assignDoc.exists ||
+          (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception(
+            'This course is no longer active. Students may have been promoted. Please refresh the page.');
       }
-      
+
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
       final studentRecords = _students
           .map((s) => {
@@ -246,7 +249,8 @@ class _MultiBatchAttendanceScreenState
         'dateStr': dateStr,
         'date':
             Timestamp.fromDate(DateTime(_today.year, _today.month, _today.day)),
-        'facultyId': _facultyId ?? await _scopeService.resolveCurrentFacultyId(),
+        'facultyId':
+            _facultyId ?? await _scopeService.resolveCurrentFacultyId(),
         'subjectCode': assignment.subjectCode,
         'subjectName': assignment.subjectName,
         'department': assignment.department,
@@ -737,8 +741,8 @@ class _MultiBatchAttendanceScreenState
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           decoration: const BoxDecoration(
                             color: Color(0xFF1e3a5f),
-                            borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(4)),
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(4)),
                           ),
                           child: Text(
                             _kPeriodLabels[i],

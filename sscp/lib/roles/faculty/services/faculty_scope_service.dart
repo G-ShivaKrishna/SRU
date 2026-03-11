@@ -77,7 +77,8 @@ class FacultyScopeService {
     final students = <Map<String, dynamic>>[];
     for (final doc in snap.docs) {
       final data = doc.data();
-      final studentDepartment = _normalize(data['department']?.toString() ?? '');
+      final studentDepartment =
+          _normalize(data['department']?.toString() ?? '');
       final studentYear = _parseInt(data['year']);
       final status = _normalize(data['status']?.toString() ?? 'active');
 

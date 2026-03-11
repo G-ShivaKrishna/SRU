@@ -103,10 +103,11 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
 
       final studentMap = <String, Map<String, dynamic>>{};
       for (final assignment in matchingAssignments) {
-        final allBatches = List<String>.from(assignment['assignedBatches'] ?? []);
+        final allBatches =
+            List<String>.from(assignment['assignedBatches'] ?? []);
         final filteredBatches = allBatches
-            .where((batch) =>
-                _scopeService.assignmentContainsSection([batch], selectedSection!))
+            .where((batch) => _scopeService
+                .assignmentContainsSection([batch], selectedSection!))
             .toList();
 
         final scopedStudents = await _scopeService.loadStudentsForAssignment(
@@ -129,7 +130,8 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
       }
 
       final studentsList = studentMap.values.toList()
-        ..sort((a, b) => (a['rollNo'] as String).compareTo(b['rollNo'] as String));
+        ..sort(
+            (a, b) => (a['rollNo'] as String).compareTo(b['rollNo'] as String));
 
       setState(() {
         students = studentsList;
