@@ -56,11 +56,70 @@ class _AcademicsScreenState extends State<AcademicsScreen> {
   List<AcademicCalendarModel> calendarData = [];
   bool isLoading = false;
 
-  final academicYears = ['2025-26'];
-  final degrees = ['BTECH', 'MTECH', 'MBA', 'MCA'];
-  final semesters = ['1', '2'];
+  List<String> academicYears = [];
+  List<String> degrees = [];
+  List<String> semesters = [];
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFilterOptions();
+  }
+
+  Future<void> _loadFilterOptions() async {
+    try {
+      setState(() => isLoading = true);
+
+      // Fetch distinct academic years from calendar
+      final calendarSnapshot = await _firestore.collection('academicCalendar').get();
+      final yearSet = <String>{};
+      final degreeSet = <String>{};
+      final semesterSet = <String>{};
+
+      for (var doc in calendarSnapshot.docs) {
+        final data = doc.data();
+        if (data ['academicYear'] != null) {
+          yearSet.add(data['academicYear'].toString());
+        }
+        if (data['degree'] != null) {
+          degreeSet.add(data['degree'].toString());
+        }
+        if (data['semester'] != null) {
+          semesterSet.add(data['semester'].toString());
+        }
+      }
+
+      // If no data found, provide defaults
+      if (yearSet.isEmpty) {
+        yearSet.add('2025-26');
+      }
+      if (degreeSet.isEmpty) {
+        degreeSet.addAll(['BTECH', 'MTECH', 'MBA', 'MCA']);
+      }
+      if (semesterSet.isEmpty) {
+        semesterSet.addAll(['1', '2']);
+      }
+
+      setState(() {
+        academicYears = yearSet.toList()..sort();
+        degrees = degreeSet.toList()..sort();
+        semesters = semesterSet.toList()..sort();
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading filter options: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +134,7 @@ class _AcademicsScreenState extends State<AcademicsScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const AppHeader(),
+            const AppHeader(showBack: false),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(

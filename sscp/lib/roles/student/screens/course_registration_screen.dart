@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/course_model.dart';
 import '../../../models/student_course_selection_model.dart';
 import '../../../services/student_course_service.dart';
+import '../../../services/user_service.dart';
 import '../../../widgets/app_header.dart';
 
 class CourseRegistrationScreen extends StatefulWidget {
@@ -51,7 +52,27 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       // Extract hall ticket number from Firebase email
       // Email format: [hallTicketNumber]@sru.edu.in
       final email = user.email ?? '';
-      final hallTicketNumber = email.split('@')[0].toUpperCase();
+      var hallTicketNumber = UserService.getCurrentUserId();
+
+      // Fallback to email extraction if UserService hasn't cached yet
+      if (hallTicketNumber == null || hallTicketNumber.isEmpty) {
+        hallTicketNumber = email.split('@')[0].toUpperCase();
+      }
+
+      if (hallTicketNumber.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('User information not found'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
 
       // Fetch student data using hall ticket number as document ID
       final studentDoc = await FirebaseFirestore.instance
@@ -180,7 +201,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       ),
       body: Column(
         children: [
-          const AppHeader(),
+          const AppHeader(showBack: false),
           _buildHeaderSection(context),
           if (!_isRegistrationOpen()) _buildDisabledMessage(context),
           Container(
@@ -1231,8 +1252,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                             '• $error',
                             style: const TextStyle(fontSize: 12),
                           ),
-                        ))
-                    ,
+                        )),
               ],
             ),
           ),
@@ -1346,8 +1366,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                             '• $error',
                             style: const TextStyle(fontSize: 12),
                           ),
-                        ))
-                    ,
+                        )),
               ],
             ),
           ),

@@ -45,7 +45,7 @@ class _LabTutorialAttendanceScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppHeader(),
+            const AppHeader(showBack: false),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -459,7 +459,7 @@ class _LabTutorialAttendanceScreenState
         'submittedBy': 'faculty_id',
       };
 
-      // await _firestore.collection('attendance').add(attendanceData);
+      await _firestore.collection('labTutorialAttendance').add(attendanceData);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
 import '../../../config/dev_config.dart';
 import '../../../services/student_access_service.dart';
+import '../../../services/user_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -121,7 +122,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Fetch from Firestore
       final email = user.email ?? '';
-      final rollNumber = email.split('@')[0].toUpperCase();
+      final rollNumber =
+          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
       final doc = await _firestore.collection('students').doc(rollNumber).get();
       if (doc.exists) {
@@ -160,7 +162,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final email = user.email ?? '';
-    final rollNumber = email.split('@')[0].toUpperCase();
+    final rollNumber =
+        UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
     // Check if already has pending request
     final requestStatus =
@@ -396,7 +399,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       final email = user.email ?? '';
-      final rollNumber = email.split('@')[0].toUpperCase();
+      final rollNumber =
+          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
       // Check if student has edit access
       final hasAccess = await StudentAccessService.hasEditAccess(rollNumber);
@@ -527,7 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const AppHeader(),
+            const AppHeader(showBack: false),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(

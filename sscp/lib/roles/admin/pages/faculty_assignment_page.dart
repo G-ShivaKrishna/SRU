@@ -16,7 +16,6 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
 
   List<FacultyAssignment> _assignments = [];
   List<Map<String, dynamic>> _faculty = [];
-  List<Subject> _subjects = [];
   List<StudentBatch> _batches = [];
   List<String> _departments = [];
 
@@ -46,7 +45,6 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
       final results = await Future.wait([
         _service.getAllAssignments(),
         _service.getAllFaculty(),
-        _service.getAllSubjects(),
         _service.getAllBatches(),
         _service.getDepartments(),
       ]);
@@ -54,9 +52,8 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
       setState(() {
         _assignments = results[0] as List<FacultyAssignment>;
         _faculty = results[1] as List<Map<String, dynamic>>;
-        _subjects = results[2] as List<Subject>;
-        _batches = results[3] as List<StudentBatch>;
-        _departments = results[4] as List<String>;
+        _batches = results[2] as List<StudentBatch>;
+        _departments = results[3] as List<String>;
         _isLoading = false;
       });
     } catch (e) {

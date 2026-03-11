@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 import 'faculty_home.dart';
+import '../../../services/user_service.dart';
+import '../../../services/session_service.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
+import '../../../widgets/forgot_password_dialog.dart';
+import '../../../widgets/reset_link_helper.dart';
 
 class FacultyLoginScreen extends StatefulWidget {
   const FacultyLoginScreen({super.key});
@@ -86,12 +91,39 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final email = '${facultyId.toLowerCase()}@sru.edu.in';
+      // Normalize faculty ID to uppercase
+      final normalizedFacultyId = facultyId.toUpperCase();
+
+      // Fetch faculty data to get custom email from Firestore
+      final facultyDoc = await FirebaseFirestore.instance
+          .collection('faculty')
+          .doc(normalizedFacultyId)
+          .get();
+
+      if (!facultyDoc.exists) {
+        setState(() => _isLoading = false);
+        _showError('Faculty record not found');
+        _refreshCaptcha();
+        return;
+      }
+
+      // Use the custom email stored in Firestore for authentication
+      final customEmail = facultyDoc['email'] ?? '';
+      if (customEmail.isEmpty) {
+        setState(() => _isLoading = false);
+        _showError('Email not configured for this faculty');
+        _refreshCaptcha();
+        return;
+      }
 
       await _auth.signInWithEmailAndPassword(
-        email: email,
+        email: customEmail,
         password: password,
       );
+
+      // Fetch and cache user ID from Firestore
+      await UserService.fetchAndCacheUserId();
+      await SessionService.saveRole('faculty');
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -104,8 +136,12 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
 
       if (e.code == 'user-not-found') {
         _showError('Faculty account not found. Contact admin.');
-      } else if (e.code == 'wrong-password') {
-        _showError('Incorrect password');
+      } else if (e.code == 'wrong-password' ||
+          e.code == 'invalid-credential' ||
+          e.code == 'invalid-login-credentials' ||
+          e.code == 'INVALID_LOGIN_CREDENTIALS') {
+        _showErrorDialog('Incorrect Password',
+            'The password you entered is incorrect. Would you like to reset your password?');
       } else if (e.code == 'invalid-email') {
         _showError('Invalid faculty ID format');
       } else {
@@ -128,8 +164,71 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
     );
   }
 
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red.shade700, size: 24),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF0F6),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFF9EB0C7)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Color(0xFF1e3a5f),
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Use the "Forgot Password?" link below to reset your password securely via email.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF1e3a5f),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1e3a5f),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Faculty Login'),
@@ -140,124 +239,210 @@ class _FacultyLoginScreenState extends State<FacultyLoginScreen> {
           onPressed: () {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
-                  builder: (context) => const RoleSelectionScreen()),
+                builder: (context) => const RoleSelectionScreen(),
+              ),
             );
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _facultyIdController,
-              enabled: !_isLoading,
-              keyboardType: TextInputType.text,
-              decoration: InputDecoration(
-                labelText: 'Faculty ID',
-                hintText: 'e.g., FAC001',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.badge),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40),
+              Icon(
+                Icons.person,
+                size: isMobile ? 60 : 80,
+                color: const Color(0xFF1e3a5f),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              enabled: !_isLoading,
-              obscureText: _obscurePassword,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.lock),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword
-                      ? Icons.visibility_off
-                      : Icons.visibility),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
+              const SizedBox(height: 24),
+              Text(
+                'Faculty Login',
+                style: TextStyle(
+                  fontSize: isMobile ? 20 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1e3a5f),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 8),
+              Text(
+                'Enter your credentials',
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  color: Colors.grey[600],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Enter Captcha:'),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _captchaText,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      IconButton(
-                        onPressed: _isLoading ? null : _refreshCaptcha,
-                        icon: const Icon(Icons.refresh),
-                      ),
-                    ],
+              const SizedBox(height: 48),
+              TextField(
+                controller: _facultyIdController,
+                enabled: !_isLoading,
+                keyboardType: TextInputType.text,
+                decoration: InputDecoration(
+                  labelText: 'Faculty ID',
+                  hintText: 'e.g., FAC001',
+                  prefixIcon: const Icon(Icons.badge),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _captchaController,
-                    enabled: !_isLoading,
-                    decoration: InputDecoration(
-                      hintText: 'Enter captcha text',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                enabled: !_isLoading,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Enter your password',
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                     ),
+                    onPressed: () {
+                      setState(
+                        () => _obscurePassword = !_obscurePassword,
+                      );
+                    },
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const ResetLinkHelper(),
+                            );
+                          },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1e3a5f),
+                    ),
+                    icon: const Icon(Icons.link, size: 16),
+                    label: const Text('Have a reset link?'),
+                  ),
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const ForgotPasswordDialog(
+                                role: 'faculty',
+                              ),
+                            );
+                          },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1e3a5f),
+                    ),
+                    child: const Text('Forgot Password?'),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1e3a5f),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF0F6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF1e3a5f)),
                 ),
-                onPressed: _isLoading ? null : _handleLogin,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Login',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Enter CAPTCHA: $_captchaText',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                        color: Color(0xFF1e3a5f),
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _captchaController,
+                            enabled: !_isLoading,
+                            decoration: InputDecoration(
+                              hintText: 'Enter captcha text',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: _isLoading ? null : _refreshCaptcha,
+                          icon: const Icon(Icons.refresh),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1e3a5f),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'LOGIN',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

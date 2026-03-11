@@ -6,8 +6,6 @@ class FeedbackService {
 
   CollectionReference get _feedbackCollection =>
       _firestore.collection('studentFeedback');
-  CollectionReference get _feedbackSettingsCollection =>
-      _firestore.collection('feedbackSettings');
   CollectionReference get _feedbackSessionsCollection =>
       _firestore.collection('feedbackSessions');
 

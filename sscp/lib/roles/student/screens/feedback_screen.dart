@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../services/user_service.dart';
 import '../../../widgets/app_header.dart';
 import '../../../services/feedback_service.dart';
 
@@ -67,7 +68,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       if (user == null) throw Exception('Not logged in');
 
       final email = user.email ?? '';
-      final rollNumber = email.split('@')[0].toUpperCase();
+      final rollNumber =
+          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
       final studentDoc =
           await _firestore.collection('students').doc(rollNumber).get();
 
@@ -112,21 +114,27 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
         // Sort: assigned faculty subjects first (alphabetically), then unassigned
         _subjects.sort((a, b) {
-          final aAssigned = (a['facultyName'] != null && a['facultyName'] != '' && a['facultyName'] != 'Not Assigned');
-          final bAssigned = (b['facultyName'] != null && b['facultyName'] != '' && b['facultyName'] != 'Not Assigned');
+          final aAssigned = (a['facultyName'] != null &&
+              a['facultyName'] != '' &&
+              a['facultyName'] != 'Not Assigned');
+          final bAssigned = (b['facultyName'] != null &&
+              b['facultyName'] != '' &&
+              b['facultyName'] != 'Not Assigned');
           if (aAssigned && !bAssigned) return -1;
           if (!aAssigned && bAssigned) return 1;
           // Both assigned or both unassigned: sort by subjectName
-          return (a['subjectName'] ?? '').toString().compareTo((b['subjectName'] ?? '').toString());
+          return (a['subjectName'] ?? '')
+              .toString()
+              .compareTo((b['subjectName'] ?? '').toString());
         });
 
         // Only allow feedback for assigned faculty subjects
         // Find the first unsubmitted and assigned subject
         _currentIndex = _subjects.indexWhere((s) =>
-          s['submitted'] != true &&
-          s['facultyName'] != null &&
-          s['facultyName'] != '' &&
-          s['facultyName'] != 'Not Assigned');
+            s['submitted'] != true &&
+            s['facultyName'] != null &&
+            s['facultyName'] != '' &&
+            s['facultyName'] != 'Not Assigned');
         if (_currentIndex == -1) {
           _currentIndex = _subjects.length; // All completed or none assigned
         }
@@ -153,7 +161,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       ),
       body: Column(
         children: [
-          const AppHeader(),
+          const AppHeader(showBack: false),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -302,13 +310,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   Widget _buildFeedbackForm() {
     // Guard: If index is out of range, show completion view or empty
-    if (_subjects.isEmpty || _currentIndex < 0 || _currentIndex >= _subjects.length) {
+    if (_subjects.isEmpty ||
+        _currentIndex < 0 ||
+        _currentIndex >= _subjects.length) {
       return const SizedBox.shrink();
     }
     final subject = _subjects[_currentIndex];
     final isMobile = MediaQuery.of(context).size.width < 600;
 
-    final assigned = subject['facultyName'] != null && subject['facultyName'] != '' && subject['facultyName'] != 'Not Assigned';
+    final assigned = subject['facultyName'] != null &&
+        subject['facultyName'] != '' &&
+        subject['facultyName'] != 'Not Assigned';
 
     if (!assigned) {
       // Show message if faculty not assigned
@@ -322,7 +334,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               const SizedBox(height: 16),
               Text(
                 subject['subjectName'] ?? '',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1e3a5f)),
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1e3a5f)),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -427,8 +442,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   }
 
   Widget _buildProgressIndicator() {
-    final totalPending =
-        _subjects.where((s) => s['submitted'] != true).length;
+    final totalPending = _subjects.where((s) => s['submitted'] != true).length;
     final completed = _subjects.length - totalPending;
 
     return Column(
@@ -565,7 +579,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       _initializeRatings();
       // Find next unsubmitted subject
       int nextIndex = _currentIndex + 1;
-      while (nextIndex < _subjects.length && _subjects[nextIndex]['submitted'] == true) {
+      while (nextIndex < _subjects.length &&
+          _subjects[nextIndex]['submitted'] == true) {
         nextIndex++;
       }
       // If all are submitted, set to _subjects.length to trigger completion view
@@ -593,7 +608,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      if (_subjects.isEmpty || _currentIndex < 0 || _currentIndex >= _subjects.length) {
+      if (_subjects.isEmpty ||
+          _currentIndex < 0 ||
+          _currentIndex >= _subjects.length) {
         setState(() => _isSubmitting = false);
         return;
       }
@@ -620,7 +637,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
       // Move to next unsubmitted subject
       int nextIndex = _currentIndex + 1;
-      while (nextIndex < _subjects.length && _subjects[nextIndex]['submitted'] == true) {
+      while (nextIndex < _subjects.length &&
+          _subjects[nextIndex]['submitted'] == true) {
         nextIndex++;
       }
       // If all are submitted, set to _subjects.length to trigger completion view

@@ -13,7 +13,7 @@ class UniversityClubsScreen extends StatelessWidget {
       ),
       body: const Column(
         children: [
-          AppHeader(),
+          AppHeader(showBack: false),
           Expanded(
             child: Center(
               child: Text('University Clubs Screen'),

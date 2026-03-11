@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
 import '../../services/feedback_service.dart';
+import '../../services/user_service.dart';
+import '../../services/session_service.dart';
 import 'screens/profile_screen.dart';
 import 'screens/attendance_entry_screen.dart';
 import 'screens/multi_batch_attendance_screen.dart';
@@ -90,7 +92,8 @@ class _FacultyHomeState extends State<FacultyHome> {
 
       _currentUser = user;
       final email = _currentUser?.email ?? '';
-      final facultyId = email.split('@')[0].toUpperCase();
+      final facultyId =
+          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
       final doc = await _firestore.collection('faculty').doc(facultyId).get();
       if (doc.exists) {
@@ -119,6 +122,7 @@ class _FacultyHomeState extends State<FacultyHome> {
   }
 
   Future<void> _logout() async {
+    await SessionService.clearRole();
     await _auth.signOut();
     if (mounted) {
       Navigator.of(context).pushReplacement(
@@ -190,6 +194,7 @@ class _FacultyHomeState extends State<FacultyHome> {
             _buildStatusBar(context),
             _buildWelcomeSection(
                 context, name, employeeId, designation, department),
+            _buildTimetableLink(context),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(
@@ -213,96 +218,202 @@ class _FacultyHomeState extends State<FacultyHome> {
     );
   }
 
+  // Width estimate matching admin nav bar.
+  double _navItemWidth(String label) => label.length * 7.5 + 46;
+
   Widget _buildNavigationMenu(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    const topItems = <String>[
+      'Home',
+      'Academics',
+      'Profile',
+      'Course',
+      'Attendance',
+      'Marks',
+      'Employee Directory',
+      'Mentorship',
+    ];
+    const subMenus = <String, List<String>>{
+      'Academics': [
+        'Regulations',
+        'Calendar',
+        'Syllabus',
+        'Exam Time Table/ Date Sheet',
+        'Invigilation Duties',
+        'Exams Notice Board',
+        'Time Table',
+        'Library',
+        'Staff Handbook',
+        'Student Handbook',
+      ],
+      'Profile': [
+        'View Profile',
+        'Update Basic Data',
+      ],
+      'Course': [
+        'Course Preference',
+        'Course View',
+        'Preference Report',
+      ],
+      'Attendance': [
+        'Attendance Entry',
+        'Attendance Entry-Multi Batch Selection',
+        'Lab/Tutorial Attendance Entry',
+        'View | Update | Delete Day Attendance',
+        'Register View',
+        'SSM',
+      ],
+      'Marks': [
+        'Check & Define CIE Format (UG/PG)',
+        'Total Marks',
+        'Makeup Mid Marks',
+        'Consolidated Marks Report(New)',
+        'Supply Exam Marks',
+      ],
+    };
 
-    if (isMobile) {
-      return _buildMobileMenu(context);
-    }
+    return LayoutBuilder(builder: (context, constraints) {
+      final available = constraints.maxWidth;
+      const moreButtonWidth = 90.0;
+      final budget = available - 8;
+      final totalWidth =
+          topItems.fold(0.0, (s, item) => s + _navItemWidth(item));
 
-    return _buildDesktopMenu(context);
-  }
+      List<String> visible;
+      List<String> overflowTop;
 
-  Widget _buildMobileMenu(BuildContext context) {
-    return Container(
-      color: const Color(0xFF1e3a5f),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildMenuButton(context, 'Home', null),
-            _buildDropdownMenu(context, 'Academics', [
-              'Regulations',
-              'Calendar',
-              'Syllabus',
-              'Exam Time Table/ Date Sheet',
-              'Invigilation Duties',
-              'Exams Notice Board',
-              'Time Table',
-              'Library',
-              'Staff Handbook',
-              'Student Handbook',
-            ]),
-            _buildProfessionalOutlineMenu(context),
-            _buildDropdownMenu(context, 'Attendance', [
-              'Attendance Entry',
-              'Attendance Entry-Multi Batch Selection',
-              'Lab/Tutorial Attendance Entry',
-              'View | Update | Delete Day Attendance',
-              'Register View',
-              'SSM',
-            ]),
-            _buildMarksEntryMenu(context),
-            _buildMenuButton(context, 'Mentorship', 'mentor'),
-          ],
+      if (totalWidth <= budget) {
+        visible = List<String>.from(topItems);
+        overflowTop = [];
+      } else {
+        visible = [];
+        overflowTop = [];
+        double used = 0;
+        for (final item in topItems) {
+          final w = _navItemWidth(item);
+          if (used + w + moreButtonWidth <= budget) {
+            visible.add(item);
+            used += w;
+          } else {
+            overflowTop.add(item);
+          }
+        }
+      }
+
+      const moreSubMenus = <String, List<String>>{
+        'Profile': ['View Profile', 'Update Basic Data'],
+        'Course': [
+          'Course Preference',
+          'Course View',
+          'Preference Report',
+        ],
+        'Attendance': [
+          'Attendance Entry',
+          'Attendance Entry-Multi Batch Selection',
+          'Lab/Tutorial Attendance Entry',
+          'View | Update | Delete Day Attendance',
+          'Register View',
+          'SSM',
+        ],
+        'Marks': [
+          'Check & Define CIE Format (UG/PG)',
+          'Total Marks',
+          'Makeup Mid Marks',
+          'Consolidated Marks Report(New)',
+          'Supply Exam Marks',
+        ],
+        'Employee Directory': ['Employee Directory'],
+        'Mentorship': ['Mentorship'],
+      };
+
+      return SizedBox(
+        width: available,
+        child: Container(
+          color: const Color(0xFF1e3a5f),
+          height: 42,
+          child: ClipRect(
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                ...visible.map((item) {
+                  final isHome = item == 'Home';
+                  final subs = subMenus[item];
+                  final showChevron =
+                      item != visible.last || overflowTop.isNotEmpty;
+                  final labelWidget = Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isHome)
+                          const Icon(Icons.home,
+                              color: Colors.white70, size: 14),
+                        if (isHome) const SizedBox(width: 4),
+                        Text(
+                          item,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (showChevron)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 6),
+                            child: Icon(Icons.chevron_right,
+                                color: Colors.white38, size: 14),
+                          ),
+                      ],
+                    ),
+                  );
+                  if (subs != null) {
+                    return PopupMenuButton<String>(
+                      offset: const Offset(0, 42),
+                      color: const Color(0xFF1e3a5f),
+                      onSelected: (value) =>
+                          _handleMenuSelection(context, item, value),
+                      itemBuilder: (_) => subs
+                          .map((s) => PopupMenuItem<String>(
+                                value: s,
+                                height: 40,
+                                child: Text(s,
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500)),
+                              ))
+                          .toList(),
+                      child: labelWidget,
+                    );
+                  }
+                  return InkWell(
+                    onTap: isHome
+                        ? null
+                        : () => _handleMenuSelection(context, '', item),
+                    hoverColor: Colors.white.withOpacity(0.12),
+                    child: labelWidget,
+                  );
+                }),
+                if (overflowTop.isNotEmpty)
+                  _FacultyOverflowNavButton(
+                    subMenus: moreSubMenus,
+                    onSelected: (item) =>
+                        _handleMenuSelection(context, '', item),
+                  ),
+                const Spacer(),
+              ],
+            ),
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildDesktopMenu(BuildContext context) {
-    return Container(
-      color: const Color(0xFF1e3a5f),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildMenuButton(context, 'Home', null),
-            _buildDropdownMenu(context, 'Academics', [
-              'Regulations',
-              'Calendar',
-              'Syllabus',
-              'Exam Time Table/ Date Sheet',
-              'Invigilation Duties',
-              'Exams Notice Board',
-              'Time Table',
-              'Library',
-              'Staff Handbook',
-              'Student Handbook',
-            ]),
-            _buildProfessionalOutlineMenu(context),
-            _buildDropdownMenu(context, 'Attendance', [
-              'Attendance Entry',
-              'Attendance Entry-Multi Batch Selection',
-              'Lab/Tutorial Attendance Entry',
-              'View | Update | Delete Day Attendance',
-              'Register View',
-              'SSM',
-            ]),
-            _buildMarksEntryMenu(context),
-            _buildMenuButton(context, 'Mentorship', 'mentor'),
-          ],
-        ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildStatusBar(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
+      width: double.infinity,
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : 16,
@@ -329,6 +440,7 @@ class _FacultyHomeState extends State<FacultyHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
+      width: double.infinity,
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       child: Text(
@@ -338,7 +450,31 @@ class _FacultyHomeState extends State<FacultyHome> {
           fontSize: isMobile ? 12 : 14,
           fontWeight: FontWeight.bold,
         ),
-        textAlign: TextAlign.center,
+        textAlign: TextAlign.right,
+      ),
+    );
+  }
+
+  Widget _buildTimetableLink(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    return GestureDetector(
+      onTap: () => launchUrl(
+        Uri.parse('https://timetable.sruniv.com/report'),
+        mode: LaunchMode.externalApplication,
+      ),
+      child: Container(
+        color: Colors.blue,
+        padding: EdgeInsets.all(isMobile ? 10 : 12),
+        width: double.infinity,
+        child: Text(
+          'Click Here to View Your Timetable',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: isMobile ? 12 : 14,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
@@ -617,6 +753,7 @@ class _FacultyHomeState extends State<FacultyHome> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildMenuButton(BuildContext context, String title, String? route) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -639,6 +776,7 @@ class _FacultyHomeState extends State<FacultyHome> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildProfessionalOutlineMenu(BuildContext context) {
     const items = [
       'View Profile',
@@ -701,6 +839,7 @@ class _FacultyHomeState extends State<FacultyHome> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildDropdownMenu(
       BuildContext context, String title, List<String> items) {
     return PopupMenuButton<String>(
@@ -768,6 +907,7 @@ class _FacultyHomeState extends State<FacultyHome> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildMarksEntryMenu(BuildContext context) {
     return PopupMenuButton<String>(
       offset: const Offset(0, 48),
@@ -844,7 +984,6 @@ class _FacultyHomeState extends State<FacultyHome> {
               ),
             ),
           ),
-
         ];
       },
       child: const Padding(
@@ -1062,6 +1201,95 @@ class _DownloadSubMenu extends StatelessWidget {
                   style: TextStyle(color: Colors.white, fontSize: 13)),
             ),
             Icon(Icons.arrow_right, color: Colors.white70, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FacultyOverflowNavButton extends StatelessWidget {
+  final Map<String, List<String>> subMenus;
+  final void Function(String) onSelected;
+
+  const _FacultyOverflowNavButton(
+      {required this.subMenus, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: const Color(0xFF1e3a5f),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          isScrollControlled: true,
+          builder: (_) => DraggableScrollableSheet(
+            initialChildSize: 0.5,
+            minChildSize: 0.3,
+            maxChildSize: 0.85,
+            expand: false,
+            builder: (_, scrollController) => ListView(
+              controller: scrollController,
+              children: subMenus.entries.map((entry) {
+                // Single-item group → render as direct ListTile
+                if (entry.value.length == 1 && entry.value.first == entry.key) {
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    title: Text(entry.key,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onSelected(entry.value.first);
+                    },
+                  );
+                }
+                return ExpansionTile(
+                  title: Text(
+                    entry.key,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13),
+                  ),
+                  iconColor: Colors.white70,
+                  collapsedIconColor: Colors.white54,
+                  children: entry.value
+                      .map((item) => ListTile(
+                            contentPadding:
+                                const EdgeInsets.only(left: 32, right: 16),
+                            title: Text(item,
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 13)),
+                            onTap: () {
+                              Navigator.pop(context);
+                              onSelected(item);
+                            },
+                          ))
+                      .toList(),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('More',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500)),
+            SizedBox(width: 4),
+            Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
           ],
         ),
       ),

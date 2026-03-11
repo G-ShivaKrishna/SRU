@@ -3,9 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../models/faculty_assignment_model.dart';
 import '../../../services/student_course_service.dart';
+import '../../../services/user_service.dart';
 
 /// Subject Registration Screen
-/// 
+///
 /// This screen shows:
 /// 1. Core subjects (auto-assigned by admin) - Read only
 /// 2. OE (Open Elective) - Student selectable
@@ -14,7 +15,8 @@ class SubjectRegistrationScreen extends StatefulWidget {
   const SubjectRegistrationScreen({super.key});
 
   @override
-  State<SubjectRegistrationScreen> createState() => _SubjectRegistrationScreenState();
+  State<SubjectRegistrationScreen> createState() =>
+      _SubjectRegistrationScreenState();
 }
 
 class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
@@ -49,7 +51,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isSubmitted = false;
-  bool _isRegistrationOpen = false; // Whether registration is open for student's year
+  bool _isRegistrationOpen =
+      false; // Whether registration is open for student's year
   String? _errorMessage;
 
   @override
@@ -79,7 +82,22 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
 
       // Extract hall ticket number from Firebase email
       final email = user.email ?? '';
-      final hallTicketNumber = email.split('@')[0].toUpperCase();
+      var hallTicketNumber = UserService.getCurrentUserId();
+
+      // Fallback to email extraction if UserService hasn't cached yet
+      if (hallTicketNumber == null || hallTicketNumber.isEmpty) {
+        hallTicketNumber = email.split('@')[0].toUpperCase();
+      }
+
+      if (hallTicketNumber.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User information not found'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
       // Fetch student data
       final studentDoc = await FirebaseFirestore.instance
@@ -88,7 +106,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
           .get();
 
       if (!studentDoc.exists) {
-        throw Exception('Student profile not found. Please complete your profile first.');
+        throw Exception(
+            'Student profile not found. Please complete your profile first.');
       }
 
       final studentData = studentDoc.data()!;
@@ -96,14 +115,17 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       _studentName = studentData['studentName'] ?? '';
       _studentYear = int.tryParse(studentData['year']?.toString() ?? '1') ?? 1;
       _studentDepartment = studentData['department']?.toString() ?? 'CSE';
-      
+
       // Construct batch identifier (e.g., 'CSE-A') from department and batchNumber/section
       final batchNumber = studentData['batchNumber']?.toString() ?? '';
       final section = studentData['section']?.toString() ?? batchNumber;
-      _studentBatch = section.isNotEmpty ? '$_studentDepartment-$section' : _studentDepartment;
-      
+      _studentBatch = section.isNotEmpty
+          ? '$_studentDepartment-$section'
+          : _studentDepartment;
+
       // Read semester from student data (1 or 2), convert to Roman numeral for display
-      final semesterInt = int.tryParse(studentData['semester']?.toString() ?? '1') ?? 1;
+      final semesterInt =
+          int.tryParse(studentData['semester']?.toString() ?? '1') ?? 1;
       _studentSemester = semesterInt == 1 ? 'I' : 'II';
 
       // Load subjects
@@ -161,7 +183,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   Future<void> _loadRequirements() async {
     // Convert semester from Roman numeral to number for query
     final semesterNum = _studentSemester == 'I' ? '1' : '2';
-    
+
     final requirement = await _courseService.getCourseRequirement(
       _studentYear.toString(),
       _studentDepartment,
@@ -173,7 +195,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
         _requiredOECount = requirement.oeCount;
         _requiredPECount = requirement.peCount;
       });
-      print('DEBUG: Loaded requirements - OE: $_requiredOECount, PE: $_requiredPECount');
+      print(
+          'DEBUG: Loaded requirements - OE: $_requiredOECount, PE: $_requiredPECount');
     } else {
       print('DEBUG: No requirements found, using defaults (0)');
       setState(() {
@@ -311,7 +334,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
     if (_selectedOEIds.length < _requiredOECount) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please select at least $_requiredOECount Open Elective(s)'),
+          content:
+              Text('Please select at least $_requiredOECount Open Elective(s)'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -321,7 +345,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
     if (_selectedPEIds.length < _requiredPECount) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please select at least $_requiredPECount Programme Elective(s)'),
+          content: Text(
+              'Please select at least $_requiredPECount Programme Elective(s)'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -456,13 +481,14 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                   children: [
                     // Student info bar
                     _buildStudentInfoBar(isMobile),
-                    
+
                     // Registration closed banner
-                    if (!_isRegistrationOpen && !_isSubmitted) _buildRegistrationClosedBanner(),
-                    
+                    if (!_isRegistrationOpen && !_isSubmitted)
+                      _buildRegistrationClosedBanner(),
+
                     // Status bar
                     if (_isSubmitted) _buildSubmittedBanner(),
-                    
+
                     // Tab content
                     Expanded(
                       child: TabBarView(
@@ -575,36 +601,46 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
 
   int _calculateTotalCredits() {
     int total = 0;
-    
+
     // Core credits
     for (final subject in _coreSubjects) {
       total += subject.credits;
     }
-    
+
     // Selected OE credits
     for (final id in _selectedOEIds) {
       final subject = _oeSubjects.firstWhere(
         (s) => s.id == id,
         orElse: () => Subject(
-          id: '', code: '', name: '', department: '',
-          credits: 0, year: 0, semester: '',
+          id: '',
+          code: '',
+          name: '',
+          department: '',
+          credits: 0,
+          year: 0,
+          semester: '',
         ),
       );
       total += subject.credits;
     }
-    
+
     // Selected PE credits
     for (final id in _selectedPEIds) {
       final subject = _peSubjects.firstWhere(
         (s) => s.id == id,
         orElse: () => Subject(
-          id: '', code: '', name: '', department: '',
-          credits: 0, year: 0, semester: '',
+          id: '',
+          code: '',
+          name: '',
+          department: '',
+          credits: 0,
+          year: 0,
+          semester: '',
         ),
       );
       total += subject.credits;
     }
-    
+
     return total;
   }
 
@@ -697,14 +733,14 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
             ],
           ),
         ),
-        
+
         // Subject list
         ..._coreSubjects.map((subject) => _buildSubjectCard(
-          subject: subject,
-          isSelected: true,
-          isReadOnly: true,
-          isMobile: isMobile,
-        )),
+              subject: subject,
+              isSelected: true,
+              isReadOnly: true,
+              isMobile: isMobile,
+            )),
       ],
     );
   }
@@ -777,33 +813,33 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
             ],
           ),
         ),
-        
+
         // Subject list
         ...subjects.map((subject) => _buildSubjectCard(
-          subject: subject,
-          isSelected: selectedIds.contains(subject.id),
-          isReadOnly: _isSubmitted || !_isRegistrationOpen,
-          isMobile: isMobile,
-          onTap: (_isSubmitted || !_isRegistrationOpen)
-              ? null
-              : () {
-                  setState(() {
-                    if (type == 'OE') {
-                      if (_selectedOEIds.contains(subject.id)) {
-                        _selectedOEIds.remove(subject.id);
-                      } else {
-                        _selectedOEIds.add(subject.id);
-                      }
-                    } else {
-                      if (_selectedPEIds.contains(subject.id)) {
-                        _selectedPEIds.remove(subject.id);
-                      } else {
-                        _selectedPEIds.add(subject.id);
-                      }
-                    }
-                  });
-                },
-        )),
+              subject: subject,
+              isSelected: selectedIds.contains(subject.id),
+              isReadOnly: _isSubmitted || !_isRegistrationOpen,
+              isMobile: isMobile,
+              onTap: (_isSubmitted || !_isRegistrationOpen)
+                  ? null
+                  : () {
+                      setState(() {
+                        if (type == 'OE') {
+                          if (_selectedOEIds.contains(subject.id)) {
+                            _selectedOEIds.remove(subject.id);
+                          } else {
+                            _selectedOEIds.add(subject.id);
+                          }
+                        } else {
+                          if (_selectedPEIds.contains(subject.id)) {
+                            _selectedPEIds.remove(subject.id);
+                          } else {
+                            _selectedPEIds.add(subject.id);
+                          }
+                        }
+                      });
+                    },
+            )),
       ],
     );
   }
@@ -834,12 +870,12 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
             children: [
               // Subject code avatar
               CircleAvatar(
-                backgroundColor: isSelected
-                    ? const Color(0xFF1e3a5f)
-                    : Colors.grey.shade200,
+                backgroundColor:
+                    isSelected ? const Color(0xFF1e3a5f) : Colors.grey.shade200,
                 child: Text(
                   subject.code.isNotEmpty
-                      ? subject.code.substring(0, subject.code.length > 2 ? 2 : subject.code.length)
+                      ? subject.code.substring(
+                          0, subject.code.length > 2 ? 2 : subject.code.length)
                       : 'SB',
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.grey.shade600,
@@ -849,7 +885,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                 ),
               ),
               const SizedBox(width: 12),
-              
+
               // Subject info
               Expanded(
                 child: Column(
@@ -875,7 +911,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.person, size: 14, color: Colors.green.shade700),
+                          Icon(Icons.person,
+                              size: 14, color: Colors.green.shade700),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -894,7 +931,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                   ],
                 ),
               ),
-              
+
               // Selection indicator
               if (isReadOnly && isSelected)
                 const Icon(Icons.lock, color: Colors.grey)
@@ -911,7 +948,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
 
   Widget _buildBottomBar(bool isMobile) {
     final isDisabled = _isSaving || _isSubmitted || !_isRegistrationOpen;
-    
+
     return Container(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       decoration: BoxDecoration(

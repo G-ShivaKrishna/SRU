@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
 import '../../../services/feedback_service.dart';
+import '../../../services/user_service.dart';
 
 class FacultyFeedbackScreen extends StatefulWidget {
   const FacultyFeedbackScreen({super.key});
@@ -38,7 +39,8 @@ class _FacultyFeedbackScreenState extends State<FacultyFeedbackScreen> {
       if (user == null) throw Exception('Not logged in');
 
       final email = user.email ?? '';
-      final docId = email.split('@')[0].toUpperCase();
+      final docId =
+          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
 
       // Get faculty document to find facultyId
       final facultyDoc =
@@ -77,7 +79,7 @@ class _FacultyFeedbackScreenState extends State<FacultyFeedbackScreen> {
       ),
       body: Column(
         children: [
-          const AppHeader(),
+          const AppHeader(showBack: false),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())

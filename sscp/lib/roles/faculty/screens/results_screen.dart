@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../widgets/app_header.dart';
 
 class FacultyResultsScreen extends StatefulWidget {
@@ -13,18 +15,129 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
   String? selectedSection;
   String? selectedExamType;
   bool isStudentListLoaded = false;
+  bool isLoadingData = false;
 
-  final courses = ['22CS301 - DAA', '22CS302 - OS', '22CS303 - DBMS'];
-  final sections = ['A', 'B', 'C', 'D'];
-  final examTypes = ['Mid Sem 1', 'Mid Sem 2', 'End Sem'];
+  List<String> courses = [];
+  List<String> sections = ['A', 'B', 'C', 'D', 'E', 'F'];
+  List<String> examTypes = ['Mid Sem 1', 'Mid Sem 2', 'End Sem'];
+  List<Map<String, dynamic>> students = [];
 
-  final List<Map<String, dynamic>> students = [
-    {'rollNo': '22CSBTB01', 'name': 'STUDENT 1', 'marks': ''},
-    {'rollNo': '22CSBTB02', 'name': 'STUDENT 2', 'marks': ''},
-    {'rollNo': '22CSBTB03', 'name': 'STUDENT 3', 'marks': ''},
-    {'rollNo': '22CSBTB04', 'name': 'STUDENT 4', 'marks': ''},
-    {'rollNo': '22CSBTB05', 'name': 'STUDENT 5', 'marks': ''},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadFacultyCourses();
+  }
+
+  Future<void> _loadFacultyCourses() async {
+    try {
+      setState(() => isLoadingData = true);
+      
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      // Get faculty's email to find their ID
+      final email = user.email ?? '';
+      final facultyId = email.split('@')[0].toUpperCase();
+
+      // Fetch faculty assignments
+      final assignmentSnapshot = await FirebaseFirestore.instance
+          .collection('facultyAssignments')
+          .where('facultyId', isEqualTo: facultyId)
+          .get();
+
+      final courseSet = <String>{};
+      for (var doc in assignmentSnapshot.docs) {
+        final data = doc.data();
+        final subjectCode = data['subjectCode'] ?? '';
+        final subjectName = data['subjectName'] ?? '';
+        if (subjectCode.isNotEmpty) {
+          courseSet.add('$subjectCode - $subjectName');
+        }
+      }
+
+      setState(() {
+        courses = courseSet.toList()..sort();
+        isLoadingData = false;
+      });
+    } catch (e) {
+      setState(() => isLoadingData = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading courses: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadStudents() async {
+    if (selectedCourse == null || selectedSection == null) return;
+
+    try {
+      setState(() => isLoadingData = true);
+
+      // Extract subject code from selected course
+      final subjectCode = selectedCourse!.split(' - ').first;
+
+      // Fetch students from facultyAssignments who are enrolled in this course
+      final assignmentSnapshot = await FirebaseFirestore.instance
+          .collection('facultyAssignments')
+          .where('subjectCode', isEqualTo: subjectCode)
+          .where('section', isEqualTo: selectedSection)
+          .limit(1)
+          .get();
+
+      if (assignmentSnapshot.docs.isEmpty) {
+        setState(() {
+          students = [];
+          isLoadingData = false;
+        });
+        return;
+      }
+
+      final assignmentData = assignmentSnapshot.docs.first.data();
+      final assignedBatches = List<String>.from(assignmentData['assignedBatches'] ?? []);
+
+      // Fetch students from these batches
+      final studentsList = <Map<String, dynamic>>[];
+      
+      for (var batchNumber in assignedBatches) {
+        final studentSnapshot = await FirebaseFirestore.instance
+            .collection('students')
+            .where('batchNumber', isEqualTo: batchNumber)
+            .orderBy('hallTicketNumber')
+            .get();
+
+        for (var doc in studentSnapshot.docs) {
+          final data = doc.data();
+          studentsList.add({
+            'id': doc.id,
+            'rollNo': data['hallTicketNumber'] ?? doc.id,
+            'name': data['name'] ?? 'Unknown',
+            'marks': '',
+          });
+        }
+      }
+
+      setState(() {
+        students = studentsList;
+        isStudentListLoaded = true;
+        isLoadingData = false;
+      });
+    } catch (e) {
+      setState(() => isLoadingData = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading students: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +152,7 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const AppHeader(),
+            const AppHeader(showBack: false),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(
@@ -211,7 +324,7 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
     if (selectedCourse != null &&
         selectedSection != null &&
         selectedExamType != null) {
-      setState(() => isStudentListLoaded = true);
+      _loadStudents();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

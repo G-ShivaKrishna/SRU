@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../../widgets/app_header.dart';
+import '../../../services/user_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Student Results Screen – Results / Backlogs / Supply Exam tabs
@@ -26,7 +27,8 @@ class _ResultsScreenState extends State<ResultsScreen>
     _tab =
         TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    _rollNo = email.split('@')[0].toUpperCase();
+    _rollNo =
+        UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
   }
 
   @override
@@ -55,7 +57,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       ),
       body: Column(
         children: [
-          const AppHeader(),
+          const AppHeader(showBack: false),
           Expanded(
             child: TabBarView(
               controller: _tab,
@@ -640,14 +642,8 @@ class _SupplyExamTabState extends State<_SupplyExamTab> {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        final now = DateTime.now();
-        final windows = (snap.data?.docs ?? []).where((doc) {
-          final d = doc.data() as Map<String, dynamic>;
-          final start = (d['startDate'] as Timestamp?)?.toDate();
-          final end = (d['endDate'] as Timestamp?)?.toDate();
-          if (start == null || end == null) return false;
-          return now.isAfter(start) && now.isBefore(end);
-        }).toList();
+        // Trust isActive flag set by admin — no date filtering
+        final windows = (snap.data?.docs ?? []).toList();
 
         if (windows.isEmpty) {
           return const Center(

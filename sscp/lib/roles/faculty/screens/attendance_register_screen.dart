@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
 
 class AttendanceRegisterScreen extends StatefulWidget {
@@ -11,8 +10,6 @@ class AttendanceRegisterScreen extends StatefulWidget {
 }
 
 class _AttendanceRegisterScreenState extends State<AttendanceRegisterScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
   String? _selectedSemester = 'SEM-1';
   String? _selectedSession = '2025-2026';
   bool _isLoading = false;
@@ -39,7 +36,7 @@ class _AttendanceRegisterScreenState extends State<AttendanceRegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AppHeader(),
+            const AppHeader(showBack: false),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(

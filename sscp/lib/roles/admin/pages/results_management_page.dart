@@ -535,6 +535,8 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
     final data = existing?.data() as Map<String, dynamic>?;
     final titleCtrl = TextEditingController(text: data?['title'] ?? '');
     final sessionCtrl = TextEditingController(text: data?['examSession'] ?? '');
+    final feeCtrl = TextEditingController(
+        text: data?['fee'] != null ? data!['fee'].toString() : '');
     DateTime? startDate = (data?['startDate'] as Timestamp?)?.toDate();
     DateTime? endDate = (data?['endDate'] as Timestamp?)?.toDate();
     bool isActive = data?['isActive'] ?? false;
@@ -548,6 +550,7 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
           scrollable: true,
           content: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
                 controller: titleCtrl,
@@ -562,6 +565,16 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
                 decoration: const InputDecoration(
                     labelText: 'Exam Session (e.g., NOV-2025-SUPPLY)',
                     border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: feeCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Fee Amount (₹)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.currency_rupee, size: 16),
+                ),
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
@@ -602,6 +615,7 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
                 onChanged: (v) => setS(() => isActive = v),
                 activeThumbColor: Colors.green,
                 dense: true,
+                contentPadding: EdgeInsets.zero,
               ),
             ],
           ),
@@ -612,9 +626,11 @@ class _SupplyWindowsTabState extends State<_SupplyWindowsTab> {
             ElevatedButton(
               onPressed: () async {
                 Navigator.pop(ctx);
+                final fee = double.tryParse(feeCtrl.text.trim());
                 final winData = {
                   'title': titleCtrl.text.trim(),
                   'examSession': sessionCtrl.text.trim().toUpperCase(),
+                  if (fee != null) 'fee': fee,
                   'startDate':
                       startDate != null ? Timestamp.fromDate(startDate!) : null,
                   'endDate':

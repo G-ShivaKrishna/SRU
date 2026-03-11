@@ -40,23 +40,40 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
     super.dispose();
   }
 
-  String _resolveFacultyId() {
-    final user = _auth.currentUser;
-    if (user == null) return '';
-    final email = user.email ?? '';
-    return email.split('@')[0].toUpperCase();
-  }
-
   Future<void> _load() async {
     try {
-      _facultyId = _resolveFacultyId();
-      if (_facultyId.isEmpty) {
+      // Get actual facultyId by querying faculty collection with email
+      final user = _auth.currentUser;
+      if (user == null) {
+        setState(() {
+          _error = 'Not logged in. Please log in again.';
+          _loading = false;
+        });
+        return;
+      }
+      final userEmail = user.email;
+      if (userEmail == null) {
         setState(() {
           _error = 'Could not determine faculty identity. Please log in again.';
           _loading = false;
         });
         return;
       }
+
+      // Query faculty collection by email to get actual facultyId (doc ID)
+      final facultyDocs = await _fs
+          .collection('faculty')
+          .where('email', isEqualTo: userEmail)
+          .limit(1)
+          .get();
+      if (facultyDocs.docs.isEmpty) {
+        setState(() {
+          _error = 'Faculty profile not found. Please contact administrator.';
+          _loading = false;
+        });
+        return;
+      }
+      _facultyId = facultyDocs.docs.first.id;
 
       // 1. Fetch all active assignments for this faculty
       final assignSnap = await _fs
@@ -322,13 +339,6 @@ class _SubjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Collect all component keys across all student rows
-    final compKeys = <String>{};
-    for (final m in subject.marks) {
-      compKeys.addAll(m.componentMarks.keys);
-    }
-    final components = compKeys.toList()..sort();
-
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 3,
@@ -379,29 +389,57 @@ class _SubjectCard extends StatelessWidget {
                   style: TextStyle(color: Colors.black45, fontSize: 13)),
             )
           else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.all(8),
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(
-                    const Color(0xFF1e3a5f).withOpacity(0.07)),
-                headingTextStyle: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: Color(0xFF1e3a5f)),
-                dataTextStyle:
-                    const TextStyle(fontSize: 12, color: Colors.black87),
-                columnSpacing: 20,
-                columns: [
-                  const DataColumn(label: Text('#')),
-                  const DataColumn(label: Text('Roll No.')),
-                  const DataColumn(label: Text('Name')),
-                  ...components.map((c) => DataColumn(label: Text(c))),
-                  const DataColumn(label: Text('Total')),
-                  const DataColumn(label: Text('Max')),
-                  const DataColumn(label: Text('%')),
-                ],
-                rows: subject.marks.asMap().entries.map((e) {
+            Column(
+              children: [
+                // Table header
+                Container(
+                  color: const Color(0xFF1e3a5f).withOpacity(0.07),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: const [
+                      SizedBox(
+                          width: 28,
+                          child: Text('#',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Color(0xFF1e3a5f)))),
+                      SizedBox(
+                          width: 108,
+                          child: Text('Roll No.',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Color(0xFF1e3a5f)))),
+                      Expanded(
+                          child: Text('Name',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Color(0xFF1e3a5f)))),
+                      SizedBox(
+                          width: 46,
+                          child: Text('Total',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Color(0xFF1e3a5f)))),
+                      SizedBox(
+                          width: 44,
+                          child: Text('%',
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: Color(0xFF1e3a5f)))),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                // Student rows
+                ...subject.marks.asMap().entries.map((e) {
                   final idx = e.key;
                   final m = e.value;
                   final total = m.totalMarks ??
@@ -410,53 +448,102 @@ class _SubjectCard extends StatelessWidget {
                   final pct =
                       m.maxMarks > 0 ? (total / m.maxMarks * 100) : null;
                   final passed = pct != null && pct >= 40;
-                  return DataRow(
-                    color: WidgetStateProperty.resolveWith((states) =>
-                        idx % 2 == 0 ? Colors.white : Colors.grey.shade50),
-                    cells: [
-                      DataCell(Text('${idx + 1}',
-                          style: const TextStyle(color: Colors.black45))),
-                      DataCell(Text(m.studentId)),
-                      DataCell(SizedBox(
-                          width: 130,
-                          child: Text(
-                              m.studentName.isNotEmpty ? m.studentName : '–',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis))),
-                      ...components.map((c) {
-                        final v = m.componentMarks[c];
-                        return DataCell(Text(v?.toString() ?? '–'));
-                      }),
-                      DataCell(Text(
-                        '$total',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      )),
-                      DataCell(Text('${m.maxMarks > 0 ? m.maxMarks : '–'}')),
-                      DataCell(pct != null
-                          ? Text(
-                              '${pct.toStringAsFixed(1)}%',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: passed
-                                    ? Colors.green.shade700
-                                    : Colors.red.shade700,
-                              ),
-                            )
-                          : const Text('–')),
-                    ],
+                  return Container(
+                    color: idx % 2 == 0 ? Colors.white : Colors.grey.shade50,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                  width: 28,
+                                  child: Text('${idx + 1}',
+                                      style: const TextStyle(
+                                          color: Colors.black45,
+                                          fontSize: 12))),
+                              SizedBox(
+                                  width: 108,
+                                  child: Text(m.studentId,
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.black87))),
+                              Expanded(
+                                  child: Text(
+                                      m.studentName.isNotEmpty
+                                          ? m.studentName
+                                          : '–',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.black87))),
+                              SizedBox(
+                                  width: 46,
+                                  child: Text(
+                                    '$total${m.maxMarks > 0 ? '/${m.maxMarks}' : ''}',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: passed
+                                          ? Colors.green.shade700
+                                          : Colors.red.shade700,
+                                    ),
+                                  )),
+                              SizedBox(
+                                  width: 44,
+                                  child: Text(
+                                    pct != null
+                                        ? '${pct.toStringAsFixed(0)}%'
+                                        : '–',
+                                    textAlign: TextAlign.right,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: passed
+                                          ? Colors.green.shade700
+                                          : Colors.red.shade700,
+                                    ),
+                                  )),
+                            ],
+                          ),
+                        ),
+                        // Component marks shown below student row
+                        if (m.componentMarks.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                                left: 28, right: 12, bottom: 8),
+                            child: Wrap(
+                              spacing: 12,
+                              runSpacing: 2,
+                              children: m.componentMarks.entries
+                                  .map((ce) => Text(
+                                        '${ce.key}: ${ce.value}',
+                                        style: const TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.black54),
+                                      ))
+                                  .toList(),
+                            ),
+                          ),
+                        const Divider(height: 1),
+                      ],
+                    ),
                   );
-                }).toList(),
-              ),
+                }),
+              ],
             ),
 
           // Summary footer
-          if (subject.marks.isNotEmpty) _buildSummary(subject, components),
+          if (subject.marks.isNotEmpty) _buildSummary(subject),
         ],
       ),
     );
   }
 
-  Widget _buildSummary(_Subject subject, List<String> components) {
+  Widget _buildSummary(_Subject subject) {
     final count = subject.marks.length;
     final passed = subject.marks.where((m) {
       final total = m.totalMarks ??

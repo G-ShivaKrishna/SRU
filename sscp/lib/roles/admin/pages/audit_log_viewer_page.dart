@@ -38,7 +38,7 @@ class _AuditLogViewerPageState extends State<AuditLogViewerPage> {
       ),
       body: Column(
         children: [
-          const AppHeader(),
+          const AppHeader(showBack: false),
           _buildStatistics(),
           Expanded(child: _buildLogList()),
         ],

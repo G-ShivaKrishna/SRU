@@ -17,6 +17,7 @@ class _StudentAdmissionEditPageState extends State<StudentAdmissionEditPage> {
       TextEditingController();
   final TextEditingController _dateOfAdmissionController =
       TextEditingController();
+  DateTime? _selectedDateOfAdmission;
 
   List<Map<String, dynamic>> _searchResults = [];
   Map<String, dynamic>? _selectedStudent;
@@ -360,10 +361,16 @@ class _StudentAdmissionEditPageState extends State<StudentAdmissionEditPage> {
                           isMobile,
                         ),
                         const SizedBox(height: 12),
-                        _buildFormField(
+                        _buildDatePickerField(
                           'Date of Admission',
-                          'e.g., 2022-08-15',
-                          _dateOfAdmissionController,
+                          _selectedDateOfAdmission,
+                          (selectedDate) {
+                            setState(() {
+                              _selectedDateOfAdmission = selectedDate;
+                              _dateOfAdmissionController.text =
+                                  '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}';
+                            });
+                          },
                           isMobile,
                         ),
                         const SizedBox(height: 12),
@@ -445,6 +452,54 @@ class _StudentAdmissionEditPageState extends State<StudentAdmissionEditPage> {
           vertical: isMobile ? 10 : 12,
         ),
         prefixIcon: Icon(_getIconForField(label)),
+      ),
+    );
+  }
+
+  Widget _buildDatePickerField(
+    String label,
+    DateTime? initialDate,
+    Function(DateTime) onDateSelected,
+    bool isMobile,
+  ) {
+    return GestureDetector(
+      onTap: () async {
+        final pickedDate = await showDatePicker(
+          context: context,
+          initialDate: initialDate ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+        );
+        if (pickedDate != null) {
+          onDateSelected(pickedDate);
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: isMobile ? 10 : 12,
+        ),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                initialDate != null
+                    ? '${initialDate.year}-${initialDate.month.toString().padLeft(2, '0')}-${initialDate.day.toString().padLeft(2, '0')}'
+                    : 'Select Date (YYYY-MM-DD)',
+                style: TextStyle(
+                  color: initialDate != null ? Colors.black : Colors.grey,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const Icon(Icons.calendar_today, color: Colors.blue),
+          ],
+        ),
       ),
     );
   }

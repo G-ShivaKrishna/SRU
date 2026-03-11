@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'pages/mentor_assignment_page.dart';
 import '../../screens/role_selection_screen.dart';
-import 'pages/view_only_page.dart';
+import '../../services/user_service.dart';
+import '../../services/session_service.dart';
 import 'pages/unified_permissions_page.dart';
 import 'pages/account_creation_page.dart';
 import 'pages/student_name_edit_page.dart';
@@ -42,18 +45,108 @@ class _AdminHomeState extends State<AdminHome> {
   }
 
   Future<void> _loadAdminData() async {
-    // Load admin data - for now using demo data
-    setState(() {
-      _adminData = {
-        'name': 'Admin User',
-        'adminId': 'ADM001',
-        'department': 'Administration',
-        'email': 'admin@sru.edu.in',
-        'phone': '9876543210',
-        'designation': 'System Administrator',
+    setState(() => _isLoading = true);
+
+    try {
+      final authUser = FirebaseAuth.instance.currentUser;
+      final userEmail = authUser?.email?.trim() ?? '';
+      String? adminId = UserService.getCurrentUserId();
+
+      if (adminId == null || adminId.isEmpty) {
+        adminId = await UserService.fetchAndCacheUserId();
+      }
+
+      Map<String, dynamic>? backendData;
+      String resolvedAdminId = (adminId ?? '').trim().toUpperCase();
+
+      // Preferred lookup: document ID based on adminId.
+      if (resolvedAdminId.isNotEmpty) {
+        final byIdDoc = await FirebaseFirestore.instance
+            .collection('admin')
+            .doc(resolvedAdminId)
+            .get();
+        if (byIdDoc.exists) {
+          backendData = byIdDoc.data();
+          resolvedAdminId = byIdDoc.id;
+        }
+      }
+
+      // Fallback lookup: email.
+      if (backendData == null && userEmail.isNotEmpty) {
+        final byEmail = await FirebaseFirestore.instance
+            .collection('admin')
+            .where('email', isEqualTo: userEmail.toLowerCase())
+            .limit(1)
+            .get();
+
+        if (byEmail.docs.isNotEmpty) {
+          final doc = byEmail.docs.first;
+          backendData = doc.data();
+          resolvedAdminId = doc.id;
+        }
+
+        // Additional fallback for case-mismatched stored emails.
+        if (backendData == null) {
+          final allAdmins =
+              await FirebaseFirestore.instance.collection('admin').get();
+          for (final doc in allAdmins.docs) {
+            final storedEmail =
+                (doc.data()['email'] ?? '').toString().toLowerCase().trim();
+            if (storedEmail == userEmail.toLowerCase()) {
+              backendData = doc.data();
+              resolvedAdminId = doc.id;
+              break;
+            }
+          }
+        }
+      }
+
+      final roleValue =
+          _readString(backendData, ['role', 'designation']).isNotEmpty
+              ? _readString(backendData, ['role', 'designation'])
+              : 'admin';
+
+      final mappedData = <String, dynamic>{
+        'name': _readString(backendData, ['name', 'adminName']).isNotEmpty
+            ? _readString(backendData, ['name', 'adminName'])
+            : 'Admin User',
+        'adminId': _readString(backendData, ['adminId']).isNotEmpty
+            ? _readString(backendData, ['adminId'])
+            : (resolvedAdminId.isNotEmpty ? resolvedAdminId : 'ADM001'),
+        'email': _readString(backendData, ['email']).isNotEmpty
+            ? _readString(backendData, ['email'])
+            : userEmail,
+        // As requested, designation is treated as backend role.
+        'designation': roleValue,
       };
-      _isLoading = false;
-    });
+
+      if (!mounted) return;
+      setState(() {
+        _adminData = mappedData;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _adminData = {
+          'name': 'Admin User',
+          'adminId': 'ADM001',
+          'email':
+              FirebaseAuth.instance.currentUser?.email ?? 'admin@sru.edu.in',
+          'designation': 'admin',
+        };
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _readString(Map<String, dynamic>? data, List<String> keys) {
+    if (data == null) return '';
+    for (final key in keys) {
+      final value = data[key]?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    return '';
   }
 
   void _navigateToPage(BuildContext context, String pageName) {
@@ -73,12 +166,13 @@ class _AdminHomeState extends State<AdminHome> {
         pageName == 'Student Promotion') {
       page = const StudentPromotionPage();
     } else if (pageName == 'View Only') {
-      page = const ViewOnlyPage();
+      page = const AdminLookupScreen();
     } else if (pageName == 'Academic Calendar') {
       page = const AcademicCalendarManagementPage();
     } else if (pageName == 'Course Management') {
       page = const AdminCourseManagementScreen();
-    } else if (pageName == 'CIE Memo Release') {
+    } else if (pageName == 'Sem Memo Release' ||
+        pageName == 'CIE Memo Release') {
       page = const AdminCieMemoReleaseScreen();
     } else if (pageName == 'Subject Management') {
       page = const SubjectManagementPage();
@@ -116,9 +210,13 @@ class _AdminHomeState extends State<AdminHome> {
   }
 
   Future<void> _logout() async {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
-    );
+    await FirebaseAuth.instance.signOut();
+    await SessionService.clearRole();
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+      );
+    }
   }
 
   @override
@@ -213,34 +311,47 @@ class _AdminHomeState extends State<AdminHome> {
       'Accounts',
       'Manage Access',
       'Edit Names',
-      'Edit Admission',
-      'Year Management',
-      'Academic Calendar',
-      'Subject Management',
-      'Faculty Assignment',
-      'Mentor Assignment',
-      'Course Management',
-      'CIE Memo Release',
-      'Feedback Management',
-      'Regulations',
-      'Syllabus',
+      'Management',
+      'Academic',
+      'Assignments',
       'Grievances',
+      'Lookup',
+    ];
+
+    const managementSubItems = [
+      'Year Management',
+      'Sem Memo Release',
+      'Subject Management',
+      'Course Management',
+      'Feedback Management',
       'Attendance Management',
       'Supply Exam',
       'Makeup Mid',
-      'Audit Trail',
-      'View Only',
-      'Lookup',
     ];
+
+    const academicSubItems = [
+      'Academic Calendar',
+      'Regulations',
+      'Syllabus',
+    ];
+
+    const assignmentsSubItems = [
+      'Faculty Assignment',
+      'Mentor Assignment',
+    ];
+
+    const allSubMenus = <String, List<String>>{
+      'Management': managementSubItems,
+      'Academic': academicSubItems,
+      'Assignments': assignmentsSubItems,
+    };
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final available = constraints.maxWidth;
         const moreButtonWidth = 90.0;
-        // Safety margin to absorb font/DPI rendering differences
         final budget = available - 8;
 
-        // Check if everything fits without a "More" button
         final totalWidth =
             menuItems.fold(0.0, (s, item) => s + _itemWidth(item));
 
@@ -256,7 +367,6 @@ class _AdminHomeState extends State<AdminHome> {
           double used = 0;
           for (final item in menuItems) {
             final w = _itemWidth(item);
-            // Reserve moreButtonWidth for the "More" button
             if (used + w + moreButtonWidth <= budget) {
               visible.add(item);
               used += w;
@@ -271,53 +381,73 @@ class _AdminHomeState extends State<AdminHome> {
           child: Container(
             color: const Color(0xFF1e3a5f),
             height: 42,
-            // Clip so that any remaining sub-pixel rounding never causes a stripe
             child: ClipRect(
               child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   ...visible.map((item) {
                     final isHome = item == 'Home';
+                    final subItems = allSubMenus[item];
                     final showChevron =
                         item != visible.last || overflow.isNotEmpty;
+                    final labelWidget = Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 10),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isHome)
+                            const Icon(Icons.home,
+                                color: Colors.white70, size: 14),
+                          if (isHome) const SizedBox(width: 4),
+                          Text(
+                            item,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          if (showChevron)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 6),
+                              child: Icon(Icons.chevron_right,
+                                  color: Colors.white38, size: 14),
+                            ),
+                        ],
+                      ),
+                    );
+                    if (subItems != null) {
+                      return PopupMenuButton<String>(
+                        offset: const Offset(0, 42),
+                        color: const Color(0xFF1e3a5f),
+                        onSelected: (value) => _navigateToPage(context, value),
+                        itemBuilder: (_) => subItems
+                            .map((s) => PopupMenuItem<String>(
+                                  value: s,
+                                  height: 40,
+                                  child: Text(s,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500)),
+                                ))
+                            .toList(),
+                        child: labelWidget,
+                      );
+                    }
                     return InkWell(
                       onTap: () => _navigateToPage(context, item),
                       hoverColor: Colors.white.withOpacity(0.12),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (isHome)
-                              const Icon(Icons.home,
-                                  color: Colors.white70, size: 14),
-                            if (isHome) const SizedBox(width: 4),
-                            Text(
-                              item,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            if (showChevron)
-                              const Padding(
-                                padding: EdgeInsets.only(left: 6),
-                                child: Icon(Icons.chevron_right,
-                                    color: Colors.white38, size: 14),
-                              ),
-                          ],
-                        ),
-                      ),
+                      child: labelWidget,
                     );
                   }),
                   if (overflow.isNotEmpty)
                     _OverflowNavButton(
                       items: overflow,
+                      subMenus: allSubMenus,
                       onSelected: (item) => _navigateToPage(context, item),
                     ),
-                  // Spacer absorbs any leftover space (keeps Row from "min" overflow)
                   const Spacer(),
                 ],
               ),
@@ -332,6 +462,7 @@ class _AdminHomeState extends State<AdminHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
+      width: double.infinity,
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.symmetric(
         horizontal: isMobile ? 12 : 16,
@@ -355,6 +486,7 @@ class _AdminHomeState extends State<AdminHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
+      width: double.infinity,
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       child: Text(
@@ -364,7 +496,7 @@ class _AdminHomeState extends State<AdminHome> {
           fontSize: isMobile ? 12 : 14,
           fontWeight: FontWeight.bold,
         ),
-        textAlign: TextAlign.center,
+        textAlign: TextAlign.right,
       ),
     );
   }
@@ -694,7 +826,7 @@ class _AdminHomeState extends State<AdminHome> {
           Icons.assignment_turned_in,
           Colors.indigo,
           context,
-          () => _navigateToPage(context, 'CIE Memo Release'),
+          () => _navigateToPage(context, 'Sem Memo Release'),
         ),
         _buildActionCard(
           'Lookup',
@@ -903,9 +1035,7 @@ class _AdminHomeState extends State<AdminHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return GestureDetector(
-      onTap: () {
-        // Navigate to system overview or external resource
-      },
+      onTap: () => _navigateToPage(context, 'Audit Trail'),
       child: Container(
         color: Colors.blue,
         padding: EdgeInsets.all(isMobile ? 10 : 12),
@@ -925,33 +1055,98 @@ class _AdminHomeState extends State<AdminHome> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Overflow "More ▼" nav button — shows remaining items as a dropdown
+// Overflow "More ▼" nav button — opens a bottom sheet with expandable groups
 // ─────────────────────────────────────────────────────────────────────────────
 class _OverflowNavButton extends StatelessWidget {
   final List<String> items;
+  final Map<String, List<String>> subMenus;
   final void Function(String) onSelected;
 
-  const _OverflowNavButton({required this.items, required this.onSelected});
+  const _OverflowNavButton({
+    required this.items,
+    required this.subMenus,
+    required this.onSelected,
+  });
+
+  void _openSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1e3a5f),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+      ),
+      builder: (_) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          children: items.map((item) {
+            final subs = subMenus[item];
+            if (subs != null) {
+              // Expandable parent — sub-items shown only when tapped
+              return Theme(
+                data: ThemeData(
+                  dividerColor: Colors.transparent,
+                  colorScheme: const ColorScheme.dark(),
+                ),
+                child: ExpansionTile(
+                  tilePadding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                  iconColor: Colors.white70,
+                  collapsedIconColor: Colors.white54,
+                  title: Text(
+                    item,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  children: subs
+                      .map((sub) => ListTile(
+                            contentPadding:
+                                const EdgeInsets.only(left: 40, right: 20),
+                            title: Text(
+                              sub,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              onSelected(sub);
+                            },
+                          ))
+                      .toList(),
+                ),
+              );
+            }
+            // Regular item
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+              title: Text(
+                item,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                onSelected(item);
+              },
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      offset: const Offset(0, 42),
-      color: const Color(0xFF1e3a5f),
-      onSelected: onSelected,
-      itemBuilder: (_) => items
-          .map((item) => PopupMenuItem<String>(
-                value: item,
-                height: 40,
-                child: Text(
-                  item,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500),
-                ),
-              ))
-          .toList(),
+    return GestureDetector(
+      onTap: () => _openSheet(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: const Row(

@@ -126,7 +126,18 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
-      final facultyId = user.email!.split('@')[0].toUpperCase();
+      final userEmail = user.email!;
+
+      // Query faculty collection by email to get actual facultyId (doc ID)
+      final facultyDocs = await _firestore
+          .collection('faculty')
+          .where('email', isEqualTo: userEmail)
+          .limit(1)
+          .get();
+      if (facultyDocs.docs.isEmpty) {
+        throw Exception('Faculty profile not found');
+      }
+      final facultyId = facultyDocs.docs.first.id;
 
       final snap = await _firestore
           .collection('facultyAssignments')
@@ -271,16 +282,18 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     try {
       final user = _auth.currentUser!;
       final facultyId = user.email!.split('@')[0].toUpperCase();
-      
+
       // Validate that assignment is still active before submitting attendance
       final assignDoc = await _firestore
           .collection('facultyAssignments')
           .doc(assignment.docId)
           .get();
-      if (!assignDoc.exists || (assignDoc.data()?['isActive'] ?? true) != true) {
-        throw Exception('This course is no longer active. Students may have been promoted. Please refresh the page.');
+      if (!assignDoc.exists ||
+          (assignDoc.data()?['isActive'] ?? true) != true) {
+        throw Exception(
+            'This course is no longer active. Students may have been promoted. Please refresh the page.');
       }
-      
+
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
       final batches = _selectedBatch != null
           ? [_selectedBatch!]
@@ -384,6 +397,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 900),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
@@ -398,81 +412,78 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           // Class & Course + Batch
           LayoutBuilder(builder: (ctx, cst) {
             final wide = cst.maxWidth > 580;
-            final courseField = Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Class & Course',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<_Assignment>(
-                    initialValue: _selectedAssignment,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                    items: _assignments
-                        .map((a) => DropdownMenuItem(
-                              value: a,
-                              child: Text(a.displayLabel,
-                                  overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setState(() {
-                      _selectedAssignment = v;
-                      _selectedBatch = null;
-                    }),
+            final courseWidget = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Class & Course',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<_Assignment>(
+                  initialValue: _selectedAssignment,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
-                ],
-              ),
+                  items: _assignments
+                      .map((a) => DropdownMenuItem(
+                            value: a,
+                            child: Text(a.displayLabel,
+                                overflow: TextOverflow.ellipsis),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() {
+                    _selectedAssignment = v;
+                    _selectedBatch = null;
+                  }),
+                ),
+              ],
             );
-            final batchField = Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Batch (for Electives)',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedBatch,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                          value: null, child: Text('All Batches')),
-                      ...batches.map(
-                          (b) => DropdownMenuItem(value: b, child: Text(b))),
-                    ],
-                    onChanged: batches.isEmpty
-                        ? null
-                        : (v) => setState(() => _selectedBatch = v),
+            final batchWidget = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Batch (for Electives)',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedBatch,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
-                  const SizedBox(height: 4),
-                  const Text('(Batch 1 or 2.. Selection only for Labs)',
-                      style: TextStyle(color: Colors.red, fontSize: 11)),
-                  const Text('(Select E1 or E2... for Subject Batches)',
-                      style: TextStyle(color: Color(0xFF1565C0), fontSize: 11)),
-                ],
-              ),
+                  items: [
+                    const DropdownMenuItem(
+                        value: null, child: Text('All Batches')),
+                    ...batches
+                        .map((b) => DropdownMenuItem(value: b, child: Text(b))),
+                  ],
+                  onChanged: batches.isEmpty
+                      ? null
+                      : (v) => setState(() => _selectedBatch = v),
+                ),
+                const SizedBox(height: 4),
+                const Text('(Batch 1 or 2.. Selection only for Labs)',
+                    style: TextStyle(color: Colors.red, fontSize: 11)),
+                const Text('(Select E1 or E2... for Subject Batches)',
+                    style: TextStyle(color: Color(0xFF1565C0), fontSize: 11)),
+              ],
             );
             return wide
                 ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    courseField,
+                    Expanded(child: courseWidget),
                     const SizedBox(width: 24),
-                    batchField
+                    Expanded(child: batchWidget),
                   ])
                 : Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                        courseField,
+                        courseWidget,
                         const SizedBox(height: 16),
-                        batchField
+                        batchWidget,
                       ]);
           }),
           const SizedBox(height: 20),

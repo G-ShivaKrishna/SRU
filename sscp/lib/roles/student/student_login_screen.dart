@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 import 'student_home.dart';
+import '../../../services/user_service.dart';
+import '../../../services/session_service.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
+import '../../../widgets/forgot_password_dialog.dart';
+import '../../../widgets/reset_link_helper.dart';
 
 class StudentLoginScreen extends StatefulWidget {
   const StudentLoginScreen({super.key});
@@ -88,17 +93,39 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
       return;
     }
 
-    // Authenticate using Firebase Auth
+    // Authenticate using Firebase Auth with custom email from Firestore
     setState(() => _isLoading = true);
 
     try {
-      // Use lowercase for Firebase Auth email
-      final email = '${rollNumber.toLowerCase()}@sru.edu.in';
+      // First, fetch student data to get custom email from Firestore
+      final studentDoc = await FirebaseFirestore.instance
+          .collection('students')
+          .doc(rollNumber.toUpperCase())
+          .get();
+
+      if (!studentDoc.exists) {
+        setState(() => _isLoading = false);
+        _showError('Student record not found');
+        return;
+      }
+
+      // Use the firebase email stored in Firestore for authentication
+      final customEmail =
+          (studentDoc['firebaseEmail'] ?? studentDoc['email'] ?? '') as String;
+      if (customEmail.isEmpty) {
+        setState(() => _isLoading = false);
+        _showError('Email not configured for this student');
+        return;
+      }
 
       await _auth.signInWithEmailAndPassword(
-        email: email,
+        email: customEmail,
         password: password,
       );
+
+      // Fetch and cache user ID from Firestore
+      await UserService.fetchAndCacheUserId();
+      await SessionService.saveRole('student');
 
       if (mounted) {
         Navigator.of(context).pushReplacement(
@@ -111,10 +138,17 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
 
       if (e.code == 'user-not-found') {
         _showError('Student account not found. Contact admin.');
-      } else if (e.code == 'wrong-password') {
-        _showError('Incorrect password');
+      } else if (e.code == 'wrong-password' ||
+          e.code == 'invalid-credential' ||
+          e.code == 'invalid-login-credentials' ||
+          e.code == 'INVALID_LOGIN_CREDENTIALS') {
+        _showErrorDialog('Incorrect Password',
+            'The password you entered is incorrect. Would you like to reset your password?');
       } else if (e.code == 'invalid-email') {
         _showError('Invalid roll number format');
+      } else if (e.code == 'network-request-failed') {
+        _showError(
+            'Network error. Please check your internet connection and try again.');
       } else {
         _showError('Login failed: ${e.message}');
       }
@@ -135,144 +169,285 @@ class _StudentLoginScreenState extends State<StudentLoginScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Student Login'),
-        backgroundColor: Colors.blue,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                  builder: (context) => const RoleSelectionScreen()),
-            );
-          },
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Row(
           children: [
-            TextField(
-              controller: _rollNumberController,
-              enabled: !_isLoading,
-              keyboardType: TextInputType.text,
-              decoration: InputDecoration(
-                labelText: 'Roll Number',
-                hintText: 'e.g., 2203A51291',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.badge),
-              ),
-            ),
+            Icon(Icons.error_outline, color: Colors.red.shade700, size: 24),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
             const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              enabled: !_isLoading,
-              obscureText: _obscurePassword,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                prefixIcon: const Icon(Icons.lock),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword
-                      ? Icons.visibility_off
-                      : Icons.visibility),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFFEAF0F6),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFF9EB0C7)),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: const Row(
                 children: [
-                  const Text('Enter Captcha:'),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _captchaText,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      IconButton(
-                        onPressed: _isLoading ? null : _refreshCaptcha,
-                        icon: const Icon(Icons.refresh),
-                      ),
-                    ],
+                  Icon(
+                    Icons.info_outline,
+                    color: Color(0xFF1e3a5f),
+                    size: 20,
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _captchaController,
-                    enabled: !_isLoading,
-                    decoration: InputDecoration(
-                      hintText: 'Enter captcha text',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Use the "Forgot Password?" link below to reset your password securely via email.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF1e3a5f),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleLogin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade500,
-                  disabledBackgroundColor: Colors.grey[400],
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text(
-                        'Login',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600),
-                      ),
-              ),
-            ),
           ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1e3a5f),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Student Login'),
+        backgroundColor: const Color(0xFF1e3a5f),
+        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const RoleSelectionScreen(),
+              ),
+            );
+          },
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40),
+              Icon(
+                Icons.school,
+                size: isMobile ? 60 : 80,
+                color: const Color(0xFF1e3a5f),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Student Login',
+                style: TextStyle(
+                  fontSize: isMobile ? 20 : 28,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1e3a5f),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Enter your credentials',
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 48),
+              TextField(
+                controller: _rollNumberController,
+                enabled: !_isLoading,
+                keyboardType: TextInputType.text,
+                decoration: InputDecoration(
+                  labelText: 'Roll Number',
+                  hintText: 'e.g., 2203A51291',
+                  prefixIcon: const Icon(Icons.badge),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                enabled: !_isLoading,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Enter your password',
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(
+                        () => _obscurePassword = !_obscurePassword,
+                      );
+                    },
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const ResetLinkHelper(),
+                            );
+                          },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1e3a5f),
+                    ),
+                    icon: const Icon(Icons.link, size: 16),
+                    label: const Text('Have a reset link?'),
+                  ),
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => const ForgotPasswordDialog(
+                                role: 'student',
+                              ),
+                            );
+                          },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1e3a5f),
+                    ),
+                    child: const Text('Forgot Password?'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF0F6),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF1e3a5f)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Enter CAPTCHA: $_captchaText',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                        color: Color(0xFF1e3a5f),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _captchaController,
+                            enabled: !_isLoading,
+                            decoration: InputDecoration(
+                              hintText: 'Enter captcha text',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: _isLoading ? null : _refreshCaptcha,
+                          icon: const Icon(Icons.refresh),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1e3a5f),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Text(
+                          'LOGIN',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

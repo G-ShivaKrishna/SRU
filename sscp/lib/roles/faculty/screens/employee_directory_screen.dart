@@ -95,7 +95,7 @@ class _EmployeeDirectoryScreenState extends State<EmployeeDirectoryScreen> {
       ),
       body: Column(
         children: [
-          const AppHeader(),
+          const AppHeader(showBack: false),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
