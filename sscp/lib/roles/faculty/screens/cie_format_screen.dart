@@ -80,6 +80,7 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
 
   bool _isLoading = true;
   String? _loadError;
+  String _facultyId = '';
 
   List<_Assignment> _assignments = [];
   // assignmentId → definition (if saved)
@@ -103,18 +104,20 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
-      final userEmail = user.email!;
+      final userEmail = user.email?.toLowerCase().trim() ?? '';
 
-      // Query faculty collection by email to get actual facultyId (doc ID)
+      // Query faculty collection by firebaseEmail (lowercase normalized version)
+      // firebaseEmail matches Firebase Auth email and avoids case-sensitive mismatches.
       final facultyDocs = await _fs
           .collection('faculty')
-          .where('email', isEqualTo: userEmail)
+          .where('firebaseEmail', isEqualTo: userEmail)
           .limit(1)
           .get();
       if (facultyDocs.docs.isEmpty) {
         throw Exception('Faculty profile not found');
       }
       final facultyId = facultyDocs.docs.first.id;
+      _facultyId = facultyId;
 
       // Load assignments
       final snap = await _fs
@@ -556,8 +559,10 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
 
   Future<void> _saveDefinition(_Assignment a, _Definition def) async {
     try {
-      final user = _auth.currentUser!;
-      final facultyId = user.email!.split('@')[0].toUpperCase();
+      final facultyId = _facultyId;
+      if (facultyId.isEmpty) {
+        throw Exception('Faculty profile not found');
+      }
       final now = Timestamp.now();
 
       // ── Check if components changed vs existing definition ──────────────
@@ -800,6 +805,7 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
   @override
   Widget build(BuildContext context) {
     final a = widget.assignment;
+    final isCompact = MediaQuery.of(context).size.width < 560;
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Container(
@@ -843,51 +849,102 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Total marks
-                    Row(
-                      children: [
-                        const Text('Total Marks',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14)),
-                        const SizedBox(width: 16),
-                        SizedBox(
-                          width: 120,
-                          child: TextField(
-                            controller: _totalCtrl,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
-                            ],
-                            decoration: const InputDecoration(
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              isDense: true,
+                    if (isCompact)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Total Marks',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 14)),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: TextField(
+                              controller: _totalCtrl,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                isDense: true,
+                              ),
+                              onChanged: (_) => setState(() {
+                                _error = null;
+                              }),
                             ),
-                            onChanged: (_) => setState(() {
-                              _error = null;
-                            }),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      )
+                    else
+                      Row(
+                        children: [
+                          const Text('Total Marks',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 14)),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: 120,
+                            child: TextField(
+                              controller: _totalCtrl,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                isDense: true,
+                              ),
+                              onChanged: (_) => setState(() {
+                                _error = null;
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
                     const SizedBox(height: 20),
                     // Components header
-                    Row(
-                      children: [
-                        const Expanded(
-                            child: Text('Mark Components',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14))),
-                        TextButton.icon(
-                          onPressed: _addComponent,
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Add Component'),
-                          style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFF1e3a5f)),
-                        ),
-                      ],
-                    ),
+                    if (isCompact)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Mark Components',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 14)),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: _addComponent,
+                              icon: const Icon(Icons.add, size: 16),
+                              label: const Text('Add Component'),
+                              style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFF1e3a5f)),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Row(
+                        children: [
+                          const Expanded(
+                              child: Text('Mark Components',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14))),
+                          TextButton.icon(
+                            onPressed: _addComponent,
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Add Component'),
+                            style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF1e3a5f)),
+                          ),
+                        ],
+                      ),
                     const SizedBox(height: 8),
                     // Components table header
                     Container(
@@ -903,22 +960,20 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                         children: [
                           Expanded(
                               flex: 3,
-                              child: Text('Name',
+                              child: Text('Component Name',
                                   style: TextStyle(
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 12),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1)),
-                          SizedBox(width: 8),
+                                      fontSize: 12))),
+                          SizedBox(width: 12),
                           SizedBox(
-                              width: 70,
+                              width: 90,
                               child: Text('Marks',
                                   style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 12))),
-                          SizedBox(width: 8),
+                          SizedBox(width: 12),
                           SizedBox(
-                              width: 105,
+                              width: 110,
                               child: Text('Type',
                                   style: TextStyle(
                                       fontWeight: FontWeight.w600,
@@ -934,8 +989,10 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                           right: BorderSide(color: Colors.grey[300]!),
                           bottom: BorderSide(color: Colors.grey[300]!),
                         ),
-                        borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(6)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(isCompact ? 6 : 0),
+                          bottom: const Radius.circular(6),
+                        ),
                       ),
                       child: Column(
                         children: _components.asMap().entries.map((entry) {
@@ -944,6 +1001,7 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                           return _ComponentRow(
                             component: c,
                             isLast: i == _components.length - 1,
+                            isCompact: isCompact,
                             onDelete: () => _removeComponent(i),
                             onChange: () => setState(() {
                               _error = null;
@@ -1082,12 +1140,14 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
 class _ComponentRow extends StatefulWidget {
   final _MarksComponent component;
   final bool isLast;
+  final bool isCompact;
   final VoidCallback onDelete;
   final VoidCallback onChange;
 
   const _ComponentRow({
     required this.component,
     required this.isLast,
+    required this.isCompact,
     required this.onDelete,
     required this.onChange,
   });
@@ -1119,6 +1179,127 @@ class _ComponentRowState extends State<_ComponentRow> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isCompact) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          border: widget.isLast
+              ? null
+              : Border(bottom: BorderSide(color: Colors.grey[200]!)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Component Name',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                hintText: 'e.g., Mid Sem 1',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                isDense: true,
+              ),
+              style: const TextStyle(fontSize: 13),
+              onChanged: (v) {
+                widget.component.name = v;
+                widget.onChange();
+              },
+            ),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Marks',
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _marksCtrl,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        decoration: const InputDecoration(
+                          hintText: '0',
+                          border: OutlineInputBorder(),
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          isDense: true,
+                        ),
+                        style: const TextStyle(fontSize: 13),
+                        onChanged: (v) {
+                          widget.component.marks = int.tryParse(v) ?? 0;
+                          widget.onChange();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Type',
+                          style: TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        initialValue: widget.component.type,
+                        isDense: true,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'internal',
+                              child: Text('Internal',
+                                  style: TextStyle(fontSize: 12))),
+                          DropdownMenuItem(
+                              value: 'external',
+                              child: Text('External',
+                                  style: TextStyle(fontSize: 12))),
+                        ],
+                        onChanged: (v) {
+                          setState(
+                              () => widget.component.type = v ?? 'internal');
+                          widget.onChange();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(top: 24),
+                  child: SizedBox(
+                    width: 32,
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          size: 18, color: Colors.red),
+                      onPressed: widget.onDelete,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(

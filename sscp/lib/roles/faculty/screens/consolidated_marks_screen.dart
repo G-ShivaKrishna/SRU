@@ -60,10 +60,13 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
         return;
       }
 
-      // Query faculty collection by email to get actual facultyId (doc ID)
+      final normalizedEmail = userEmail.toLowerCase().trim();
+
+      // Query faculty collection by firebaseEmail (lowercase normalized version)
+      // firebaseEmail matches Firebase Auth email and avoids case-sensitive mismatches.
       final facultyDocs = await _fs
           .collection('faculty')
-          .where('email', isEqualTo: userEmail)
+          .where('firebaseEmail', isEqualTo: normalizedEmail)
           .limit(1)
           .get();
       if (facultyDocs.docs.isEmpty) {
@@ -337,6 +340,14 @@ class _SubjectCard extends StatelessWidget {
   final _Subject subject;
   const _SubjectCard({required this.subject});
 
+  static bool _isExternalComponent(String name) {
+    final lower = name.toLowerCase();
+    return lower.contains('end term') ||
+        lower.contains('ete') ||
+        lower.contains('end-term') ||
+        lower.contains('external');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -516,16 +527,34 @@ class _SubjectCard extends StatelessWidget {
                             padding: const EdgeInsets.only(
                                 left: 28, right: 12, bottom: 8),
                             child: Wrap(
-                              spacing: 12,
-                              runSpacing: 2,
-                              children: m.componentMarks.entries
-                                  .map((ce) => Text(
-                                        '${ce.key}: ${ce.value}',
-                                        style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.black54),
-                                      ))
-                                  .toList(),
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: m.componentMarks.entries.map((ce) {
+                                final isExternal = _isExternalComponent(ce.key);
+                                final sectionColor = isExternal
+                                    ? Colors.orange.shade700
+                                    : Colors.green.shade700;
+                                final sectionLabel =
+                                    isExternal ? 'External' : 'Internal';
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: sectionColor.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                        color: sectionColor.withOpacity(0.25)),
+                                  ),
+                                  child: Text(
+                                    '$sectionLabel • ${ce.key}: ${ce.value}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: sectionColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
                           ),
                         const Divider(height: 1),

@@ -486,26 +486,51 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                   children: [
                     ...entry.componentMarks.entries.map((e) {
                       final isEte = _CieEntry._isEte(e.key);
+                      final sectionLabel = isEte ? 'External' : 'Internal';
+                      final sectionColor = isEte ? Colors.orange : Colors.green;
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    margin: const EdgeInsets.only(right: 8),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          isEte ? Colors.orange : Colors.green,
-                                      shape: BoxShape.circle,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        margin: const EdgeInsets.only(right: 8),
+                                        decoration: BoxDecoration(
+                                          color: sectionColor,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Text(e.key,
+                                            style:
+                                                const TextStyle(fontSize: 13)),
+                                      ),
+                                    ],
                                   ),
-                                  Expanded(
-                                    child: Text(e.key,
-                                        style: const TextStyle(fontSize: 13)),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: sectionColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      sectionLabel,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: sectionColor.shade800,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -514,12 +539,10 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
-                                color: isEte
-                                    ? Colors.orange.withOpacity(0.1)
-                                    : Colors.green.withOpacity(0.1),
+                                color: sectionColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: isEte ? Colors.orange : Colors.green,
+                                  color: sectionColor,
                                   width: 1,
                                 ),
                               ),
@@ -527,9 +550,7 @@ class _StudentCieMarksScreenState extends State<StudentCieMarksScreen> {
                                   style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: isEte
-                                          ? Colors.orange[800]
-                                          : Colors.green[800])),
+                                      color: sectionColor[800])),
                             ),
                           ],
                         ),
