@@ -661,7 +661,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
       for (int rowIndex = 1; rowIndex < sheet.rows.length; rowIndex++) {
         final row = sheet.rows[rowIndex];
-        if (row.every((cell) => ((cell?.value ?? '').toString().trim().isEmpty))) {
+        if (row
+            .every((cell) => ((cell?.value ?? '').toString().trim().isEmpty))) {
           continue;
         }
 
@@ -702,9 +703,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             continue;
           }
 
-          pendingUpdates
-              .putIfAbsent(studentRow.studentId, () => <String, String>{})
-              [component.name] = parsed.toString();
+          pendingUpdates.putIfAbsent(studentRow.studentId,
+              () => <String, String>{})[component.name] = parsed.toString();
         }
       }
 
@@ -866,9 +866,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
       if (lines.isEmpty) throw Exception('CSV file is empty');
 
-      final headers = _parseCsvLine(lines.first)
-          .map((h) => _stripBom(h).trim())
-          .toList();
+      final headers =
+          _parseCsvLine(lines.first).map((h) => _stripBom(h).trim()).toList();
       final componentColumns = _matchComponentColumns(headers);
 
       if (componentColumns.isEmpty) {
@@ -884,7 +883,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       final unknownStudentIds = <String>{};
 
       for (int rowIndex = 1; rowIndex < lines.length; rowIndex++) {
-        final values = _parseCsvLine(lines[rowIndex]).map((v) => v.trim()).toList();
+        final values =
+            _parseCsvLine(lines[rowIndex]).map((v) => v.trim()).toList();
         if (values.isEmpty) continue;
 
         final rawStudentId = values[0];
@@ -923,9 +923,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
             continue;
           }
 
-          pendingUpdates
-              .putIfAbsent(studentRow.studentId, () => <String, String>{})
-              [component.name] = parsed.toString();
+          pendingUpdates.putIfAbsent(studentRow.studentId,
+              () => <String, String>{})[component.name] = parsed.toString();
         }
       }
 
@@ -1078,7 +1077,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         buffer.writeln('- $issue');
       }
       if (issues.length > limited.length) {
-        buffer.writeln('- ...and ${issues.length - limited.length} more issue(s).');
+        buffer.writeln(
+            '- ...and ${issues.length - limited.length} more issue(s).');
       }
     }
 
@@ -1091,7 +1091,8 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       }
     }
 
-    buffer.writeln('\nExpected component columns: ${expectedComponents.join(', ')}');
+    buffer.writeln(
+        '\nExpected component columns: ${expectedComponents.join(', ')}');
     buffer.writeln(
         'Tip: Download the latest template from this screen and paste only marks values.');
 
