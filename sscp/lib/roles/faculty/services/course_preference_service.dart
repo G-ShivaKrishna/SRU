@@ -104,7 +104,8 @@ class CoursePreferenceService {
         final usersData = usersDoc.data() ?? {};
         final facultyId = (usersData['facultyId'] ?? '').toString().trim();
         if (facultyId.isNotEmpty) {
-          final facultyDoc = await _firestore.collection('faculty').doc(facultyId).get();
+          final facultyDoc =
+              await _firestore.collection('faculty').doc(facultyId).get();
           if (facultyDoc.exists) {
             final facultyData = facultyDoc.data() ?? {};
             final dept = (facultyData['department'] ?? '').toString().trim();
@@ -127,9 +128,8 @@ class CoursePreferenceService {
           .get();
       if (facultyDocs.docs.isEmpty) return null;
 
-      final dept = (facultyDocs.docs.first.data()['department'] ?? '')
-          .toString()
-          .trim();
+      final dept =
+          (facultyDocs.docs.first.data()['department'] ?? '').toString().trim();
       return dept.isNotEmpty ? dept : null;
     } catch (_) {
       return null;

@@ -197,8 +197,8 @@ class _AdminCourseManagementScreenState
                 _buildInfoRow(
                   'Enabled Branches:',
                   _selectedBranchesSafe.isEmpty
-                    ? 'All Branches'
-                    : _selectedBranchesSafe.join(', '),
+                      ? 'All Branches'
+                      : _selectedBranchesSafe.join(', '),
                 ),
                 _buildInfoRow('Start Date:',
                     _formatDate(_settings!.registrationStartDate)),
@@ -415,10 +415,13 @@ class _AdminCourseManagementScreenState
                                 availableBranches.length) {
                               _selectedBranches = <String>[];
                               if (availableBranches.isNotEmpty) {
-                                _selectedBranches = <String>[availableBranches.first];
+                                _selectedBranches = <String>[
+                                  availableBranches.first
+                                ];
                               }
                             } else {
-                              _selectedBranches = List<String>.from(availableBranches);
+                              _selectedBranches =
+                                  List<String>.from(availableBranches);
                             }
                           });
                         },
@@ -472,46 +475,44 @@ class _AdminCourseManagementScreenState
                       backgroundColor: const Color(0xFF1e3a5f),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    onPressed:
-                      (_selectedYears.isEmpty ||
-                          _selectedSemesters.isEmpty ||
-                          (!isAllBranchesMode &&
-                              selectedBranches.isEmpty))
-                            ? null
-                            : () async {
-                                try {
-                                  await _courseService.toggleRegistration(
-                                    isEnabled,
-                                    _startDate,
-                                    _endDate,
-                                    enabledYears: _selectedYears,
-                                    enabledSemesters: _selectedSemesters,
-                                    enabledBranches: selectedBranches,
-                                  );
-                                  await _loadRegistrationSettings();
-                                  if (mounted) {
-                                    final branchLabel = selectedBranches.isEmpty
-                                        ? 'All Branches'
-                                        : selectedBranches.join(', ');
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Enabled for Year(s): ${_selectedYears.join(", ")} | '
-                                          'Semester(s): ${_selectedSemesters.map((s) => "Sem $s").join(", ")} | '
-                                          'Branches: $branchLabel',
-                                        ),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error: $e')),
-                                    );
-                                  }
-                                }
-                              },
+                    onPressed: (_selectedYears.isEmpty ||
+                            _selectedSemesters.isEmpty ||
+                            (!isAllBranchesMode && selectedBranches.isEmpty))
+                        ? null
+                        : () async {
+                            try {
+                              await _courseService.toggleRegistration(
+                                isEnabled,
+                                _startDate,
+                                _endDate,
+                                enabledYears: _selectedYears,
+                                enabledSemesters: _selectedSemesters,
+                                enabledBranches: selectedBranches,
+                              );
+                              await _loadRegistrationSettings();
+                              if (mounted) {
+                                final branchLabel = selectedBranches.isEmpty
+                                    ? 'All Branches'
+                                    : selectedBranches.join(', ');
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Enabled for Year(s): ${_selectedYears.join(", ")} | '
+                                      'Semester(s): ${_selectedSemesters.map((s) => "Sem $s").join(", ")} | '
+                                      'Branches: $branchLabel',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
+                            }
+                          },
                     icon: const Icon(Icons.save, color: Colors.white),
                     label: const Text(
                       'Save Registration Scope',
@@ -750,10 +751,12 @@ class _AdminCourseManagementScreenState
                   TextButton.icon(
                     onPressed: () {
                       setState(() {
-                        if (selectedBranches.length == normalizedBranches.length) {
+                        if (selectedBranches.length ==
+                            normalizedBranches.length) {
                           selectedBranches = <String>[selectedBranch];
                         } else {
-                          selectedBranches = List<String>.from(normalizedBranches);
+                          selectedBranches =
+                              List<String>.from(normalizedBranches);
                         }
                       });
                     },
@@ -1537,7 +1540,8 @@ class _AdminCourseManagementScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildRequirementBadge('Core', requirement.coreCount, Colors.blue),
+              _buildRequirementBadge(
+                  'Core', requirement.coreCount, Colors.blue),
               _buildRequirementBadge('OE', requirement.oeCount, Colors.green),
               _buildRequirementBadge('PE', requirement.peCount, Colors.orange),
             ],

@@ -81,20 +81,18 @@ class _CoursePreferenceDetailScreenState
 
     final preSelected =
         existing != null ? existing.courses : widget.initialSelectedCourses;
-    
+
     // Create a set of currently active subject codes from Subject Management
     final activeSubjectCodes = allSubjects.map((s) => s.code).toSet();
-    
+
     // Filter previously selected courses to only include those that are still active
-    final validatedSelectedCourses = preSelected
-        .where((s) => activeSubjectCodes.contains(s.code))
-        .toList();
-    
+    final validatedSelectedCourses =
+        preSelected.where((s) => activeSubjectCodes.contains(s.code)).toList();
+
     // Check if any subjects were removed due to being inactive
-    final removedSubjects = preSelected
-        .where((s) => !activeSubjectCodes.contains(s.code))
-        .toList();
-    
+    final removedSubjects =
+        preSelected.where((s) => !activeSubjectCodes.contains(s.code)).toList();
+
     final selectedCodes = validatedSelectedCourses.map((s) => s.code).toSet();
 
     setState(() {
@@ -159,14 +157,15 @@ class _CoursePreferenceDetailScreenState
                                   decoration: BoxDecoration(
                                     color: Colors.blue.shade50,
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                        color: Colors.blue.shade200),
+                                    border:
+                                        Border.all(color: Colors.blue.shade200),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(Icons.info_outline,
-                                          size: 16, color: Colors.blue.shade700),
+                                          size: 16,
+                                          color: Colors.blue.shade700),
                                       const SizedBox(width: 8),
                                       Flexible(
                                         child: Text(
@@ -177,7 +176,8 @@ class _CoursePreferenceDetailScreenState
                                       ),
                                       const SizedBox(width: 8),
                                       IconButton(
-                                        icon: const Icon(Icons.refresh, size: 18),
+                                        icon:
+                                            const Icon(Icons.refresh, size: 18),
                                         tooltip: 'Refresh subjects',
                                         onPressed: _loadData,
                                         padding: EdgeInsets.zero,

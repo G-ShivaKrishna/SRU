@@ -153,7 +153,7 @@ class CourseRequirement {
       year: data['year'] ?? '',
       semester: data['semester']?.toString() ?? '',
       branch: data['branch'] ?? '',
-        coreCount: (data['coreCount'] is int)
+      coreCount: (data['coreCount'] is int)
           ? data['coreCount']
           : int.tryParse(data['coreCount']?.toString() ?? '') ?? 0,
       oeCount: data['oeCount'] ?? 0,
@@ -199,8 +199,7 @@ class CourseRegistrationSettings {
       enabledYears; // Years for which registration is enabled ['1', '2', '3', '4']
   final List<String>
       enabledSemesters; // Semesters for which registration is enabled ['1', '2']
-  final List<String>
-    enabledBranches; // Empty means all branches are enabled
+  final List<String> enabledBranches; // Empty means all branches are enabled
   final DateTime registrationStartDate;
   final DateTime registrationEndDate;
   final DateTime? lastModifiedBy; // Will store admin's timestamp
@@ -302,7 +301,7 @@ class CourseRegistrationSettings {
       isRegistrationEnabled: data['isRegistrationEnabled'] ?? false,
       enabledYears: years,
       enabledSemesters: semesters,
-        enabledBranches: branches,
+      enabledBranches: branches,
       registrationStartDate: data['registrationStartDate'] != null
           ? (data['registrationStartDate'] as Timestamp).toDate()
           : DateTime.now(),
@@ -340,7 +339,7 @@ class CourseRegistrationSettings {
           isRegistrationEnabled ?? this.isRegistrationEnabled,
       enabledYears: enabledYears ?? this.enabledYears,
       enabledSemesters: enabledSemesters ?? this.enabledSemesters,
-        enabledBranches: enabledBranches ?? this.enabledBranches,
+      enabledBranches: enabledBranches ?? this.enabledBranches,
       registrationStartDate:
           registrationStartDate ?? this.registrationStartDate,
       registrationEndDate: registrationEndDate ?? this.registrationEndDate,
