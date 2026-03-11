@@ -21,11 +21,38 @@ class _AdminCourseManagementScreenState
   CourseRegistrationSettings? _settings;
   bool _isLoading = true;
 
+  static const List<String> _fallbackBranches = <String>[
+    'CSE',
+    'ECE',
+    'EEE',
+    'ME',
+    'CE',
+    'IT',
+    'CSBS',
+    'AIDS',
+    'AIML',
+    'CSD',
+    'CSM',
+  ];
+
   // Local state for year selection with safe defaults
   List<String> _selectedYears = <String>['1', '2', '3', '4'];
   List<String> _selectedSemesters = <String>['1', '2'];
+  List<String>? _selectedBranches; // Empty means all branches
+  List<String>? _availableBranches;
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 30));
+
+  List<String> get _selectedBranchesSafe =>
+      List<String>.from(_selectedBranches ?? const <String>[]);
+
+  List<String> get _availableBranchesSafe {
+    final list = _availableBranches;
+    if (list == null || list.isEmpty) {
+      return List<String>.from(_fallbackBranches);
+    }
+    return List<String>.from(list);
+  }
 
   @override
   void initState() {
@@ -40,9 +67,25 @@ class _AdminCourseManagementScreenState
 
   Future<void> _loadRegistrationSettings() async {
     try {
-      final settings = await _courseService.getRegistrationSettings();
+      final results = await Future.wait<dynamic>([
+        _courseService.getRegistrationSettings(),
+        _subjectService.getDepartments(),
+      ]);
+
+      final settings = results[0] as CourseRegistrationSettings?;
+      final fetchedBranches = (results[1] as List<String>)
+          .where((b) => b.trim().isNotEmpty)
+          .map((b) => b.trim().toUpperCase())
+          .toSet();
+      final availableBranches = <String>{
+        ..._fallbackBranches,
+        ...fetchedBranches,
+      }.toList()
+        ..sort();
+
       setState(() {
         _settings = settings;
+        _availableBranches = availableBranches;
         if (settings != null) {
           _selectedYears = settings.enabledYears.isNotEmpty
               ? List<String>.from(settings.enabledYears)
@@ -50,8 +93,14 @@ class _AdminCourseManagementScreenState
           _selectedSemesters = settings.enabledSemesters.isNotEmpty
               ? List<String>.from(settings.enabledSemesters)
               : ['1', '2'];
+          _selectedBranches = List<String>.from(settings.enabledBranches)
+              .map((b) => b.trim().toUpperCase())
+              .where((b) => b.isNotEmpty)
+              .toList();
           _startDate = settings.registrationStartDate;
           _endDate = settings.registrationEndDate;
+        } else {
+          _selectedBranches = <String>[];
         }
         _isLoading = false;
       });
@@ -145,6 +194,12 @@ class _AdminCourseManagementScreenState
                         : _settings!.enabledSemesters
                             .map((s) => 'Sem $s')
                             .join(', ')),
+                _buildInfoRow(
+                  'Enabled Branches:',
+                  _selectedBranchesSafe.isEmpty
+                    ? 'All Branches'
+                    : _selectedBranchesSafe.join(', '),
+                ),
                 _buildInfoRow('Start Date:',
                     _formatDate(_settings!.registrationStartDate)),
                 _buildInfoRow(
@@ -162,6 +217,9 @@ class _AdminCourseManagementScreenState
     bool isEnabled = _settings?.isRegistrationEnabled ?? false;
     const List<String> allYears = ['1', '2', '3', '4'];
     bool allSelected = _selectedYears.length == 4;
+    final selectedBranches = _selectedBranchesSafe;
+    final availableBranches = _availableBranchesSafe;
+    final isAllBranchesMode = selectedBranches.isEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,6 +236,7 @@ class _AdminCourseManagementScreenState
                 _endDate,
                 enabledYears: _selectedYears,
                 enabledSemesters: _selectedSemesters,
+                enabledBranches: selectedBranches,
               );
               await _loadRegistrationSettings();
               if (mounted) {
@@ -318,8 +377,94 @@ class _AdminCourseManagementScreenState
                     );
                   }).toList(),
                 ),
+                const SizedBox(height: 16),
+                // ── Branch selection ───────────────────────────────────
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    'Enable for All Branches',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  subtitle: Text(isAllBranchesMode
+                      ? 'All branches can register'
+                      : 'Only selected branches can register'),
+                  value: isAllBranchesMode,
+                  onChanged: (value) {
+                    setState(() {
+                      if (value) {
+                        _selectedBranches = <String>[];
+                      } else if (availableBranches.isNotEmpty) {
+                        _selectedBranches = <String>[availableBranches.first];
+                      }
+                    });
+                  },
+                ),
+                if (!isAllBranchesMode) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Select Branches:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            if (selectedBranches.length ==
+                                availableBranches.length) {
+                              _selectedBranches = <String>[];
+                              if (availableBranches.isNotEmpty) {
+                                _selectedBranches = <String>[availableBranches.first];
+                              }
+                            } else {
+                              _selectedBranches = List<String>.from(availableBranches);
+                            }
+                          });
+                        },
+                        icon: Icon(
+                          selectedBranches.length == availableBranches.length
+                              ? Icons.deselect
+                              : Icons.select_all,
+                          size: 18,
+                        ),
+                        label: Text(
+                          selectedBranches.length == availableBranches.length
+                              ? 'Deselect All'
+                              : 'Select All',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: availableBranches.map((branch) {
+                      final isBranchEnabled = selectedBranches.contains(branch);
+                      return FilterChip(
+                        label: Text(branch),
+                        selected: isBranchEnabled,
+                        selectedColor: Colors.teal.shade100,
+                        checkmarkColor: Colors.teal.shade700,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedBranches ??= <String>[];
+                            if (selected) {
+                              if (!_selectedBranches!.contains(branch)) {
+                                _selectedBranches!.add(branch);
+                              }
+                            } else {
+                              _selectedBranches!.remove(branch);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
                 const SizedBox(height: 12),
-                // Save year & semester button
+                // Save year, semester, and branch settings
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -328,7 +473,10 @@ class _AdminCourseManagementScreenState
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     onPressed:
-                        (_selectedYears.isEmpty || _selectedSemesters.isEmpty)
+                      (_selectedYears.isEmpty ||
+                          _selectedSemesters.isEmpty ||
+                          (!isAllBranchesMode &&
+                              selectedBranches.isEmpty))
                             ? null
                             : () async {
                                 try {
@@ -338,14 +486,19 @@ class _AdminCourseManagementScreenState
                                     _endDate,
                                     enabledYears: _selectedYears,
                                     enabledSemesters: _selectedSemesters,
+                                    enabledBranches: selectedBranches,
                                   );
                                   await _loadRegistrationSettings();
                                   if (mounted) {
+                                    final branchLabel = selectedBranches.isEmpty
+                                        ? 'All Branches'
+                                        : selectedBranches.join(', ');
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
                                           'Enabled for Year(s): ${_selectedYears.join(", ")} | '
-                                          'Semester(s): ${_selectedSemesters.map((s) => "Sem $s").join(", ")}',
+                                          'Semester(s): ${_selectedSemesters.map((s) => "Sem $s").join(", ")} | '
+                                          'Branches: $branchLabel',
                                         ),
                                         backgroundColor: Colors.green,
                                       ),
@@ -361,7 +514,7 @@ class _AdminCourseManagementScreenState
                               },
                     icon: const Icon(Icons.save, color: Colors.white),
                     label: const Text(
-                      'Save Year & Semester Settings',
+                      'Save Registration Scope',
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
@@ -452,7 +605,7 @@ class _AdminCourseManagementScreenState
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     const years = ['1', '2', '3', '4'];
-    const branches = ['CSE', 'ECE', 'EEE', 'ME', 'CE'];
+    final branches = _availableBranchesSafe;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
@@ -473,7 +626,7 @@ class _AdminCourseManagementScreenState
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Subjects (Core/OE/PE) are managed in Subject Management. Here you can set how many OE and PE subjects each student must select.',
+                    'Subjects (Core/OE/PE) are managed in Subject Management. Here you can set required Core, OE, and PE counts and apply them to one, many, or all branches.',
                     style: TextStyle(color: Colors.blue.shade700),
                   ),
                 ),
@@ -513,7 +666,19 @@ class _AdminCourseManagementScreenState
       List<String> years, List<String> branches, BuildContext context) {
     String selectedYear = '1';
     String selectedSemester = '1';
-    String selectedBranch = 'CSE';
+    final normalizedBranches = branches
+        .map((b) => b.trim().toUpperCase())
+        .where((b) => b.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    String selectedBranch =
+        normalizedBranches.isNotEmpty ? normalizedBranches.first : 'CSE';
+    bool applyToAllBranches = false;
+    List<String> selectedBranches = <String>[selectedBranch];
+    bool useSameCountForAllTypes = false;
+    int sameCount = 1;
+    int coreCount = 1;
     int oeCount = 1;
     int peCount = 1;
 
@@ -547,38 +712,159 @@ class _AdminCourseManagementScreenState
             _buildDropdownField(
               'Branch',
               selectedBranch,
-              branches,
+              normalizedBranches,
               (value) {
                 setState(() {
-                  selectedBranch = value ?? 'CSE';
+                  selectedBranch = value ?? selectedBranch;
+                  if (!selectedBranches.contains(selectedBranch)) {
+                    selectedBranches = <String>[selectedBranch];
+                  }
                 });
               },
             ),
             const SizedBox(height: 16),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Apply to All Branches'),
+              subtitle: Text(applyToAllBranches
+                  ? 'Same requirement will be saved for all branches'
+                  : 'Save for selected branch(es) only'),
+              value: applyToAllBranches,
+              onChanged: (value) {
+                setState(() {
+                  applyToAllBranches = value;
+                  if (!applyToAllBranches && selectedBranches.isEmpty) {
+                    selectedBranches = <String>[selectedBranch];
+                  }
+                });
+              },
+            ),
+            if (!applyToAllBranches) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Select Branches:',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        if (selectedBranches.length == normalizedBranches.length) {
+                          selectedBranches = <String>[selectedBranch];
+                        } else {
+                          selectedBranches = List<String>.from(normalizedBranches);
+                        }
+                      });
+                    },
+                    icon: Icon(
+                      selectedBranches.length == normalizedBranches.length
+                          ? Icons.deselect
+                          : Icons.select_all,
+                      size: 18,
+                    ),
+                    label: Text(
+                      selectedBranches.length == normalizedBranches.length
+                          ? 'Deselect All'
+                          : 'Select All',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: normalizedBranches.map((branch) {
+                  final selected = selectedBranches.contains(branch);
+                  return FilterChip(
+                    label: Text(branch),
+                    selected: selected,
+                    selectedColor: Colors.teal.shade100,
+                    checkmarkColor: Colors.teal.shade700,
+                    onSelected: (value) {
+                      setState(() {
+                        if (value) {
+                          if (!selectedBranches.contains(branch)) {
+                            selectedBranches.add(branch);
+                          }
+                        } else {
+                          selectedBranches.remove(branch);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+            ],
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Use Same Count For Core/OE/PE'),
+              subtitle: Text(useSameCountForAllTypes
+                  ? 'One value will be applied to all three'
+                  : 'Set each count independently'),
+              value: useSameCountForAllTypes,
+              onChanged: (value) {
+                setState(() {
+                  useSameCountForAllTypes = value;
+                  if (useSameCountForAllTypes) {
+                    coreCount = sameCount;
+                    oeCount = sameCount;
+                    peCount = sameCount;
+                  }
+                });
+              },
+            ),
             Text(
               'Number of Subjects Student Must Select:',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: 12),
-            _buildCounterField(
-              'Open Electives (OE)',
-              oeCount,
-              (value) {
-                setState(() {
-                  oeCount = value;
-                });
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildCounterField(
-              'Programme Electives (PE)',
-              peCount,
-              (value) {
-                setState(() {
-                  peCount = value;
-                });
-              },
-            ),
+            if (useSameCountForAllTypes)
+              _buildCounterField(
+                'Common Count (Core/OE/PE)',
+                sameCount,
+                (value) {
+                  setState(() {
+                    sameCount = value;
+                    coreCount = value;
+                    oeCount = value;
+                    peCount = value;
+                  });
+                },
+              )
+            else ...[
+              _buildCounterField(
+                'Core Subjects',
+                coreCount,
+                (value) {
+                  setState(() {
+                    coreCount = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildCounterField(
+                'Open Electives (OE)',
+                oeCount,
+                (value) {
+                  setState(() {
+                    oeCount = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildCounterField(
+                'Programme Electives (PE)',
+                peCount,
+                (value) {
+                  setState(() {
+                    peCount = value;
+                  });
+                },
+              ),
+            ],
             const SizedBox(height: 16),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -590,25 +876,36 @@ class _AdminCourseManagementScreenState
               ),
               onPressed: () async {
                 try {
-                  final requirement = CourseRequirement(
-                    id: '',
-                    year: selectedYear,
-                    semester: selectedSemester,
-                    branch: selectedBranch,
-                    oeCount: oeCount,
-                    peCount: peCount,
-                    seCount: 0, // Not used anymore
-                    createdAt: DateTime.now(),
-                    updatedAt: DateTime.now(),
-                  );
+                  final targetBranches = applyToAllBranches
+                      ? normalizedBranches
+                      : selectedBranches;
 
-                  await _courseService.addCourseRequirement(requirement);
+                  if (targetBranches.isEmpty) {
+                    throw Exception('Please select at least one branch');
+                  }
+
+                  await Future.wait(targetBranches.map((branch) {
+                    final requirement = CourseRequirement(
+                      id: '',
+                      year: selectedYear,
+                      semester: selectedSemester,
+                      branch: branch,
+                      coreCount: coreCount,
+                      oeCount: oeCount,
+                      peCount: peCount,
+                      seCount: 0, // Not used in subject registration flow
+                      createdAt: DateTime.now(),
+                      updatedAt: DateTime.now(),
+                    );
+                    return _courseService.addCourseRequirement(requirement);
+                  }));
                   setState(() {});
 
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Requirements saved successfully'),
+                      SnackBar(
+                        content: Text(
+                            'Requirements saved for ${targetBranches.length} branch(es)'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -625,7 +922,7 @@ class _AdminCourseManagementScreenState
                 }
               },
               child: const Text(
-                'Save Requirements',
+                'Save Requirements Scope',
                 style: TextStyle(color: Colors.white),
               ),
             ),
@@ -1240,6 +1537,7 @@ class _AdminCourseManagementScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
+              _buildRequirementBadge('Core', requirement.coreCount, Colors.blue),
               _buildRequirementBadge('OE', requirement.oeCount, Colors.green),
               _buildRequirementBadge('PE', requirement.peCount, Colors.orange),
             ],

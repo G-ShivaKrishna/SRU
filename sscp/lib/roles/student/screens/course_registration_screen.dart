@@ -169,7 +169,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
   bool _isRegistrationOpen() {
     if (_settings == null) return false;
     final now = DateTime.now();
-    return _settings!.isRegistrationEnabled &&
+    return _settings!.isEnabledForYearAndBranch(studentYear, studentBranch) &&
         now.isAfter(_settings!.registrationStartDate) &&
         now.isBefore(_settings!.registrationEndDate);
   }

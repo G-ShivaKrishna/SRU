@@ -151,8 +151,11 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       );
 
       // Check if registration is open for this student's year
+      final semesterNumber = _studentSemester == 'I' ? '1' : '2';
       _isRegistrationOpen = await _courseService.isRegistrationOpen(
         year: _studentYear.toString(),
+        semester: semesterNumber,
+        branch: _studentDepartment,
       );
 
       setState(() {

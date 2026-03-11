@@ -20,6 +20,7 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
 
   List<CoursePreferenceRound> _rounds = [];
   bool _isLoading = true;
+  String? _facultyDept;
 
   @override
   void initState() {
@@ -30,11 +31,25 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
   Future<void> _loadRounds() async {
     setState(() => _isLoading = true);
     final rounds = await _service.getRounds();
+    String? facultyDept;
+    try {
+      facultyDept = await _service.getCurrentFacultyDepartment();
+    } catch (_) {
+      facultyDept = null;
+    }
+
     if (!mounted) return;
     setState(() {
       _rounds = rounds;
+      _facultyDept = facultyDept;
       _isLoading = false;
     });
+  }
+
+  String _effectiveDeptForRound(CoursePreferenceRound round) {
+    final facultyDept = _facultyDept?.trim() ?? '';
+    if (facultyDept.isNotEmpty) return facultyDept;
+    return round.dept;
   }
 
   @override
@@ -110,6 +125,18 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
                                 ],
                               ),
                             ),
+                            if ((_facultyDept ?? '').trim().isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: Text(
+                                  'Your branch: ${_facultyDept!.trim()} (you will see branch-specific subjects and All Branches subjects)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue.shade700,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -207,12 +234,13 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
           rows: _pagedItems.asMap().entries.map((entry) {
             final idx = entry.key;
             final round = entry.value;
+            final effectiveDept = _effectiveDeptForRound(round);
             final globalIdx = (_currentPage - 1) * _entriesPerPage + idx + 1;
             return DataRow(cells: [
               DataCell(Text('$globalIdx')),
               DataCell(Text(round.acYear)),
               DataCell(Text(round.className)),
-              DataCell(Text(round.dept)),
+              DataCell(Text(effectiveDept)),
               DataCell(Text(round.fromDate)),
               DataCell(Text(round.toDate)),
               DataCell(
@@ -223,7 +251,7 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
                         roundId: round.id,
                         title:
                             '${round.className} Select Course Preference Order (${round.acYear})',
-                        dept: round.dept,
+                        dept: effectiveDept,
                         acYear: round.acYear,
                       ),
                     ));

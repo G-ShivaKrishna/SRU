@@ -33,18 +33,21 @@ class AdminCourseService {
   /// Enable or disable course registration
   /// enabledYears: List of years for which registration is enabled (e.g., ['1', '2', '3', '4'])
   /// enabledSemesters: List of semesters for which registration is enabled (e.g., ['1', '2'])
+  /// enabledBranches: Empty means all branches enabled; otherwise only selected branches
   Future<void> toggleRegistration(
     bool enable,
     DateTime startDate,
     DateTime endDate, {
     List<String> enabledYears = const ['1', '2', '3', '4'],
     List<String> enabledSemesters = const ['1', '2'],
+    List<String> enabledBranches = const [],
   }) async {
     try {
       await _registrationSettingsDoc.set({
         'isRegistrationEnabled': enable,
         'enabledYears': enabledYears,
         'enabledSemesters': enabledSemesters,
+        'enabledBranches': enabledBranches,
         'registrationStartDate': startDate,
         'registrationEndDate': endDate,
         'lastModifiedBy': DateTime.now(),

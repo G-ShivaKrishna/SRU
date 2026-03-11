@@ -27,6 +27,11 @@ class _CoursePreferenceDetailScreenState
     extends State<CoursePreferenceDetailScreen> {
   final _service = CoursePreferenceService();
 
+  String get _effectiveDeptLabel {
+    final dept = widget.dept.trim();
+    return dept.isNotEmpty ? dept : 'Your Branch';
+  }
+
   bool _isLoading = true;
   String? _loadError;
 
@@ -163,10 +168,10 @@ class _CoursePreferenceDetailScreenState
                                       Icon(Icons.info_outline,
                                           size: 16, color: Colors.blue.shade700),
                                       const SizedBox(width: 8),
-                                      const Flexible(
+                                      Flexible(
                                         child: Text(
-                                          'Subjects are managed by admin in Subject Management. Only active subjects are shown.',
-                                          style: TextStyle(fontSize: 12),
+                                          'Subjects are managed by admin in Subject Management. Showing $_effectiveDeptLabel and All Branches subjects only.',
+                                          style: const TextStyle(fontSize: 12),
                                           textAlign: TextAlign.center,
                                         ),
                                       ),
@@ -342,7 +347,7 @@ class _CoursePreferenceDetailScreenState
                             horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFF1976D2).withOpacity(0.1)
+                              ? const Color(0xFF1976D2).withValues(alpha: 0.1)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(4),
                         ),

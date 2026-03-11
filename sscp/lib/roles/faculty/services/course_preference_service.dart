@@ -20,6 +20,15 @@ class CoursePreferenceService {
   CollectionReference get _subjectsCollection =>
       _firestore.collection('subjects');
 
+  String _normalizeDepartmentToken(String value) {
+    return value.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+  }
+
+  bool _isAllBranchesDepartment(String value) {
+    final normalized = _normalizeDepartmentToken(value);
+    return normalized == 'ALLBRANCHES' || normalized == 'ALLBRANCH';
+  }
+
   // ─── Rounds (admin-created) ───────────────────────────────────────────────
 
   /// Fetch active course preference rounds from Firestore.
@@ -72,15 +81,59 @@ class CoursePreferenceService {
         await _subjectsCollection.where('isActive', isEqualTo: true).get();
     final all = snap.docs.map((d) => SubjectItem.fromFirestore(d)).toList();
     if (dept != null && dept.isNotEmpty) {
-      // Keep department-specific subjects and global OE subjects.
+      final normalizedDept = _normalizeDepartmentToken(dept);
+      // Keep department-specific subjects and global (all-branches) subjects.
       return all.where((s) {
-        final matchesDept = s.dept.toLowerCase() == dept.toLowerCase();
-        final isGlobalOe = s.subjectType.toUpperCase() == 'OE' &&
-            s.dept.toUpperCase() == 'ALL_BRANCHES';
-        return matchesDept || isGlobalOe;
+        final matchesDept = _normalizeDepartmentToken(s.dept) == normalizedDept;
+        final isGlobal = _isAllBranchesDepartment(s.dept);
+        return matchesDept || isGlobal;
       }).toList();
     }
     return all;
+  }
+
+  /// Resolve current faculty department from users/faculty records.
+  /// Returns null if not found, allowing callers to fall back safely.
+  Future<String?> getCurrentFacultyDepartment() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    try {
+      final usersDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (usersDoc.exists) {
+        final usersData = usersDoc.data() ?? {};
+        final facultyId = (usersData['facultyId'] ?? '').toString().trim();
+        if (facultyId.isNotEmpty) {
+          final facultyDoc = await _firestore.collection('faculty').doc(facultyId).get();
+          if (facultyDoc.exists) {
+            final facultyData = facultyDoc.data() ?? {};
+            final dept = (facultyData['department'] ?? '').toString().trim();
+            if (dept.isNotEmpty) return dept;
+          }
+        }
+      }
+    } catch (_) {
+      // Fall through to email-based lookup.
+    }
+
+    final email = (user.email ?? '').toLowerCase().trim();
+    if (email.isEmpty) return null;
+
+    try {
+      final facultyDocs = await _firestore
+          .collection('faculty')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      if (facultyDocs.docs.isEmpty) return null;
+
+      final dept = (facultyDocs.docs.first.data()['department'] ?? '')
+          .toString()
+          .trim();
+      return dept.isNotEmpty ? dept : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   // ─── Preferences (faculty submissions) ───────────────────────────────────

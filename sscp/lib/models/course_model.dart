@@ -110,6 +110,7 @@ class CourseRequirement {
   final String year; // '1', '2', '3', '4'
   final String semester; // '1' or '2'
   final String branch; // 'CSE', 'ECE', etc.
+  final int coreCount; // How many Core subjects expected (for admin planning)
   final int oeCount; // How many Open Electives required
   final int peCount; // How many Program Electives required
   final int seCount; // How many Subject Electives required
@@ -121,6 +122,7 @@ class CourseRequirement {
     required this.year,
     this.semester = '',
     required this.branch,
+    this.coreCount = 0,
     required this.oeCount,
     required this.peCount,
     required this.seCount,
@@ -134,6 +136,7 @@ class CourseRequirement {
       'year': year,
       'semester': semester,
       'branch': branch,
+      'coreCount': coreCount,
       'oeCount': oeCount,
       'peCount': peCount,
       'seCount': seCount,
@@ -150,6 +153,9 @@ class CourseRequirement {
       year: data['year'] ?? '',
       semester: data['semester']?.toString() ?? '',
       branch: data['branch'] ?? '',
+        coreCount: (data['coreCount'] is int)
+          ? data['coreCount']
+          : int.tryParse(data['coreCount']?.toString() ?? '') ?? 0,
       oeCount: data['oeCount'] ?? 0,
       peCount: data['peCount'] ?? 0,
       seCount: data['seCount'] ?? 0,
@@ -164,6 +170,7 @@ class CourseRequirement {
     String? year,
     String? semester,
     String? branch,
+    int? coreCount,
     int? oeCount,
     int? peCount,
     int? seCount,
@@ -175,6 +182,7 @@ class CourseRequirement {
       year: year ?? this.year,
       semester: semester ?? this.semester,
       branch: branch ?? this.branch,
+      coreCount: coreCount ?? this.coreCount,
       oeCount: oeCount ?? this.oeCount,
       peCount: peCount ?? this.peCount,
       seCount: seCount ?? this.seCount,
@@ -191,6 +199,8 @@ class CourseRegistrationSettings {
       enabledYears; // Years for which registration is enabled ['1', '2', '3', '4']
   final List<String>
       enabledSemesters; // Semesters for which registration is enabled ['1', '2']
+  final List<String>
+    enabledBranches; // Empty means all branches are enabled
   final DateTime registrationStartDate;
   final DateTime registrationEndDate;
   final DateTime? lastModifiedBy; // Will store admin's timestamp
@@ -202,12 +212,36 @@ class CourseRegistrationSettings {
     required this.isRegistrationEnabled,
     this.enabledYears = const ['1', '2', '3', '4'], // Default to all years
     this.enabledSemesters = const ['1', '2'], // Default to all semesters
+    this.enabledBranches = const [], // Empty = all branches
     required this.registrationStartDate,
     required this.registrationEndDate,
     this.lastModifiedBy,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  String _normalizeBranchToken(String value) {
+    return value.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+  }
+
+  bool isEnabledForBranch(String branch) {
+    if (!isRegistrationEnabled) return false;
+    if (enabledBranches.isEmpty) return true;
+
+    final normalizedBranch = _normalizeBranchToken(branch);
+    if (normalizedBranch.isEmpty) return false;
+
+    for (final enabledBranch in enabledBranches) {
+      final normalizedEnabled = _normalizeBranchToken(enabledBranch);
+      if (normalizedEnabled == 'ALL' || normalizedEnabled == 'ALLBRANCHES') {
+        return true;
+      }
+      if (normalizedEnabled == normalizedBranch) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   // Check if registration is enabled for a specific year
   bool isEnabledForYear(String year) {
@@ -221,12 +255,18 @@ class CourseRegistrationSettings {
         enabledSemesters.contains(semester);
   }
 
+  // Check if registration is enabled for a specific year and branch
+  bool isEnabledForYearAndBranch(String year, String branch) {
+    return isEnabledForYear(year) && isEnabledForBranch(branch);
+  }
+
   // Convert to Firestore document
   Map<String, dynamic> toFirestore() {
     return {
       'isRegistrationEnabled': isRegistrationEnabled,
       'enabledYears': enabledYears,
       'enabledSemesters': enabledSemesters,
+      'enabledBranches': enabledBranches,
       'registrationStartDate': registrationStartDate,
       'registrationEndDate': registrationEndDate,
       'lastModifiedBy': lastModifiedBy,
@@ -251,11 +291,18 @@ class CourseRegistrationSettings {
       semesters = List<String>.from(data['enabledSemesters']);
     }
 
+    // Safely parse enabledBranches
+    List<String> branches = [];
+    if (data['enabledBranches'] != null && data['enabledBranches'] is List) {
+      branches = List<String>.from(data['enabledBranches']);
+    }
+
     return CourseRegistrationSettings(
       id: doc.id,
       isRegistrationEnabled: data['isRegistrationEnabled'] ?? false,
       enabledYears: years,
       enabledSemesters: semesters,
+        enabledBranches: branches,
       registrationStartDate: data['registrationStartDate'] != null
           ? (data['registrationStartDate'] as Timestamp).toDate()
           : DateTime.now(),
@@ -280,6 +327,7 @@ class CourseRegistrationSettings {
     bool? isRegistrationEnabled,
     List<String>? enabledYears,
     List<String>? enabledSemesters,
+    List<String>? enabledBranches,
     DateTime? registrationStartDate,
     DateTime? registrationEndDate,
     DateTime? lastModifiedBy,
@@ -292,6 +340,7 @@ class CourseRegistrationSettings {
           isRegistrationEnabled ?? this.isRegistrationEnabled,
       enabledYears: enabledYears ?? this.enabledYears,
       enabledSemesters: enabledSemesters ?? this.enabledSemesters,
+        enabledBranches: enabledBranches ?? this.enabledBranches,
       registrationStartDate:
           registrationStartDate ?? this.registrationStartDate,
       registrationEndDate: registrationEndDate ?? this.registrationEndDate,
