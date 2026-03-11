@@ -328,7 +328,7 @@ class _UpdateBasicDataScreenState extends State<UpdateBasicDataScreen> {
           .set(data, SetOptions(merge: true));
 
       // Log audit trail
-        final facultyId = _facultyDocId.isNotEmpty
+      final facultyId = _facultyDocId.isNotEmpty
           ? _facultyDocId
           : await _scopeService.resolveCurrentFacultyId();
       AuditLogService().logFacultyProfileUpdate(

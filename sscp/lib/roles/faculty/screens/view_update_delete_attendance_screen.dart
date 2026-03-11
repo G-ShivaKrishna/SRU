@@ -868,13 +868,13 @@ class _ViewUpdateDeleteAttendanceScreenState
           .where('subjectCode', isEqualTo: subjectCode)
           .limit(1)
           .get();
-      
+
       // Filter by isActive to ensure only currently active courses
       final activeDocs = assignSnap.docs.where((doc) {
         final d = doc.data();
         return (d['isActive'] ?? true) == true;
       }).toList();
-      
+
       final subjectName = activeDocs.isNotEmpty
           ? (activeDocs.first.data()['subjectName'] as String? ?? '')
           : '';

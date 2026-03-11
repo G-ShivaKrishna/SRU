@@ -177,11 +177,11 @@ class _FacultyHomeState extends State<FacultyHome> {
 
     final isMobile = MediaQuery.of(context).size.width < 600;
     final name = _facultyData?['name'] ?? 'Faculty';
-  final facultyId = _facultyId.isNotEmpty
-    ? _facultyId
-    : ((UserService.getCurrentUserId() ?? '').trim().toUpperCase().isEmpty
-      ? 'N/A'
-      : (UserService.getCurrentUserId() ?? '').trim().toUpperCase());
+    final facultyId = _facultyId.isNotEmpty
+        ? _facultyId
+        : ((UserService.getCurrentUserId() ?? '').trim().toUpperCase().isEmpty
+            ? 'N/A'
+            : (UserService.getCurrentUserId() ?? '').trim().toUpperCase());
     final department = _facultyData?['department'] ?? 'Department';
     final designation = _facultyData?['designation'] ?? 'Faculty';
     final email = _facultyData?['email'] ?? _currentUser?.email ?? 'N/A';

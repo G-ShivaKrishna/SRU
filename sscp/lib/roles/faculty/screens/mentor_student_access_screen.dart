@@ -115,7 +115,8 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
 
       // Faculty may have multiple assignments (different years), take first one
       final assignmentData = assignSnap.docs.first.data();
-      final batchNumber = (assignmentData['batchNumber'] ?? '').toString().trim();
+      final batchNumber =
+          (assignmentData['batchNumber'] ?? '').toString().trim();
       final year = assignmentData['year'];
       final yearInt = year is int ? year : int.tryParse(year.toString());
 
@@ -123,12 +124,12 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
       Query<Map<String, dynamic>> studentsQuery = _firestore
           .collection('students')
           .where('batchNumber', isEqualTo: batchNumber);
-      
+
       // Add year filter if available
       if (yearInt != null) {
         studentsQuery = studentsQuery.where('year', isEqualTo: yearInt);
       }
-      
+
       final studentsSnap = await studentsQuery.get();
 
       final studentsList = studentsSnap.docs.map((doc) {
@@ -143,7 +144,8 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
 
       setState(() {
         _facultyName = facultyName;
-        _assignedBatch = yearInt != null ? 'Year $yearInt - $batchNumber' : batchNumber;
+        _assignedBatch =
+            yearInt != null ? 'Year $yearInt - $batchNumber' : batchNumber;
         _students = studentsList;
         _filteredStudents = List.from(studentsList);
         _isLoading = false;
@@ -538,7 +540,7 @@ class _StudentCardState extends State<_StudentCard> {
       final Map<String, Map<String, dynamic>> subjectMap = {};
       for (final doc in snap.docs) {
         final data = doc.data();
-        
+
         // Filter by promotion date if available
         if (sinceDate != null) {
           final dateStr = data['dateStr'] as String? ?? '';
@@ -550,7 +552,7 @@ class _StudentCardState extends State<_StudentCard> {
                 final month = int.parse(p[1]);
                 final year = int.parse(p[2]);
                 final recDate = DateTime(year, month, day);
-                
+
                 // Skip records before promotion date
                 if (recDate.isBefore(sinceDate)) {
                   continue;

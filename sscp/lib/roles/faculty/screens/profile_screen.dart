@@ -187,11 +187,11 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                       style: const TextStyle(
                                           color: Colors.white60, fontSize: 13)),
                                   const SizedBox(height: 4),
-                                    Text(
+                                  Text(
                                       'Faculty ID: ${_facultyId.isEmpty ? '-' : _facultyId}',
                                       style: const TextStyle(
-                                        color: Colors.white54, fontSize: 12)),
-                                    Text('Employee ID: ${_v('employeeId')}',
+                                          color: Colors.white54, fontSize: 12)),
+                                  Text('Employee ID: ${_v('employeeId')}',
                                       style: const TextStyle(
                                           color: Colors.white54, fontSize: 12)),
                                 ],
@@ -205,15 +205,16 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                       _card('Employee Basic Information',
                           const Color(0xFF2EAD4B), [
                         _row2(
-                          'Faculty ID',
-                          _facultyId.isEmpty ? '-' : _facultyId,
-                          'Employee ID',
-                          _v('employeeId')),
+                            'Faculty ID',
+                            _facultyId.isEmpty ? '-' : _facultyId,
+                            'Employee ID',
+                            _v('employeeId')),
                         _row2('Appointment Type', _v('appointmentType'),
-                          'Date of Joining', _v('dateOfJoining')),
+                            'Date of Joining', _v('dateOfJoining')),
                         _row2('Cabin Number', _v('cabinNumber'), 'Intercom',
                             _v('intercom')),
-                        _row2('Favourite Courses', _v('favoriteCourses'), '', ''),
+                        _row2(
+                            'Favourite Courses', _v('favoriteCourses'), '', ''),
                       ]),
                       const SizedBox(height: 12),
 

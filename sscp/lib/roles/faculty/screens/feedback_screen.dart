@@ -39,7 +39,7 @@ class _FacultyFeedbackScreenState extends State<FacultyFeedbackScreen> {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
 
-        final docId = await _scopeService.resolveCurrentFacultyId();
+      final docId = await _scopeService.resolveCurrentFacultyId();
 
       // Get faculty document to find facultyId
       final facultyDoc =
