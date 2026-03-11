@@ -37,6 +37,12 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   List<Subject> _oeSubjects = [];
   List<Subject> _peSubjects = [];
 
+  // Lightweight caches to avoid repeated list scans during rebuilds
+  Map<String, int> _oeCreditsById = {};
+  Map<String, int> _peCreditsById = {};
+  int _coreCredits = 0;
+  int _totalCredits = 0;
+
   // Selection state
   Set<String> _selectedOEIds = {};
   Set<String> _selectedPEIds = {};
@@ -80,26 +86,24 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
         throw Exception('No user logged in');
       }
 
-      // Extract hall ticket number from Firebase email
       final email = user.email ?? '';
       var hallTicketNumber = UserService.getCurrentUserId();
-
-      // Fallback to email extraction if UserService hasn't cached yet
       if (hallTicketNumber == null || hallTicketNumber.isEmpty) {
         hallTicketNumber = email.split('@')[0].toUpperCase();
       }
 
       if (hallTicketNumber.isEmpty) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('User information not found'),
             backgroundColor: Colors.red,
           ),
         );
+        setState(() => _isLoading = false);
         return;
       }
 
-      // Fetch student data
       final studentDoc = await FirebaseFirestore.instance
           .collection('students')
           .doc(hallTicketNumber)
@@ -116,52 +120,49 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       _studentYear = int.tryParse(studentData['year']?.toString() ?? '1') ?? 1;
       _studentDepartment = studentData['department']?.toString() ?? 'CSE';
 
-      // Construct batch identifier (e.g., 'CSE-A') from department and batchNumber/section
       final batchNumber = studentData['batchNumber']?.toString() ?? '';
       final section = studentData['section']?.toString() ?? batchNumber;
       _studentBatch = section.isNotEmpty
           ? '$_studentDepartment-$section'
           : _studentDepartment;
 
-      // Read semester from student data (1 or 2), convert to Roman numeral for display
       final semesterInt =
           int.tryParse(studentData['semester']?.toString() ?? '1') ?? 1;
       _studentSemester = semesterInt == 1 ? 'I' : 'II';
 
-      // Load subjects
       await _loadSubjects();
 
-      // Load requirements from database
-      await _loadRequirements();
+      final semesterNumber = _studentSemester == 'I' ? '1' : '2';
 
-      // Load faculty assignments for all subjects
-      await _loadFacultyAssignments();
-
-      // Load existing selections
-      await _loadExistingSelections();
-
-      // Auto-register Core subjects
-      await _autoRegisterCoreSubjects();
-
-      // Check if submitted
-      _isSubmitted = await _courseService.isRegistrationSubmitted(
+      final loadRequirementsFuture = _loadRequirements();
+      final loadFacultyAssignmentsFuture = _loadFacultyAssignments();
+      final loadExistingSelectionsFuture = _loadExistingSelections();
+      final autoRegisterCoreFuture = _autoRegisterCoreSubjects();
+      final submittedFuture = _courseService.isRegistrationSubmitted(
         studentId: _studentId,
         year: _studentYear,
         semester: _studentSemester,
       );
-
-      // Check if registration is open for this student's year
-      final semesterNumber = _studentSemester == 'I' ? '1' : '2';
-      _isRegistrationOpen = await _courseService.isRegistrationOpen(
+      final registrationOpenFuture = _courseService.isRegistrationOpen(
         year: _studentYear.toString(),
         semester: semesterNumber,
         branch: _studentDepartment,
       );
 
-      setState(() {
-        _isLoading = false;
-      });
+      await Future.wait([
+        loadRequirementsFuture,
+        loadFacultyAssignmentsFuture,
+        loadExistingSelectionsFuture,
+        autoRegisterCoreFuture,
+      ]);
+
+      _isSubmitted = await submittedFuture;
+      _isRegistrationOpen = await registrationOpenFuture;
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Error: $e';
         _isLoading = false;
@@ -176,17 +177,18 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       department: _studentDepartment,
     );
 
-    setState(() {
-      _coreSubjects = allSubjects[SubjectType.core] ?? [];
-      _oeSubjects = allSubjects[SubjectType.oe] ?? [];
-      _peSubjects = allSubjects[SubjectType.pe] ?? [];
-    });
+    _coreSubjects = allSubjects[SubjectType.core] ?? [];
+    _oeSubjects = allSubjects[SubjectType.oe] ?? [];
+    _peSubjects = allSubjects[SubjectType.pe] ?? [];
+
+    _oeCreditsById = {for (final s in _oeSubjects) s.id: s.credits};
+    _peCreditsById = {for (final s in _peSubjects) s.id: s.credits};
+    _coreCredits = _coreSubjects.fold(0, (sum, s) => sum + s.credits);
+    _recomputeTotalCredits();
   }
 
   Future<void> _loadRequirements() async {
-    // Convert semester from Roman numeral to number for query
     final semesterNum = _studentSemester == 'I' ? '1' : '2';
-
     final requirement = await _courseService.getCourseRequirement(
       _studentYear.toString(),
       _studentDepartment,
@@ -194,19 +196,13 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
     );
 
     if (requirement != null) {
-      setState(() {
-        _requiredOECount = requirement.oeCount;
-        _requiredPECount = requirement.peCount;
-      });
-      print(
-          'DEBUG: Loaded requirements - OE: $_requiredOECount, PE: $_requiredPECount');
-    } else {
-      print('DEBUG: No requirements found, using defaults (0)');
-      setState(() {
-        _requiredOECount = 0;
-        _requiredPECount = 0;
-      });
+      _requiredOECount = requirement.oeCount;
+      _requiredPECount = requirement.peCount;
+      return;
     }
+
+    _requiredOECount = 0;
+    _requiredPECount = 0;
   }
 
   Future<void> _loadExistingSelections() async {
@@ -216,14 +212,12 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       semester: _studentSemester,
     );
 
-    setState(() {
-      _selectedOEIds = Set<String>.from(selections['OE'] ?? []);
-      _selectedPEIds = Set<String>.from(selections['PE'] ?? []);
-    });
+    _selectedOEIds = Set<String>.from(selections['OE'] ?? []);
+    _selectedPEIds = Set<String>.from(selections['PE'] ?? []);
+    _recomputeTotalCredits();
   }
 
   Future<void> _loadFacultyAssignments() async {
-    // Collect all subject codes
     final allSubjectCodes = <String>[];
     for (final subject in _coreSubjects) {
       allSubjectCodes.add(subject.code);
@@ -235,23 +229,29 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       allSubjectCodes.add(subject.code);
     }
 
-    if (allSubjectCodes.isEmpty) return;
+    if (allSubjectCodes.isEmpty) {
+      _facultyMap = {};
+      return;
+    }
 
-    final facultyMap = await _courseService.getFacultyMapForSubjects(
+    _facultyMap = await _courseService.getFacultyMapForSubjects(
       subjectCodes: allSubjectCodes,
       year: _studentYear,
       studentBatch: _studentBatch,
     );
+  }
 
-    setState(() {
-      _facultyMap = facultyMap;
-    });
+  void _recomputeTotalCredits() {
+    final oeCredits =
+        _selectedOEIds.fold(0, (sum, id) => sum + (_oeCreditsById[id] ?? 0));
+    final peCredits =
+        _selectedPEIds.fold(0, (sum, id) => sum + (_peCreditsById[id] ?? 0));
+    _totalCredits = _coreCredits + oeCredits + peCredits;
   }
 
   Future<void> _autoRegisterCoreSubjects() async {
     if (_coreSubjects.isEmpty) return;
 
-    // Auto-register core subjects for this student
     await _courseService.autoRegisterCoreSubjects(
       studentId: _studentId,
       studentName: _studentName,
@@ -579,7 +579,6 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
               ],
             ),
           ),
-          // Total credits display
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -600,48 +599,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   }
 
   int _calculateTotalCredits() {
-    int total = 0;
-
-    // Core credits
-    for (final subject in _coreSubjects) {
-      total += subject.credits;
-    }
-
-    // Selected OE credits
-    for (final id in _selectedOEIds) {
-      final subject = _oeSubjects.firstWhere(
-        (s) => s.id == id,
-        orElse: () => Subject(
-          id: '',
-          code: '',
-          name: '',
-          department: '',
-          credits: 0,
-          year: 0,
-          semester: '',
-        ),
-      );
-      total += subject.credits;
-    }
-
-    // Selected PE credits
-    for (final id in _selectedPEIds) {
-      final subject = _peSubjects.firstWhere(
-        (s) => s.id == id,
-        orElse: () => Subject(
-          id: '',
-          code: '',
-          name: '',
-          department: '',
-          credits: 0,
-          year: 0,
-          semester: '',
-        ),
-      );
-      total += subject.credits;
-    }
-
-    return total;
+    return _totalCredits;
   }
 
   Widget _buildSubmittedBanner() {
@@ -897,6 +855,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                               _selectedPEIds.add(subject.id);
                             }
                           }
+                          _recomputeTotalCredits();
                         });
                       },
           );
