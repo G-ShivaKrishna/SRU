@@ -79,10 +79,11 @@ class _CourseViewScreenState extends State<CourseViewScreen> {
       final userEmail = user.email?.toLowerCase().trim() ?? '';
       String? facultyId;
 
-      // Query faculty collection by custom email
+      // Query faculty collection by firebaseEmail (lowercase normalized version)
+      // firebaseEmail is stored specifically for this lookup and matches Firebase Auth email
       final facultyDocs = await _firestore
           .collection('faculty')
-          .where('email', isEqualTo: userEmail)
+          .where('firebaseEmail', isEqualTo: userEmail)
           .limit(1)
           .get();
 

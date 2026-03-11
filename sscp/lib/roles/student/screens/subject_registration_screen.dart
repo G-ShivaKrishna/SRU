@@ -274,16 +274,6 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       return;
     }
 
-    if (_isSubmitted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your registration is already submitted and locked.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
     setState(() => _isSaving = true);
 
     try {
@@ -301,8 +291,10 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Selections saved successfully'),
+          SnackBar(
+            content: Text(_isSubmitted
+                ? 'Changes saved. Your submitted registration has been updated.'
+                : 'Selections saved successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -361,8 +353,10 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Submit Registration?'),
-        content: const Text(
-          'Once submitted, you cannot modify your selections unless the admin unlocks it.\n\nAre you sure you want to submit?',
+        content: Text(
+          _isSubmitted
+              ? 'Your registration has already been submitted. Submitting again will save your latest changes. You can continue editing until the registration window closes.\n\nDo you want to update your submission?'
+              : 'Once submitted, your choices will be recorded, but you can still modify them until the registration window closes.\n\nAre you sure you want to submit?',
         ),
         actions: [
           TextButton(
@@ -386,6 +380,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
     setState(() => _isSaving = true);
 
     try {
+      final wasAlreadySubmitted = _isSubmitted;
+
       // Save first
       await _courseService.saveCompleteRegistration(
         studentId: _studentId,
@@ -412,8 +408,10 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration submitted successfully!'),
+          SnackBar(
+            content: Text(wasAlreadySubmitted
+                ? 'Registration updated successfully!'
+                : 'Registration submitted successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -486,8 +484,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                     _buildStudentInfoBar(isMobile),
 
                     // Registration closed banner
-                    if (!_isRegistrationOpen && !_isSubmitted)
-                      _buildRegistrationClosedBanner(),
+                    if (!_isRegistrationOpen) _buildRegistrationClosedBanner(),
 
                     // Status bar
                     if (_isSubmitted) _buildSubmittedBanner(),
@@ -651,16 +648,25 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      color: Colors.green.shade100,
+      color: _isRegistrationOpen ? Colors.blue.shade100 : Colors.green.shade100,
       child: Row(
         children: [
-          Icon(Icons.check_circle, color: Colors.green.shade700),
+          Icon(
+            _isRegistrationOpen ? Icons.edit_note : Icons.check_circle,
+            color: _isRegistrationOpen
+                ? Colors.blue.shade700
+                : Colors.green.shade700,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Registration Submitted - Your selections are locked',
+              _isRegistrationOpen
+                  ? 'Registration submitted. You can still edit and resubmit until the registration window closes.'
+                  : 'Registration submitted. The registration window is closed, so your selections are now locked.',
               style: TextStyle(
-                color: Colors.green.shade700,
+                color: _isRegistrationOpen
+                    ? Colors.blue.shade700
+                    : Colors.green.shade700,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -742,9 +748,23 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
               subject: subject,
               isSelected: true,
               isReadOnly: true,
+              isDisabled: false,
               isMobile: isMobile,
             )),
       ],
+    );
+  }
+
+  void _showSelectionLimitMessage(String typeName, int requiredCount) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          requiredCount > 0
+              ? 'You can select only $requiredCount $typeName subject(s). Deselect one to choose another.'
+              : 'No $typeName subjects are required for your current semester.',
+        ),
+        backgroundColor: Colors.orange,
+      ),
     );
   }
 
@@ -772,6 +792,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
         ),
       );
     }
+
+    final hasReachedLimit = selectedIds.length >= requiredCount;
 
     return ListView(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
@@ -816,33 +838,69 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
             ],
           ),
         ),
+        if (hasReachedLimit)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.block, size: 18, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    requiredCount > 0
+                        ? 'Required $typeName count reached. Unselected subjects are blocked until you deselect one.'
+                        : 'No $typeName subjects are required, so new selections are blocked.',
+                    style: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
         // Subject list
-        ...subjects.map((subject) => _buildSubjectCard(
-              subject: subject,
-              isSelected: selectedIds.contains(subject.id),
-              isReadOnly: _isSubmitted || !_isRegistrationOpen,
-              isMobile: isMobile,
-              onTap: (_isSubmitted || !_isRegistrationOpen)
-                  ? null
-                  : () {
-                      setState(() {
-                        if (type == 'OE') {
-                          if (_selectedOEIds.contains(subject.id)) {
-                            _selectedOEIds.remove(subject.id);
+        ...subjects.map((subject) {
+          final isSelected = selectedIds.contains(subject.id);
+          final isSelectionBlocked =
+              _isRegistrationOpen && !isSelected && hasReachedLimit;
+
+          return _buildSubjectCard(
+            subject: subject,
+            isSelected: isSelected,
+            isReadOnly: !_isRegistrationOpen,
+            isDisabled: isSelectionBlocked,
+            isMobile: isMobile,
+            onTap: !_isRegistrationOpen
+                ? null
+                : isSelectionBlocked
+                    ? () => _showSelectionLimitMessage(typeName, requiredCount)
+                    : () {
+                        setState(() {
+                          if (type == 'OE') {
+                            if (_selectedOEIds.contains(subject.id)) {
+                              _selectedOEIds.remove(subject.id);
+                            } else {
+                              _selectedOEIds.add(subject.id);
+                            }
                           } else {
-                            _selectedOEIds.add(subject.id);
+                            if (_selectedPEIds.contains(subject.id)) {
+                              _selectedPEIds.remove(subject.id);
+                            } else {
+                              _selectedPEIds.add(subject.id);
+                            }
                           }
-                        } else {
-                          if (_selectedPEIds.contains(subject.id)) {
-                            _selectedPEIds.remove(subject.id);
-                          } else {
-                            _selectedPEIds.add(subject.id);
-                          }
-                        }
-                      });
-                    },
-            )),
+                        });
+                      },
+          );
+        }),
       ],
     );
   }
@@ -851,98 +909,122 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
     required Subject subject,
     required bool isSelected,
     required bool isReadOnly,
+    required bool isDisabled,
     required bool isMobile,
     VoidCallback? onTap,
   }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: isSelected ? 2 : 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: isSelected ? const Color(0xFF1e3a5f) : Colors.transparent,
-          width: 2,
+    return Opacity(
+      opacity: isDisabled ? 0.55 : 1,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 8),
+        elevation: isSelected ? 2 : 1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: isSelected
+                ? const Color(0xFF1e3a5f)
+                : isDisabled
+                    ? Colors.grey.shade300
+                    : Colors.transparent,
+            width: 2,
+          ),
         ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              // Subject code avatar
-              CircleAvatar(
-                backgroundColor:
-                    isSelected ? const Color(0xFF1e3a5f) : Colors.grey.shade200,
-                child: Text(
-                  subject.code.isNotEmpty
-                      ? subject.code.substring(
-                          0, subject.code.length > 2 ? 2 : subject.code.length)
-                      : 'SB',
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey.shade600,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // Subject code avatar
+                CircleAvatar(
+                  backgroundColor: isSelected
+                      ? const Color(0xFF1e3a5f)
+                      : Colors.grey.shade200,
+                  child: Text(
+                    subject.code.isNotEmpty
+                        ? subject.code.substring(
+                            0,
+                            subject.code.length > 2 ? 2 : subject.code.length,
+                          )
+                        : 'SB',
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey.shade600,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(width: 12),
 
-              // Subject info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      subject.name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? const Color(0xFF1e3a5f) : null,
+                // Subject info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        subject.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? const Color(0xFF1e3a5f) : null,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${subject.code} • ${subject.department} • ${subject.credits} Credits',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    // Show faculty name if assigned
-                    if (_facultyMap.containsKey(subject.code)) ...[
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.person,
-                              size: 14, color: Colors.green.shade700),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              'Faculty: ${_facultyMap[subject.code]}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.green.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        '${subject.code} • ${subject.department} • ${subject.credits} Credits',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
+                      if (isDisabled) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Blocked until you deselect another subject',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.orange.shade700,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                      // Show faculty name if assigned
+                      if (_facultyMap.containsKey(subject.code)) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.person,
+                                size: 14, color: Colors.green.shade700),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'Faculty: ${_facultyMap[subject.code]}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
 
-              // Selection indicator
-              if (isReadOnly && isSelected)
-                const Icon(Icons.lock, color: Colors.grey)
-              else if (isSelected)
-                const Icon(Icons.check_circle, color: Color(0xFF1e3a5f))
-              else
-                Icon(Icons.radio_button_unchecked, color: Colors.grey.shade400),
-            ],
+                // Selection indicator
+                if (isReadOnly && isSelected)
+                  const Icon(Icons.lock, color: Colors.grey)
+                else if (isDisabled)
+                  Icon(Icons.block, color: Colors.orange.shade700)
+                else if (isSelected)
+                  const Icon(Icons.check_circle, color: Color(0xFF1e3a5f))
+                else
+                  Icon(Icons.radio_button_unchecked, color: Colors.grey.shade400),
+              ],
+            ),
           ),
         ),
       ),
@@ -950,7 +1032,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   }
 
   Widget _buildBottomBar(bool isMobile) {
-    final isDisabled = _isSaving || _isSubmitted || !_isRegistrationOpen;
+    final isDisabled = _isSaving || !_isRegistrationOpen;
 
     return Container(
       padding: EdgeInsets.all(isMobile ? 12 : 16),
@@ -977,7 +1059,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.save),
-                label: const Text('Save Draft'),
+                label: Text(_isSubmitted ? 'Save Changes' : 'Save Draft'),
               ),
             ),
             const SizedBox(width: 12),
@@ -985,7 +1067,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
               child: ElevatedButton.icon(
                 onPressed: isDisabled ? null : _submitRegistration,
                 icon: const Icon(Icons.send),
-                label: const Text('Submit'),
+                label: Text(_isSubmitted ? 'Update Submission' : 'Submit'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1e3a5f),
                   foregroundColor: Colors.white,
