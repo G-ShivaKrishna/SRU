@@ -26,6 +26,7 @@ class _AdminCourseManagementScreenState
     'ECE',
     'EEE',
     'ME',
+    'MECH',
     'CE',
     'IT',
     'CSBS',
@@ -1587,10 +1588,10 @@ class _AdminCourseManagementScreenState
   Widget _buildStudentSubmissionsTab(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     const years = ['1', '2', '3', '4'];
-    const branches = ['CSE', 'ECE', 'EEE', 'ME', 'CE'];
+    final branches = _availableBranchesSafe;
     String selectedYear = '1';
     String selectedSemester = '1';
-    String selectedBranch = 'CSE';
+    String selectedBranch = branches.isNotEmpty ? branches.first : 'CSE';
 
     return StatefulBuilder(
       builder: (context, setState) {

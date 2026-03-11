@@ -903,20 +903,22 @@ class _DefineMarksDialogState extends State<_DefineMarksDialog> {
                         children: [
                           Expanded(
                               flex: 3,
-                              child: Text('Component Name',
+                              child: Text('Name',
                                   style: TextStyle(
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 12))),
-                          SizedBox(width: 12),
+                                      fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1)),
+                          SizedBox(width: 8),
                           SizedBox(
-                              width: 90,
+                              width: 70,
                               child: Text('Marks',
                                   style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 12))),
-                          SizedBox(width: 12),
+                          SizedBox(width: 8),
                           SizedBox(
-                              width: 110,
+                              width: 105,
                               child: Text('Type',
                                   style: TextStyle(
                                       fontWeight: FontWeight.w600,
@@ -1145,10 +1147,10 @@ class _ComponentRowState extends State<_ComponentRow> {
               },
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           // Marks
           SizedBox(
-            width: 90,
+            width: 70,
             child: TextField(
               controller: _marksCtrl,
               keyboardType: TextInputType.number,
@@ -1167,10 +1169,10 @@ class _ComponentRowState extends State<_ComponentRow> {
               },
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           // Type
           SizedBox(
-            width: 110,
+            width: 105,
             child: DropdownButtonFormField<String>(
               initialValue: widget.component.type,
               isDense: true,

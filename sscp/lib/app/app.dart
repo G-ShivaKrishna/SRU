@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../screens/role_selection_screen.dart';
 
 class MyApp extends StatelessWidget {
@@ -12,7 +11,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
-        textTheme: GoogleFonts.notoSansTextTheme(),
       ),
       home: const RoleSelectionScreen(),
       debugShowCheckedModeBanner: false,

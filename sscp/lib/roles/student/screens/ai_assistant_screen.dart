@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../../services/student_ai_assistant_service.dart';
 
@@ -110,7 +109,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
         titleSpacing: 0,
         title: Text(
           'AI Academic Assistant',
-          style: GoogleFonts.manrope(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.3,
@@ -210,7 +209,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                       const SizedBox(width: 6),
                       Text(
                         'Smart academic answers',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -222,7 +221,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'Ask once. Get marks, CGPA, attendance, and backlog details instantly.',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: isMobile ? 16 : 18,
                     fontWeight: FontWeight.w800,
@@ -233,7 +232,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'This assistant reads your academic data and replies in a cleaner summary format so you do not need to open each page manually.',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
                     color: Colors.white.withOpacity(0.84),
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
@@ -314,7 +313,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                     prompt,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: _ink,
@@ -326,7 +325,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                     children: [
                       Text(
                         'Ask now',
-                        style: GoogleFonts.manrope(
+                        style: TextStyle(
                           color: _sky,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -420,7 +419,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                         const SizedBox(width: 6),
                         Text(
                           message.isUser ? 'You' : 'Assistant',
-                          style: GoogleFonts.manrope(
+                          style: TextStyle(
                             color: message.isUser
                                 ? Colors.white.withOpacity(0.88)
                                 : _deepBlue,
@@ -433,7 +432,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                     const SizedBox(height: 8),
                     Text(
                       message.text,
-                      style: GoogleFonts.manrope(
+                      style: TextStyle(
                         color: textColor,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
@@ -484,7 +483,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                               const SizedBox(width: 7),
                               Text(
                                 s,
-                                style: GoogleFonts.manrope(
+                                style: TextStyle(
                                   color: _ink,
                                   fontSize: 11.8,
                                   fontWeight: FontWeight.w700,
@@ -527,7 +526,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           Expanded(
             child: Text(
               'Assistant is reading your academic data...',
-              style: GoogleFonts.manrope(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFF6E4B00),
@@ -585,14 +584,14 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 maxLines: 4,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _sendMessage(),
-                style: GoogleFonts.manrope(
+                style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
                   color: _ink,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Ask about marks, CGPA, attendance...',
-                  hintStyle: GoogleFonts.manrope(
+                  hintStyle: TextStyle(
                     color: const Color(0xFF7B91A8),
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
