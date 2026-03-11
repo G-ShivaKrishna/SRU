@@ -1022,7 +1022,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                 else if (isSelected)
                   const Icon(Icons.check_circle, color: Color(0xFF1e3a5f))
                 else
-                  Icon(Icons.radio_button_unchecked, color: Colors.grey.shade400),
+                  Icon(Icons.radio_button_unchecked,
+                      color: Colors.grey.shade400),
               ],
             ),
           ),

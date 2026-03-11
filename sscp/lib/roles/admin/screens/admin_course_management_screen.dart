@@ -1776,9 +1776,8 @@ class _AdminCourseManagementScreenState
                     final d = doc.data() as Map<String, dynamic>;
                     final docSem = (d['semester'] ?? '').toString().trim();
                     final normalizedDocSem = docSem.toUpperCase();
-                    final acceptedSemesters = selectedSemester == '1'
-                        ? {'1', 'I'}
-                        : {'2', 'II'};
+                    final acceptedSemesters =
+                        selectedSemester == '1' ? {'1', 'I'} : {'2', 'II'};
                     return acceptedSemesters.contains(normalizedDocSem);
                   }).toList();
 
