@@ -80,6 +80,7 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
 
   bool _isLoading = true;
   String? _loadError;
+  String _facultyId = '';
 
   List<_Assignment> _assignments = [];
   // assignmentId → definition (if saved)
@@ -103,18 +104,20 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
-      final userEmail = user.email!;
+      final userEmail = user.email?.toLowerCase().trim() ?? '';
 
-      // Query faculty collection by email to get actual facultyId (doc ID)
+      // Query faculty collection by firebaseEmail (lowercase normalized version)
+      // firebaseEmail matches Firebase Auth email and avoids case-sensitive mismatches.
       final facultyDocs = await _fs
           .collection('faculty')
-          .where('email', isEqualTo: userEmail)
+          .where('firebaseEmail', isEqualTo: userEmail)
           .limit(1)
           .get();
       if (facultyDocs.docs.isEmpty) {
         throw Exception('Faculty profile not found');
       }
       final facultyId = facultyDocs.docs.first.id;
+      _facultyId = facultyId;
 
       // Load assignments
       final snap = await _fs
@@ -556,8 +559,10 @@ class _CieFormatScreenState extends State<CieFormatScreen> {
 
   Future<void> _saveDefinition(_Assignment a, _Definition def) async {
     try {
-      final user = _auth.currentUser!;
-      final facultyId = user.email!.split('@')[0].toUpperCase();
+      final facultyId = _facultyId;
+      if (facultyId.isEmpty) {
+        throw Exception('Faculty profile not found');
+      }
       final now = Timestamp.now();
 
       // ── Check if components changed vs existing definition ──────────────
@@ -1219,7 +1224,9 @@ class _ComponentRowState extends State<_ComponentRow> {
                       TextField(
                         controller: _marksCtrl,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
                         decoration: const InputDecoration(
                           hintText: '0',
                           border: OutlineInputBorder(),
@@ -1265,7 +1272,8 @@ class _ComponentRowState extends State<_ComponentRow> {
                                   style: TextStyle(fontSize: 12))),
                         ],
                         onChanged: (v) {
-                          setState(() => widget.component.type = v ?? 'internal');
+                          setState(
+                              () => widget.component.type = v ?? 'internal');
                           widget.onChange();
                         },
                       ),

@@ -60,10 +60,13 @@ class _ConsolidatedMarksScreenState extends State<ConsolidatedMarksScreen>
         return;
       }
 
-      // Query faculty collection by email to get actual facultyId (doc ID)
+      final normalizedEmail = userEmail.toLowerCase().trim();
+
+      // Query faculty collection by firebaseEmail (lowercase normalized version)
+      // firebaseEmail matches Firebase Auth email and avoids case-sensitive mismatches.
       final facultyDocs = await _fs
           .collection('faculty')
-          .where('email', isEqualTo: userEmail)
+          .where('firebaseEmail', isEqualTo: normalizedEmail)
           .limit(1)
           .get();
       if (facultyDocs.docs.isEmpty) {
@@ -526,36 +529,32 @@ class _SubjectCard extends StatelessWidget {
                             child: Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: m.componentMarks.entries
-                                  .map((ce) {
-                                    final isExternal =
-                                        _isExternalComponent(ce.key);
-                                    final sectionColor = isExternal
-                                        ? Colors.orange.shade700
-                                        : Colors.green.shade700;
-                                    final sectionLabel =
-                                        isExternal ? 'External' : 'Internal';
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: sectionColor.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(999),
-                                        border: Border.all(
-                                            color:
-                                                sectionColor.withOpacity(0.25)),
-                                      ),
-                                      child: Text(
-                                        '$sectionLabel • ${ce.key}: ${ce.value}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: sectionColor,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    );
-                                  })
-                                  .toList(),
+                              children: m.componentMarks.entries.map((ce) {
+                                final isExternal = _isExternalComponent(ce.key);
+                                final sectionColor = isExternal
+                                    ? Colors.orange.shade700
+                                    : Colors.green.shade700;
+                                final sectionLabel =
+                                    isExternal ? 'External' : 'Internal';
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: sectionColor.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                        color: sectionColor.withOpacity(0.25)),
+                                  ),
+                                  child: Text(
+                                    '$sectionLabel • ${ce.key}: ${ce.value}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: sectionColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
                           ),
                         const Divider(height: 1),
