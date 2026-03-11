@@ -616,14 +616,22 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['xlsx', 'xls'],
+        withData: true,
       );
 
-      if (result == null || result.files.single.bytes == null) {
+      if (result == null || result.files.isEmpty) {
         if (mounted) setState(() => _isUploadingExcel = false);
         return;
       }
 
-      final bytes = result.files.single.bytes!;
+      final selectedFile = result.files.single;
+      final bytes = selectedFile.bytes;
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception(
+          'Could not read "${selectedFile.name}". Please reselect the file or export it again.',
+        );
+      }
+
       final excelFile = excel_package.Excel.decodeBytes(bytes);
       if (excelFile.tables.isEmpty) {
         throw Exception('Excel file has no sheets');
@@ -634,49 +642,98 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
         throw Exception('Excel sheet is empty');
       }
 
-      bool isHeader = true;
-      final componentColumns = <int, String>{};
-      final headers = <String>[];
-      int updatedCount = 0;
-
-      for (final row in sheet.rows) {
-        if (isHeader) {
-          for (int i = 0; i < row.length; i++) {
-            final header = row[i]?.value.toString().trim() ?? '';
-            headers.add(header);
-            for (final comp in _components) {
-              if (header.toLowerCase().contains(comp.name.toLowerCase())) {
-                componentColumns[i] = comp.name;
-                break;
-              }
-            }
-          }
-          isHeader = false;
-          continue;
-        }
-
-        if (row.isEmpty || componentColumns.isEmpty) continue;
-        final studentId = row[0]?.value.toString().trim() ?? '';
-        if (studentId.isEmpty) continue;
-
-        for (final studentRow in _studentRows) {
-          if (studentRow.studentId != studentId) continue;
-          componentColumns.forEach((colIndex, componentName) {
-            if (colIndex < row.length) {
-              final value = row[colIndex]?.value.toString().trim() ?? '';
-              if (value.isNotEmpty && int.tryParse(value) != null) {
-                studentRow.controllers[componentName]?.text = value;
-                updatedCount++;
-              }
-            }
-          });
-          break;
-        }
-      }
+      final headers = sheet.rows.first
+          .map((cell) => _stripBom((cell?.value ?? '').toString()).trim())
+          .toList();
+      final componentColumns = _matchComponentColumns(headers);
 
       if (componentColumns.isEmpty) {
         throw Exception(
-            'No matching component headers found. File headers: ${headers.join(', ')}');
+            'No matching component headers were found.\nExpected: ${_components.map((c) => c.name).join(', ')}\nFound: ${headers.join(', ')}');
+      }
+
+      final studentById = <String, _StudentRow>{
+        for (final row in _studentRows) _normalizeStudentId(row.studentId): row
+      };
+      final pendingUpdates = <String, Map<String, String>>{};
+      final issues = <String>[];
+      final unknownStudentIds = <String>{};
+
+      for (int rowIndex = 1; rowIndex < sheet.rows.length; rowIndex++) {
+        final row = sheet.rows[rowIndex];
+        if (row.every((cell) => ((cell?.value ?? '').toString().trim().isEmpty))) {
+          continue;
+        }
+
+        final rawStudentId =
+            row.isNotEmpty ? (row[0]?.value ?? '').toString().trim() : '';
+        if (rawStudentId.isEmpty) {
+          issues.add('Row ${rowIndex + 1}: Student ID is empty.');
+          continue;
+        }
+
+        final normalizedStudentId = _normalizeStudentId(rawStudentId);
+        final studentRow = studentById[normalizedStudentId];
+        if (studentRow == null) {
+          unknownStudentIds.add(rawStudentId);
+          continue;
+        }
+
+        for (final entry in componentColumns.entries) {
+          final colIndex = entry.key;
+          final component = entry.value;
+          if (colIndex >= row.length) continue;
+
+          final raw = (row[colIndex]?.value ?? '').toString().trim();
+          if (raw.isEmpty) continue;
+
+          final parsed = _tryParseWholeNumber(raw);
+          if (parsed == null) {
+            issues.add(
+              'Row ${rowIndex + 1} (${studentRow.studentId}) ${component.name}: "$raw" is not a whole number.',
+            );
+            continue;
+          }
+
+          if (parsed < 0 || parsed > component.maxMarks) {
+            issues.add(
+              'Row ${rowIndex + 1} (${studentRow.studentId}) ${component.name}: $parsed is out of range (0-${component.maxMarks}).',
+            );
+            continue;
+          }
+
+          pendingUpdates
+              .putIfAbsent(studentRow.studentId, () => <String, String>{})
+              [component.name] = parsed.toString();
+        }
+      }
+
+      if (issues.isNotEmpty || unknownStudentIds.isNotEmpty) {
+        throw Exception(
+          _buildImportFailureMessage(
+            format: 'Excel',
+            issues: issues,
+            unknownStudentIds: unknownStudentIds,
+            expectedComponents: _components.map((c) => c.name).toList(),
+          ),
+        );
+      }
+
+      int updatedCount = 0;
+      for (final studentEntry in pendingUpdates.entries) {
+        final studentId = studentEntry.key;
+        final marksByComponent = studentEntry.value;
+        final row = _studentRows.firstWhere((s) => s.studentId == studentId);
+        for (final markEntry in marksByComponent.entries) {
+          row.controllers[markEntry.key]?.text = markEntry.value;
+          updatedCount++;
+        }
+      }
+
+      if (updatedCount == 0) {
+        throw Exception(
+          'No marks were imported. Ensure the file has student IDs in the first column and mark values under matching component columns.',
+        );
       }
 
       if (!mounted) return;
@@ -690,12 +747,14 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isUploadingExcel = false);
+      final message = _cleanExceptionMessage(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Excel parsing failed: $e'),
+          content: Text('Excel upload failed. $message'),
           backgroundColor: Colors.red,
         ),
       );
+      await _showUploadErrorDialog('Excel Upload Failed', message);
     }
   }
 
@@ -783,60 +842,119 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
+        withData: true,
       );
 
-      if (result == null || result.files.single.bytes == null) {
+      if (result == null || result.files.isEmpty) {
         if (mounted) setState(() => _isUploadingExcel = false);
         return;
       }
 
-      final bytes = result.files.single.bytes!;
-      final csvContent = utf8.decode(bytes);
+      final selectedFile = result.files.single;
+      final bytes = selectedFile.bytes;
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception(
+          'Could not read "${selectedFile.name}". Please reselect the file or export it again.',
+        );
+      }
+
+      final csvContent = utf8.decode(bytes, allowMalformed: true);
       final lines = csvContent
-          .split('\n')
+          .split(RegExp(r'\r?\n'))
           .where((line) => line.trim().isNotEmpty)
           .toList();
 
       if (lines.isEmpty) throw Exception('CSV file is empty');
 
-      final headers = lines.first.split(',').map((h) => h.trim()).toList();
-      final componentColumns = <int, String>{};
-
-      for (int i = 0; i < headers.length; i++) {
-        final header = headers[i].toLowerCase();
-        for (final comp in _components) {
-          if (header.contains(comp.name.toLowerCase())) {
-            componentColumns[i] = comp.name;
-            break;
-          }
-        }
-      }
+      final headers = _parseCsvLine(lines.first)
+          .map((h) => _stripBom(h).trim())
+          .toList();
+      final componentColumns = _matchComponentColumns(headers);
 
       if (componentColumns.isEmpty) {
         throw Exception(
-            'No matching component headers found. File headers: ${headers.join(', ')}');
+            'No matching component headers were found.\nExpected: ${_components.map((c) => c.name).join(', ')}\nFound: ${headers.join(', ')}');
+      }
+
+      final studentById = <String, _StudentRow>{
+        for (final row in _studentRows) _normalizeStudentId(row.studentId): row
+      };
+      final pendingUpdates = <String, Map<String, String>>{};
+      final issues = <String>[];
+      final unknownStudentIds = <String>{};
+
+      for (int rowIndex = 1; rowIndex < lines.length; rowIndex++) {
+        final values = _parseCsvLine(lines[rowIndex]).map((v) => v.trim()).toList();
+        if (values.isEmpty) continue;
+
+        final rawStudentId = values[0];
+        if (rawStudentId.isEmpty) {
+          issues.add('Row ${rowIndex + 1}: Student ID is empty.');
+          continue;
+        }
+
+        final normalizedStudentId = _normalizeStudentId(rawStudentId);
+        final studentRow = studentById[normalizedStudentId];
+        if (studentRow == null) {
+          unknownStudentIds.add(rawStudentId);
+          continue;
+        }
+
+        for (final entry in componentColumns.entries) {
+          final colIndex = entry.key;
+          final component = entry.value;
+          if (colIndex >= values.length) continue;
+
+          final raw = values[colIndex];
+          if (raw.isEmpty) continue;
+
+          final parsed = _tryParseWholeNumber(raw);
+          if (parsed == null) {
+            issues.add(
+              'Row ${rowIndex + 1} (${studentRow.studentId}) ${component.name}: "$raw" is not a whole number.',
+            );
+            continue;
+          }
+
+          if (parsed < 0 || parsed > component.maxMarks) {
+            issues.add(
+              'Row ${rowIndex + 1} (${studentRow.studentId}) ${component.name}: $parsed is out of range (0-${component.maxMarks}).',
+            );
+            continue;
+          }
+
+          pendingUpdates
+              .putIfAbsent(studentRow.studentId, () => <String, String>{})
+              [component.name] = parsed.toString();
+        }
+      }
+
+      if (issues.isNotEmpty || unknownStudentIds.isNotEmpty) {
+        throw Exception(
+          _buildImportFailureMessage(
+            format: 'CSV',
+            issues: issues,
+            unknownStudentIds: unknownStudentIds,
+            expectedComponents: _components.map((c) => c.name).toList(),
+          ),
+        );
       }
 
       int updatedCount = 0;
-      for (int rowIndex = 1; rowIndex < lines.length; rowIndex++) {
-        final values = lines[rowIndex].split(',').map((v) => v.trim()).toList();
-        if (values.isEmpty) continue;
-        final studentId = values[0];
-        if (studentId.isEmpty) continue;
-
-        for (final studentRow in _studentRows) {
-          if (studentRow.studentId != studentId) continue;
-          componentColumns.forEach((colIndex, componentName) {
-            if (colIndex < values.length) {
-              final value = values[colIndex];
-              if (value.isNotEmpty && int.tryParse(value) != null) {
-                studentRow.controllers[componentName]?.text = value;
-                updatedCount++;
-              }
-            }
-          });
-          break;
+      for (final studentEntry in pendingUpdates.entries) {
+        final studentId = studentEntry.key;
+        final marksByComponent = studentEntry.value;
+        final row = _studentRows.firstWhere((s) => s.studentId == studentId);
+        for (final markEntry in marksByComponent.entries) {
+          row.controllers[markEntry.key]?.text = markEntry.value;
+          updatedCount++;
         }
+      }
+
+      if (updatedCount == 0) {
+        throw Exception(
+          'No marks were imported. Ensure the file has student IDs in the first column and mark values under matching component columns.',
+        );
       }
 
       if (!mounted) return;
@@ -850,13 +968,158 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isUploadingExcel = false);
+      final message = _cleanExceptionMessage(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error parsing CSV: $e'),
+          content: Text('CSV upload failed. $message'),
           backgroundColor: Colors.red,
         ),
       );
+      await _showUploadErrorDialog('CSV Upload Failed', message);
     }
+  }
+
+  String _normalizeHeader(String value) {
+    return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  String _normalizeStudentId(String value) {
+    return value.trim().toUpperCase();
+  }
+
+  String _stripBom(String value) {
+    return value.replaceFirst('\uFEFF', '');
+  }
+
+  int? _tryParseWholeNumber(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+
+    final asInt = int.tryParse(trimmed);
+    if (asInt != null) return asInt;
+
+    final asDouble = double.tryParse(trimmed);
+    if (asDouble != null && asDouble == asDouble.roundToDouble()) {
+      return asDouble.toInt();
+    }
+
+    return null;
+  }
+
+  Map<int, _Component> _matchComponentColumns(List<String> headers) {
+    final matched = <int, _Component>{};
+    final usedComponents = <String>{};
+
+    for (int i = 0; i < headers.length; i++) {
+      final normalizedHeader = _normalizeHeader(headers[i]);
+      if (normalizedHeader.isEmpty) continue;
+
+      for (final component in _components) {
+        final normalizedComponent = _normalizeHeader(component.name);
+        if (normalizedComponent.isEmpty ||
+            usedComponents.contains(normalizedComponent)) {
+          continue;
+        }
+
+        if (normalizedHeader.contains(normalizedComponent) ||
+            normalizedComponent.contains(normalizedHeader)) {
+          matched[i] = component;
+          usedComponents.add(normalizedComponent);
+          break;
+        }
+      }
+    }
+
+    return matched;
+  }
+
+  List<String> _parseCsvLine(String line) {
+    final out = <String>[];
+    final sb = StringBuffer();
+    bool inQuotes = false;
+
+    for (int i = 0; i < line.length; i++) {
+      final ch = line[i];
+
+      if (ch == '"') {
+        if (inQuotes && i + 1 < line.length && line[i + 1] == '"') {
+          sb.write('"');
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+
+      if (ch == ',' && !inQuotes) {
+        out.add(sb.toString());
+        sb.clear();
+      } else {
+        sb.write(ch);
+      }
+    }
+
+    out.add(sb.toString());
+    return out;
+  }
+
+  String _buildImportFailureMessage({
+    required String format,
+    required List<String> issues,
+    required Set<String> unknownStudentIds,
+    required List<String> expectedComponents,
+  }) {
+    final buffer = StringBuffer('$format upload failed due to invalid data.');
+
+    if (issues.isNotEmpty) {
+      final limited = issues.take(8).toList();
+      buffer.writeln('\n\nIssues found:');
+      for (final issue in limited) {
+        buffer.writeln('- $issue');
+      }
+      if (issues.length > limited.length) {
+        buffer.writeln('- ...and ${issues.length - limited.length} more issue(s).');
+      }
+    }
+
+    if (unknownStudentIds.isNotEmpty) {
+      final limitedUnknown = unknownStudentIds.take(8).toList();
+      buffer.writeln('\nUnknown Student IDs: ${limitedUnknown.join(', ')}');
+      if (unknownStudentIds.length > limitedUnknown.length) {
+        buffer.writeln(
+            '...and ${unknownStudentIds.length - limitedUnknown.length} more unknown ID(s).');
+      }
+    }
+
+    buffer.writeln('\nExpected component columns: ${expectedComponents.join(', ')}');
+    buffer.writeln(
+        'Tip: Download the latest template from this screen and paste only marks values.');
+
+    return buffer.toString();
+  }
+
+  String _cleanExceptionMessage(Object error) {
+    final msg = error.toString();
+    return msg.startsWith('Exception: ') ? msg.substring(11) : msg;
+  }
+
+  Future<void> _showUploadErrorDialog(String title, String message) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(
+          child: Text(message, style: const TextStyle(fontSize: 13)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
