@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../services/faculty_scope_service.dart';
 import '../../../widgets/app_header.dart';
 
 // ─── Data model ───────────────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ class AttendanceEntryScreen extends StatefulWidget {
 
 class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
   final _firestore = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
+  final _scopeService = FacultyScopeService();
 
   // ── Phase 1: selection ─────────────────────────────────────────────────────
   bool _loadingAssignments = true;
@@ -81,6 +81,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
   List<_Assignment> _assignments = [];
   _Assignment? _selectedAssignment;
   String? _selectedBatch; // null = all batches
+  String? _facultyId;
 
   final DateTime _today = DateTime.now();
 
@@ -124,20 +125,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
       _assignmentError = null;
     });
     try {
-      final user = _auth.currentUser;
-      if (user == null) throw Exception('Not logged in');
-      final userEmail = user.email!;
-
-      // Query faculty collection by email to get actual facultyId (doc ID)
-      final facultyDocs = await _firestore
-          .collection('faculty')
-          .where('email', isEqualTo: userEmail)
-          .limit(1)
-          .get();
-      if (facultyDocs.docs.isEmpty) {
-        throw Exception('Faculty profile not found');
-      }
-      final facultyId = facultyDocs.docs.first.id;
+      final facultyId = await _scopeService.resolveCurrentFacultyId();
 
       final snap = await _firestore
           .collection('facultyAssignments')
@@ -151,6 +139,7 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         }
       }
       setState(() {
+        _facultyId = facultyId;
         _assignments = list;
         _loadingAssignments = false;
       });
@@ -169,28 +158,11 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
       final batches = _selectedBatch != null
           ? [_selectedBatch!]
           : _selectedAssignment!.assignedBatches;
-
-      final students = <Map<String, dynamic>>[];
-      for (var i = 0; i < batches.length; i += 10) {
-        final chunk = batches.sublist(i, (i + 10).clamp(0, batches.length));
-        if (chunk.isEmpty) continue;
-        final snap = await _firestore
-            .collection('students')
-            .where('batchNumber', whereIn: chunk)
-            .get();
-        for (final doc in snap.docs) {
-          final d = doc.data();
-          students.add({
-            'rollNo': doc.id,
-            'name': d['name'] ?? '',
-            'hallTicketNumber': d['hallTicketNumber'] ?? doc.id,
-            'batchNumber': d['batchNumber'] ?? '',
-          });
-        }
-      }
-
-      students.sort((a, b) => (a['hallTicketNumber'] as String)
-          .compareTo(b['hallTicketNumber'] as String));
+      final students = await _scopeService.loadStudentsForAssignment(
+        department: _selectedAssignment!.department,
+        year: _selectedAssignment!.year,
+        assignedBatches: batches,
+      );
 
       setState(() {
         _students = students;
@@ -221,9 +193,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     if (_selectedAssignment == null) return;
     try {
       setState(() => _loadingLockedPeriods = true);
-      final user = _auth.currentUser;
-      if (user == null) return;
-      final myFacultyId = user.email!.split('@')[0].toUpperCase();
+      final myFacultyId =
+          _facultyId ?? await _scopeService.resolveCurrentFacultyId();
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
       final batches = _selectedBatch != null
           ? [_selectedBatch!]
@@ -280,8 +251,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     }
     setState(() => _submitting = true);
     try {
-      final user = _auth.currentUser!;
-      final facultyId = user.email!.split('@')[0].toUpperCase();
+      final facultyId =
+          _facultyId ?? await _scopeService.resolveCurrentFacultyId();
 
       // Validate that assignment is still active before submitting attendance
       final assignDoc = await _firestore

@@ -20,6 +20,7 @@ import 'screens/supply_exam_memo_screen.dart';
 import 'screens/feedback_screen.dart';
 import 'screens/exams_screen.dart';
 import 'screens/central_library_screen.dart';
+import 'screens/ai_assistant_screen.dart';
 
 import 'screens/grievance_screen.dart';
 
@@ -576,6 +577,9 @@ class _StudentHomeState extends State<StudentHome> {
       case 'Results':
         page = const ResultsScreen();
         break;
+      case 'Ask AI':
+        page = const AiAssistantScreen();
+        break;
       case 'CIE Marks':
         page = const StudentCieMarksScreen();
         break;
@@ -714,6 +718,8 @@ class _StudentHomeState extends State<StudentHome> {
                       email, department, batchNumber),
                   const SizedBox(height: 24),
                   _buildAcademicsCardsGrid(context),
+                  const SizedBox(height: 16),
+                  _buildAiAssistantEntry(context),
                   const SizedBox(height: 24),
                   _buildMentorCard(context),
                   const SizedBox(height: 24),
@@ -740,6 +746,7 @@ class _StudentHomeState extends State<StudentHome> {
       'Course Reg.',
       'Attendance',
       'Results',
+      'Ask AI',
       'Feedback',
       'Exams',
       'Grievance',
@@ -1437,6 +1444,85 @@ class _StudentHomeState extends State<StudentHome> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAiAssistantEntry(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF4FB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD2E1F5)),
+      ),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'AI Academic Assistant',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1e3a5f),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Ask directly for marks, CGPA, attendance, and backlogs.',
+                  style: TextStyle(fontSize: 12, color: Colors.black87),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  onPressed: () => _navigateToPage(context, 'Ask AI'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1e3a5f),
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.smart_toy_outlined, size: 18),
+                  label: const Text('Open Assistant'),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                const Icon(Icons.smart_toy_outlined,
+                    color: Color(0xFF1e3a5f), size: 28),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AI Academic Assistant',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1e3a5f),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Ask directly for marks, CGPA, attendance, and backlogs.',
+                        style: TextStyle(fontSize: 12, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => _navigateToPage(context, 'Ask AI'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1e3a5f),
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                  label: const Text('Open Assistant'),
+                ),
+              ],
+            ),
     );
   }
 

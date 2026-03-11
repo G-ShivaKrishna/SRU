@@ -73,13 +73,35 @@ class _SessionRouteState extends State<_SessionRoute> {
     // Wait for Firebase Auth to restore its state — currentUser can be null
     // briefly on startup even when a session exists.
     final user = await FirebaseAuth.instance.authStateChanges().first;
-    final role = await SessionService.getSavedRole();
+    final session = await SessionService.getSession();
 
     if (!mounted) return;
 
     Widget dest;
-    if (user != null && role != null) {
-      await UserService.fetchAndCacheUserId();
+    if (user != null) {
+      String? role = session?.role;
+
+      if (session?.uid != null && session!.uid != user.uid) {
+        await SessionService.clearRole();
+        role = null;
+      }
+
+      if (role == null) {
+        final roleId = await UserService.fetchAndCacheUserId();
+        final resolvedRole = UserService.getCurrentUserRole();
+        if (resolvedRole != null && roleId != null) {
+          await SessionService.saveSession(
+            role: resolvedRole,
+            uid: user.uid,
+            roleId: roleId,
+            email: user.email,
+          );
+          role = resolvedRole;
+        }
+      } else {
+        await UserService.fetchAndCacheUserId();
+      }
+
       switch (role) {
         case 'admin':
           dest = const AdminHome();

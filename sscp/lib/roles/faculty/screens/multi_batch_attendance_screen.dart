@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../services/faculty_scope_service.dart';
 import '../../../widgets/app_header.dart';
 
 // ─── Period time-slot labels ──────────────────────────────────────────────────
@@ -72,13 +72,14 @@ class MultiBatchAttendanceScreen extends StatefulWidget {
 class _MultiBatchAttendanceScreenState
     extends State<MultiBatchAttendanceScreen> {
   final _firestore = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
+  final _scopeService = FacultyScopeService();
 
   // ── Phase 1 ────────────────────────────────────────────────────────────────
   bool _loadingAssignments = true;
   String? _assignmentError;
   List<_Assign> _assignments = [];
   _Assign? _selectedAssignment;
+  String? _facultyId;
 
   final Set<String> _selectedBatches = {};
   final DateTime _today = DateTime.now();
@@ -113,9 +114,6 @@ class _MultiBatchAttendanceScreenState
     super.dispose();
   }
 
-  String get _facultyId =>
-      _auth.currentUser?.email?.split('@')[0].toUpperCase() ?? '';
-
   // ── Data loading ───────────────────────────────────────────────────────────
 
   Future<void> _loadAssignments() async {
@@ -124,12 +122,14 @@ class _MultiBatchAttendanceScreenState
       _assignmentError = null;
     });
     try {
+      final facultyId = await _scopeService.resolveCurrentFacultyId();
       final snap = await _firestore
           .collection('facultyAssignments')
-          .where('facultyId', isEqualTo: _facultyId)
+          .where('facultyId', isEqualTo: facultyId)
           .where('isActive', isEqualTo: true)
           .get();
       setState(() {
+        _facultyId = facultyId;
         _assignments = snap.docs.map(_Assign.fromDoc).toList();
         _loadingAssignments = false;
       });
@@ -145,26 +145,11 @@ class _MultiBatchAttendanceScreenState
     if (_selectedAssignment == null || _selectedBatches.isEmpty) return;
     setState(() => _loadingStudents = true);
     try {
-      final batches = _selectedBatches.toList();
-      final students = <Map<String, dynamic>>[];
-      for (var i = 0; i < batches.length; i += 10) {
-        final chunk = batches.sublist(i, (i + 10).clamp(0, batches.length));
-        final snap = await _firestore
-            .collection('students')
-            .where('batchNumber', whereIn: chunk)
-            .get();
-        for (final doc in snap.docs) {
-          final d = doc.data();
-          students.add({
-            'rollNo': doc.id,
-            'name': d['name'] ?? '',
-            'hallTicketNumber': d['hallTicketNumber'] ?? doc.id,
-            'batchNumber': d['batchNumber'] ?? '',
-          });
-        }
-      }
-      students.sort(
-          (a, b) => (a['rollNo'] as String).compareTo(b['rollNo'] as String));
+      final students = await _scopeService.loadStudentsForAssignment(
+        department: _selectedAssignment!.department,
+        year: _selectedAssignment!.year,
+        assignedBatches: _selectedBatches.toList(),
+      );
       _attendance.clear();
       for (final s in students) {
         _attendance[s['rollNo'] as String] = true;
@@ -185,6 +170,7 @@ class _MultiBatchAttendanceScreenState
     try {
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
       final batches = _selectedBatches.toList();
+      final facultyId = _facultyId ?? await _scopeService.resolveCurrentFacultyId();
       final locked = <int>{};
       for (var i = 0; i < batches.length; i += 10) {
         final chunk = batches.sublist(i, (i + 10).clamp(0, batches.length));
@@ -196,7 +182,7 @@ class _MultiBatchAttendanceScreenState
             .get();
         for (final doc in snap.docs) {
           final d = doc.data();
-          if ((d['facultyId'] as String? ?? '') != _facultyId) {
+          if ((d['facultyId'] as String? ?? '') != facultyId) {
             for (final p in (d['periods'] as List? ?? [])) {
               locked.add(p is int ? p : int.tryParse(p.toString()) ?? 0);
             }
@@ -260,7 +246,7 @@ class _MultiBatchAttendanceScreenState
         'dateStr': dateStr,
         'date':
             Timestamp.fromDate(DateTime(_today.year, _today.month, _today.day)),
-        'facultyId': _facultyId,
+        'facultyId': _facultyId ?? await _scopeService.resolveCurrentFacultyId(),
         'subjectCode': assignment.subjectCode,
         'subjectName': assignment.subjectName,
         'department': assignment.department,

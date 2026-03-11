@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 import 'admin_home.dart';
-import '../../services/user_service.dart';
-import '../../services/session_service.dart';
+import '../../services/auth_service.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
 import '../../widgets/forgot_password_dialog.dart';
@@ -24,7 +22,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
   late String _captchaText;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -91,35 +88,24 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final normalizedAdminId = adminId.toUpperCase();
-
-      final adminDoc = await FirebaseFirestore.instance
-          .collection('admin')
-          .doc(normalizedAdminId)
-          .get();
-
-      if (!adminDoc.exists) {
-        setState(() => _isLoading = false);
-        _showError('Admin record not found');
-        _refreshCaptcha();
-        return;
-      }
-
-      final customEmail = adminDoc['email'] ?? '';
-      if (customEmail.isEmpty) {
-        setState(() => _isLoading = false);
-        _showError('Email not configured for this admin');
-        _refreshCaptcha();
-        return;
-      }
-
-      await _auth.signInWithEmailAndPassword(
-        email: customEmail,
+      final result = await AuthService.loginWithRoleId(
+        role: 'admin',
+        roleId: adminId,
         password: password,
       );
 
-      await UserService.fetchAndCacheUserId();
-      await SessionService.saveRole('admin');
+      if (!result.success) {
+        setState(() => _isLoading = false);
+        _refreshCaptcha();
+        final message = result.message;
+        if (message.toLowerCase().contains('incorrect password')) {
+          _showErrorDialog('Incorrect Password',
+              'The password you entered is incorrect. Would you like to reset your password?');
+        } else {
+          _showError(message);
+        }
+        return;
+      }
 
       if (mounted) {
         Navigator.of(context).pushReplacement(

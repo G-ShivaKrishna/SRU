@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as excel_package;
@@ -13,6 +12,7 @@ import '../../../utils/web_download_stub.dart'
 import '../../../utils/file_save_stub.dart'
     if (dart.library.io) '../../../utils/file_save_io.dart';
 import '../../../services/audit_log_service.dart';
+import '../services/faculty_scope_service.dart';
 
 // ─── Models ────────────────────────────────────────────────────────────────────
 
@@ -89,8 +89,8 @@ class CieMarksScreen extends StatefulWidget {
 }
 
 class _CieMarksScreenState extends State<CieMarksScreen> {
-  final _auth = FirebaseAuth.instance;
   final _fs = FirebaseFirestore.instance;
+  final _scopeService = FacultyScopeService();
 
   // ── Phase 1: selection ──────────────────
   bool _loadingAssignments = true;
@@ -98,6 +98,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
   List<_CieAssignment> _assignments = [];
   _CieAssignment? _selectedAssignment;
   String? _selectedBatch;
+  String? _facultyId;
 
   // ── Phase 2: marks entry ────────────────
   bool _loadingMarks = false;
@@ -135,20 +136,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       _assignmentError = null;
     });
     try {
-      final user = _auth.currentUser;
-      if (user == null) throw Exception('Not logged in');
-      final userEmail = user.email!;
-
-      // Query faculty collection by email to get actual facultyId (doc ID)
-      final facultyDocs = await _fs
-          .collection('faculty')
-          .where('email', isEqualTo: userEmail)
-          .limit(1)
-          .get();
-      if (facultyDocs.docs.isEmpty) {
-        throw Exception('Faculty profile not found');
-      }
-      final facultyId = facultyDocs.docs.first.id;
+      final facultyId = await _scopeService.resolveCurrentFacultyId();
 
       final snap = await _fs
           .collection('facultyAssignments')
@@ -176,6 +164,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
 
       if (!mounted) return;
       setState(() {
+        _facultyId = facultyId;
         _assignments = list;
         _loadingAssignments = false;
       });
@@ -230,50 +219,12 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
               ))
           .toList();
 
-      // 2. Get department from assignment and parse batchNumber from batch
-      // Batch can be "B1", "CSE-A", "A", etc.
-      // For "CSE-A" format: extract the section part after last hyphen
-      // For "B1" or "A" format: use directly as batchNumber
-      final dept = assignment.department;
-      String batchNumber;
-      if (batch.contains('-')) {
-        // Format like "CSE-A" or "CSE-B1" - take the last part
-        batchNumber = batch.split('-').last;
-      } else {
-        // Format like "B1" or "A" - use directly
-        batchNumber = batch;
-      }
-
-      // 3. Load students: query by department, filter by batchNumber/section in Dart
-      final studentSnap = await _fs
-          .collection('students')
-          .where('department', isEqualTo: dept)
-          .get();
-
-      final students = studentSnap.docs.where((doc) {
-        final d = doc.data();
-        // Check both batchNumber and section fields
-        final bn = (d['batchNumber'] ?? '').toString();
-        final section = (d['section'] ?? '').toString();
-        final yr = (d['year'] ?? 0) is int
-            ? d['year'] as int
-            : int.tryParse(d['year'].toString()) ?? 0;
-        final status = (d['status'] ?? 'active').toString();
-
-        // Match if batchNumber OR section equals the batch identifier
-        final batchMatch = bn == batchNumber ||
-            section == batchNumber ||
-            bn == batch ||
-            section == batch;
-
-        return batchMatch &&
-            yr == assignment.year &&
-            status != 'graduated' &&
-            status != 'inactive';
-      }).toList();
-
-      // Sort by hallTicketNumber / doc ID
-      students.sort((a, b) => a.id.compareTo(b.id));
+      // 2. Load only students from the assignment's department, year and batch
+      final students = await _scopeService.loadStudentsForAssignment(
+        department: assignment.department,
+        year: assignment.year,
+        assignedBatches: [batch],
+      );
 
       // 4. Load existing marks for this assignment (all batches, filter in Dart)
       final marksSnap = await _fs
@@ -299,10 +250,9 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
       }
 
       // 5. Build rows
-      final rows = students.map((doc) {
-        final d = doc.data();
-        final sid = doc.id;
-        final name = (d['studentName'] ?? d['name'] ?? '').toString();
+      final rows = students.map((student) {
+        final sid = student['studentId']?.toString() ?? student['rollNo'].toString();
+        final name = (student['studentName'] ?? student['name'] ?? '').toString();
         final saved = existingMarks[sid];
         final controllers = <String, TextEditingController>{};
         for (final comp in compList) {
@@ -348,7 +298,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     final batch = _selectedBatch!;
     setState(() => row.isSaving = true);
     try {
-      final facultyId = _auth.currentUser!.email!.split('@')[0].toUpperCase();
+      final facultyId = _facultyId ?? await _scopeService.resolveCurrentFacultyId();
 
       // Validate that assignment is still active before saving
       final assignDoc = await _fs
@@ -470,7 +420,7 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     setState(() => _savingAll = true);
     final assignment = _selectedAssignment!;
     final batch = _selectedBatch!;
-    final facultyId = _auth.currentUser!.email!.split('@')[0].toUpperCase();
+    final facultyId = _facultyId ?? await _scopeService.resolveCurrentFacultyId();
     final now = FieldValue.serverTimestamp();
 
     try {

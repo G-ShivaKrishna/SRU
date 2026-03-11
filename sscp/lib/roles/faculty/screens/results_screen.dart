@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../services/faculty_scope_service.dart';
 import '../../../widgets/app_header.dart';
 
 class FacultyResultsScreen extends StatefulWidget {
@@ -11,6 +11,8 @@ class FacultyResultsScreen extends StatefulWidget {
 }
 
 class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
+  final _scopeService = FacultyScopeService();
+
   String? selectedCourse;
   String? selectedSection;
   String? selectedExamType;
@@ -21,6 +23,7 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
   List<String> sections = ['A', 'B', 'C', 'D', 'E', 'F'];
   List<String> examTypes = ['Mid Sem 1', 'Mid Sem 2', 'End Sem'];
   List<Map<String, dynamic>> students = [];
+  List<Map<String, dynamic>> _facultyAssignments = [];
 
   @override
   void initState() {
@@ -31,13 +34,7 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
   Future<void> _loadFacultyCourses() async {
     try {
       setState(() => isLoadingData = true);
-      
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      // Get faculty's email to find their ID
-      final email = user.email ?? '';
-      final facultyId = email.split('@')[0].toUpperCase();
+      final facultyId = await _scopeService.resolveCurrentFacultyId();
 
       // Fetch faculty assignments
       final assignmentSnapshot = await FirebaseFirestore.instance
@@ -46,8 +43,10 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
           .get();
 
       final courseSet = <String>{};
+      final assignments = <Map<String, dynamic>>[];
       for (var doc in assignmentSnapshot.docs) {
         final data = doc.data();
+        assignments.add({'docId': doc.id, ...data});
         final subjectCode = data['subjectCode'] ?? '';
         final subjectName = data['subjectName'] ?? '';
         if (subjectCode.isNotEmpty) {
@@ -56,6 +55,7 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
       }
 
       setState(() {
+        _facultyAssignments = assignments;
         courses = courseSet.toList()..sort();
         isLoadingData = false;
       });
@@ -81,45 +81,55 @@ class _FacultyResultsScreenState extends State<FacultyResultsScreen> {
       // Extract subject code from selected course
       final subjectCode = selectedCourse!.split(' - ').first;
 
-      // Fetch students from facultyAssignments who are enrolled in this course
-      final assignmentSnapshot = await FirebaseFirestore.instance
-          .collection('facultyAssignments')
-          .where('subjectCode', isEqualTo: subjectCode)
-          .where('section', isEqualTo: selectedSection)
-          .limit(1)
-          .get();
+      final matchingAssignments = _facultyAssignments.where((assignment) {
+        if ((assignment['subjectCode'] ?? '').toString() != subjectCode) {
+          return false;
+        }
+        final batches = List<String>.from(assignment['assignedBatches'] ?? []);
+        return _scopeService.assignmentContainsSection(
+          batches,
+          selectedSection!,
+        );
+      }).toList();
 
-      if (assignmentSnapshot.docs.isEmpty) {
+      if (matchingAssignments.isEmpty) {
         setState(() {
           students = [];
+          isStudentListLoaded = true;
           isLoadingData = false;
         });
         return;
       }
 
-      final assignmentData = assignmentSnapshot.docs.first.data();
-      final assignedBatches = List<String>.from(assignmentData['assignedBatches'] ?? []);
+      final studentMap = <String, Map<String, dynamic>>{};
+      for (final assignment in matchingAssignments) {
+        final allBatches = List<String>.from(assignment['assignedBatches'] ?? []);
+        final filteredBatches = allBatches
+            .where((batch) =>
+                _scopeService.assignmentContainsSection([batch], selectedSection!))
+            .toList();
 
-      // Fetch students from these batches
-      final studentsList = <Map<String, dynamic>>[];
-      
-      for (var batchNumber in assignedBatches) {
-        final studentSnapshot = await FirebaseFirestore.instance
-            .collection('students')
-            .where('batchNumber', isEqualTo: batchNumber)
-            .orderBy('hallTicketNumber')
-            .get();
+        final scopedStudents = await _scopeService.loadStudentsForAssignment(
+          department: (assignment['department'] ?? '').toString(),
+          year: (assignment['year'] is int)
+              ? assignment['year'] as int
+              : int.tryParse(assignment['year']?.toString() ?? '') ?? 0,
+          assignedBatches: filteredBatches,
+        );
 
-        for (var doc in studentSnapshot.docs) {
-          final data = doc.data();
-          studentsList.add({
-            'id': doc.id,
-            'rollNo': data['hallTicketNumber'] ?? doc.id,
-            'name': data['name'] ?? 'Unknown',
+        for (final student in scopedStudents) {
+          final id = (student['studentId'] ?? student['rollNo']).toString();
+          studentMap[id] = {
+            'id': id,
+            'rollNo': student['hallTicketNumber'] ?? id,
+            'name': student['studentName'] ?? student['name'] ?? 'Unknown',
             'marks': '',
-          });
+          };
         }
       }
+
+      final studentsList = studentMap.values.toList()
+        ..sort((a, b) => (a['rollNo'] as String).compareTo(b['rollNo'] as String));
 
       setState(() {
         students = studentsList;

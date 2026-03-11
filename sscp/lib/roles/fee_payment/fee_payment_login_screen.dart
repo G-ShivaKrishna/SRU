@@ -1,12 +1,10 @@
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../config/dev_config.dart';
-import '../../services/user_service.dart';
-import '../../services/session_service.dart';
+import '../../services/auth_service.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../widgets/forgot_password_dialog.dart';
 import '../../widgets/reset_link_helper.dart';
@@ -26,7 +24,6 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
   late String _captchaText;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -89,42 +86,24 @@ class _FeePaymentLoginScreenState extends State<FeePaymentLoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Normalize fee ID to uppercase
-      final normalizedFeeId = feeId.toUpperCase();
+      final result = await AuthService.loginWithRoleId(
+        role: 'fee_payment',
+        roleId: feeId,
+        password: password,
+      );
 
-      // Fetch fee payment staff data from Firestore
-      final feePaymentDoc = await FirebaseFirestore.instance
-          .collection('feePayments')
-          .doc(normalizedFeeId)
-          .get();
-
-      if (!feePaymentDoc.exists) {
+      if (!result.success) {
         setState(() => _isLoading = false);
-        _showError('Fee Payment staff record not found. Contact admin.');
         _refreshCaptcha();
+        final message = result.message;
+        if (message.toLowerCase().contains('incorrect password')) {
+          _showErrorDialog('Incorrect Password',
+              'The password you entered is incorrect. Would you like to reset your password?');
+        } else {
+          _showError(message);
+        }
         return;
       }
-
-      final docData = feePaymentDoc.data() as Map<String, dynamic>;
-
-      // Prefer firebaseEmail (exact email used when creating Firebase Auth
-      // account), fall back to email field
-      final authEmail = (docData['firebaseEmail'] as String?)?.trim() ??
-          (docData['email'] as String?)?.trim() ??
-          '';
-      if (authEmail.isEmpty) {
-        setState(() => _isLoading = false);
-        _showError('Email not configured for this staff. Contact admin.');
-        _refreshCaptcha();
-        return;
-      }
-
-      await _auth.signInWithEmailAndPassword(
-          email: authEmail, password: password);
-
-      // Fetch and cache user ID from Firestore
-      await UserService.fetchAndCacheUserId();
-      await SessionService.saveRole('fee_payment');
 
       if (!mounted) return;
       Navigator.of(context).pushReplacement(

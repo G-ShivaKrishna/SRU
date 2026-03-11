@@ -27,7 +27,40 @@ class UserService {
   /// Get current user data
   static Map<String, dynamic>? getCurrentUserData() => _currentUserData;
 
-  /// Fetch and cache user ID based on email
+  static void cacheCurrentUser({
+    required String userId,
+    required String role,
+    Map<String, dynamic>? userData,
+  }) {
+    _currentUserId = userId;
+    _currentUserRole = _normalizeRole(role);
+    _currentUserData = userData;
+  }
+
+  static String _normalizeRole(String role) {
+    final value = role.trim().toLowerCase();
+    if (value == 'feepayment' || value == 'fee payment') {
+      return 'fee_payment';
+    }
+    return value;
+  }
+
+  static String? _roleIdFromUsersDoc(String role, Map<String, dynamic> data) {
+    switch (role) {
+      case 'student':
+        return data['studentId']?.toString();
+      case 'faculty':
+        return data['facultyId']?.toString();
+      case 'admin':
+        return data['adminId']?.toString();
+      case 'fee_payment':
+        return data['feePaymentId']?.toString();
+      default:
+        return null;
+    }
+  }
+
+  /// Fetch and cache user ID from users/{uid}.
   static Future<String?> fetchAndCacheUserId() async {
     try {
       final user = _auth.currentUser;
@@ -36,147 +69,30 @@ class UserService {
         return null;
       }
 
-      final email = user.email?.toLowerCase().trim();
-      if (email == null) {
+      final usersDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (!usersDoc.exists) {
         _clearCache();
         return null;
       }
 
-      print('🔍 UserService: Looking up user with email: $email');
-
-      // Try to find in students collection by custom email field
-      var studentQuery = await _firestore
-          .collection('students')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-
-      if (studentQuery.docs.isNotEmpty) {
-        _currentUserId =
-            studentQuery.docs.first['hallTicketNumber']?.toString();
-        _currentUserRole = 'student';
-        _currentUserData = studentQuery.docs.first.data();
-        print('✅ UserService: Found student - ID: $_currentUserId');
-        return _currentUserId;
+      final usersData = Map<String, dynamic>.from(usersDoc.data()!);
+      final role = _normalizeRole((usersData['role'] ?? '').toString());
+      if (role.isEmpty) {
+        _clearCache();
+        return null;
       }
 
-      // Fallback: Search all students with case-insensitive comparison
-      final allStudents = await _firestore.collection('students').get();
-      for (final doc in allStudents.docs) {
-        final storedEmail =
-            (doc['email'] ?? '').toString().toLowerCase().trim();
-        if (storedEmail == email) {
-          _currentUserId = doc['hallTicketNumber']?.toString();
-          _currentUserRole = 'student';
-          _currentUserData = doc.data();
-          print(
-              '✅ UserService: Found student (fallback) - ID: $_currentUserId');
-          return _currentUserId;
-        }
+      final roleId = _roleIdFromUsersDoc(role, usersData);
+      if (roleId == null || roleId.isEmpty) {
+        _clearCache();
+        return null;
       }
 
-      print('❌ UserService: Student not found with email: $email');
-
-      // Try to find in faculty collection by custom email field
-      var facultyQuery = await _firestore
-          .collection('faculty')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-
-      if (facultyQuery.docs.isNotEmpty) {
-        _currentUserId = facultyQuery.docs.first['facultyId']?.toString();
-        _currentUserRole = 'faculty';
-        _currentUserData = facultyQuery.docs.first.data();
-        print('✅ UserService: Found faculty - ID: $_currentUserId');
-        return _currentUserId;
-      }
-
-      // Fallback: Search all faculty
-      final allFaculty = await _firestore.collection('faculty').get();
-      for (final doc in allFaculty.docs) {
-        final storedEmail =
-            (doc['email'] ?? '').toString().toLowerCase().trim();
-        if (storedEmail == email) {
-          _currentUserId = doc['facultyId']?.toString();
-          _currentUserRole = 'faculty';
-          _currentUserData = doc.data();
-          print(
-              '✅ UserService: Found faculty (fallback) - ID: $_currentUserId');
-          return _currentUserId;
-        }
-      }
-
-      print('❌ UserService: Faculty not found with email: $email');
-
-      // Try to find in admin collection by custom email field
-      var adminQuery = await _firestore
-          .collection('admin')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-
-      if (adminQuery.docs.isNotEmpty) {
-        final adminDoc = adminQuery.docs.first;
-        _currentUserId = adminDoc['adminId']?.toString() ?? adminDoc.id;
-        _currentUserRole = 'admin';
-        _currentUserData = adminDoc.data();
-        print('✅ UserService: Found admin - ID: $_currentUserId');
-        return _currentUserId;
-      }
-
-      // Fallback: Search all admins
-      final allAdmins = await _firestore.collection('admin').get();
-      for (final doc in allAdmins.docs) {
-        final storedEmail =
-            (doc['email'] ?? '').toString().toLowerCase().trim();
-        if (storedEmail == email) {
-          _currentUserId = doc['adminId']?.toString() ?? doc.id;
-          _currentUserRole = 'admin';
-          _currentUserData = doc.data();
-          print('✅ UserService: Found admin (fallback) - ID: $_currentUserId');
-          return _currentUserId;
-        }
-      }
-
-      print('❌ UserService: Admin not found with email: $email');
-
-      // Try to find in feePayments collection by custom email field
-      var feeQuery = await _firestore
-          .collection('feePayments')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-
-      if (feeQuery.docs.isNotEmpty) {
-        _currentUserId = feeQuery.docs.first['feePaymentId']?.toString();
-        _currentUserRole = 'feePayment';
-        _currentUserData = feeQuery.docs.first.data();
-        print('✅ UserService: Found feePayment staff - ID: $_currentUserId');
-        return _currentUserId;
-      }
-
-      // Fallback: Search all feePayments
-      final allFeePayment = await _firestore.collection('feePayments').get();
-      for (final doc in allFeePayment.docs) {
-        final storedEmail =
-            (doc['email'] ?? '').toString().toLowerCase().trim();
-        if (storedEmail == email) {
-          _currentUserId = doc['feePaymentId']?.toString();
-          _currentUserRole = 'feePayment';
-          _currentUserData = doc.data();
-          print(
-              '✅ UserService: Found feePayment (fallback) - ID: $_currentUserId');
-          return _currentUserId;
-        }
-      }
-
-      print(
-          '❌ UserService: User not found in any collection with email: $email');
-      _clearCache();
-      return null;
+      _currentUserId = roleId;
+      _currentUserRole = role;
+      _currentUserData = usersData;
+      return _currentUserId;
     } catch (e) {
-      print('❌ Error fetching user ID: $e');
       _clearCache();
       return null;
     }
