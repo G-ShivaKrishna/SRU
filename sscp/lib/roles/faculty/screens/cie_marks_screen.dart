@@ -398,7 +398,12 @@ class _CieMarksScreenState extends State<CieMarksScreen> {
     // Validate all rows
     for (final row in _studentRows) {
       for (final comp in _components) {
-        final val = int.tryParse(row.controllers[comp.name]?.text ?? '');
+        final raw = row.controllers[comp.name]?.text.trim() ?? '';
+        if (raw.isEmpty) {
+          continue; // Blank fields are allowed and will be stored as 0.
+        }
+
+        final val = int.tryParse(raw);
         if (val == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

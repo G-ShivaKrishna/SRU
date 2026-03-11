@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
 import '../../../services/audit_log_service.dart';
-import '../../../services/user_service.dart';
+import '../services/faculty_scope_service.dart';
 
 class UpdateBasicDataScreen extends StatefulWidget {
   const UpdateBasicDataScreen({super.key});
@@ -16,6 +16,7 @@ class _UpdateBasicDataScreenState extends State<UpdateBasicDataScreen> {
   final _formKey = GlobalKey<FormState>();
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
+  final _scopeService = FacultyScopeService();
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -148,8 +149,7 @@ class _UpdateBasicDataScreenState extends State<UpdateBasicDataScreen> {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
       final email = user.email ?? '';
-      _facultyDocId =
-          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+      _facultyDocId = await _scopeService.resolveCurrentFacultyId();
       final doc =
           await _firestore.collection('faculty').doc(_facultyDocId).get();
       final d = doc.exists ? (doc.data() ?? {}) : <String, dynamic>{};
@@ -328,9 +328,9 @@ class _UpdateBasicDataScreenState extends State<UpdateBasicDataScreen> {
           .set(data, SetOptions(merge: true));
 
       // Log audit trail
-      final email = _auth.currentUser?.email ?? '';
-      final facultyId = UserService.getCurrentUserId() ??
-          email.split('@').first.toUpperCase();
+        final facultyId = _facultyDocId.isNotEmpty
+          ? _facultyDocId
+          : await _scopeService.resolveCurrentFacultyId();
       AuditLogService().logFacultyProfileUpdate(
         facultyId: facultyId,
         updatedFields: {

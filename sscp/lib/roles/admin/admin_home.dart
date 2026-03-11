@@ -490,7 +490,7 @@ class _AdminHomeState extends State<AdminHome> {
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       child: Text(
-        'Welcome to Admin - $adminId - $designation',
+        'Welcome to Admin - ID: $adminId - $designation',
         style: TextStyle(
           color: Colors.yellow,
           fontSize: isMobile ? 12 : 14,
@@ -550,7 +550,7 @@ class _AdminHomeState extends State<AdminHome> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      adminId,
+                      'Admin ID: $adminId',
                       style: TextStyle(
                         fontSize: isMobile ? 11 : 12,
                         color: Colors.grey.shade600,
@@ -565,6 +565,8 @@ class _AdminHomeState extends State<AdminHome> {
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
+          _buildDetailRow('Admin ID', adminId, isMobile),
+          const SizedBox(height: 12),
           _buildDetailRow('Email', email, isMobile),
           const SizedBox(height: 12),
           _buildDetailRow('Designation', designation, isMobile),

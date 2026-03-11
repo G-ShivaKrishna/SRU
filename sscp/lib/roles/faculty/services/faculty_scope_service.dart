@@ -31,19 +31,31 @@ class FacultyScopeService {
 
     final facultyDocs = await _firestore
         .collection('faculty')
-        .where('email', isEqualTo: email)
+        .where('firebaseEmail', isEqualTo: email)
         .limit(1)
         .get();
 
+    QuerySnapshot<Map<String, dynamic>> fallbackDocs;
     if (facultyDocs.docs.isEmpty) {
+      fallbackDocs = await _firestore
+          .collection('faculty')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+    } else {
+      fallbackDocs = facultyDocs;
+    }
+
+    if (fallbackDocs.docs.isEmpty) {
       throw Exception('Faculty profile not found');
     }
 
-    final facultyId = facultyDocs.docs.first.id.trim().toUpperCase();
+    final facultyDoc = fallbackDocs.docs.first;
+    final facultyId = facultyDoc.id.trim().toUpperCase();
     UserService.cacheCurrentUser(
       userId: facultyId,
       role: 'faculty',
-      userData: facultyDocs.docs.first.data(),
+      userData: facultyDoc.data(),
     );
     return facultyId;
   }

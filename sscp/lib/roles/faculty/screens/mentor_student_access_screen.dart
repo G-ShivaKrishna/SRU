@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/faculty_scope_service.dart';
 
 class MentorStudentAccessScreen extends StatefulWidget {
   const MentorStudentAccessScreen({super.key});
@@ -13,6 +14,7 @@ class MentorStudentAccessScreen extends StatefulWidget {
 class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FacultyScopeService _scopeService = FacultyScopeService();
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -72,8 +74,8 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
         return;
       }
 
-      // Step 1: derive faculty doc ID from email
-      final facultyId = user.email!.split('@')[0].toUpperCase();
+      // Step 1: resolve faculty doc ID from session/firestore
+      final facultyId = await _scopeService.resolveCurrentFacultyId();
 
       // Step 2: fetch faculty name from 'faculty' collection
       final facultyDoc =

@@ -17,6 +17,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Map<String, dynamic>? _studentData;
+  String _studentId = '';
   bool _isLoading = true;
   bool _isEditMode = false;
   bool _canEditProfile = false;
@@ -102,8 +103,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Only use demo data when both bypass and useDemoData are enabled
       if (DevConfig.bypassLogin && DevConfig.useDemoData) {
+        final demoData = _getDemoData();
         setState(() {
-          _studentData = _getDemoData();
+          _studentData = demoData;
+          _studentId = (demoData['rollNumber'] ?? '').toString();
           _isLoading = false;
         });
         _initializeEditControllers();
@@ -112,8 +115,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // No user and bypass not enabled - show error
       if (user == null) {
+        final demoData = _getDemoData();
         setState(() {
-          _studentData = _getDemoData();
+          _studentData = demoData;
+          _studentId = (demoData['rollNumber'] ?? '').toString();
           _isLoading = false;
         });
         _initializeEditControllers();
@@ -132,20 +137,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         data['rollNumber'] = rollNumber;
         setState(() {
           _studentData = data;
+          _studentId = rollNumber;
           _canEditProfile = data['canEditProfile'] ?? false;
           _isLoading = false;
         });
         _initializeEditControllers();
       } else {
+        final demoData = _getDemoData();
         setState(() {
-          _studentData = _getDemoData();
+          _studentData = demoData;
+          _studentId = rollNumber;
           _isLoading = false;
         });
         _initializeEditControllers();
       }
     } catch (e) {
+      final demoData = _getDemoData();
       setState(() {
-        _studentData = _getDemoData();
+        _studentData = demoData;
+        _studentId = (demoData['rollNumber'] ?? '').toString();
         _isLoading = false;
       });
       _initializeEditControllers();
@@ -570,11 +580,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     ),
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1e3a5f).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: const Color(0xFF1e3a5f).withOpacity(0.25)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.badge,
+                            size: 18, color: Color(0xFF1e3a5f)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Student ID: ${_studentId.isNotEmpty ? _studentId : (_studentData?['rollNumber'] ?? 'N/A')}',
+                            style: const TextStyle(
+                              color: Color(0xFF1e3a5f),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   _buildSectionCard(
                       'Student Basic Information',
                       [
                         _buildInfoRow(
                             'Student Name', _studentData?['name'] ?? 'N/A'),
+                        _buildInfoRow(
+                            'Student ID',
+                            _studentId.isNotEmpty
+                                ? _studentId
+                                : (_studentData?['rollNumber'] ?? 'N/A')),
                         if (_isEditMode)
                           _buildEditableField(
                               'Father\'s Name or Guardian', 'fatherName')

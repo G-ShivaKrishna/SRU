@@ -51,6 +51,7 @@ class _FacultyHomeState extends State<FacultyHome> {
   final FeedbackService _feedbackService = FeedbackService();
   User? _currentUser;
   Map<String, dynamic>? _facultyData;
+  String _facultyId = '';
   bool _isLoading = true;
 
   @override
@@ -80,6 +81,7 @@ class _FacultyHomeState extends State<FacultyHome> {
             'avgFeedback': '4.6',
             'classesPerWeek': '12',
           };
+          _facultyId = 'FAC001';
           _isLoading = false;
         });
         return;
@@ -91,18 +93,51 @@ class _FacultyHomeState extends State<FacultyHome> {
       }
 
       _currentUser = user;
-      final email = _currentUser?.email ?? '';
-      final facultyId =
-          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+      final email = (_currentUser?.email ?? '').toLowerCase().trim();
+      final cachedId = (UserService.getCurrentUserId() ?? '').trim();
 
-      final doc = await _firestore.collection('faculty').doc(facultyId).get();
-      if (doc.exists) {
-        _facultyData = doc.data();
+      DocumentSnapshot<Map<String, dynamic>>? resolvedDoc;
+      String resolvedFacultyId = cachedId.toUpperCase();
+
+      if (cachedId.isNotEmpty) {
+        final byId = await _firestore.collection('faculty').doc(cachedId).get();
+        if (byId.exists) {
+          resolvedDoc = byId;
+          resolvedFacultyId = byId.id.toUpperCase();
+        }
+      }
+
+      if (resolvedDoc == null && email.isNotEmpty) {
+        final byFirebaseEmail = await _firestore
+            .collection('faculty')
+            .where('firebaseEmail', isEqualTo: email)
+            .limit(1)
+            .get();
+        if (byFirebaseEmail.docs.isNotEmpty) {
+          resolvedDoc = byFirebaseEmail.docs.first;
+          resolvedFacultyId = resolvedDoc.id.toUpperCase();
+        }
+      }
+
+      if (resolvedDoc == null && email.isNotEmpty) {
+        final byEmail = await _firestore
+            .collection('faculty')
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
+        if (byEmail.docs.isNotEmpty) {
+          resolvedDoc = byEmail.docs.first;
+          resolvedFacultyId = resolvedDoc.id.toUpperCase();
+        }
+      }
+
+      if (resolvedDoc != null) {
+        _facultyData = resolvedDoc.data();
 
         // Fetch average feedback from backend
         try {
           final avgFeedback = await _feedbackService.getOverallAverageFeedback(
-            facultyId: facultyId,
+            facultyId: resolvedFacultyId,
           );
           _facultyData?['avgFeedback'] = avgFeedback.toString();
         } catch (e) {
@@ -111,6 +146,7 @@ class _FacultyHomeState extends State<FacultyHome> {
         }
 
         setState(() {
+          _facultyId = resolvedFacultyId;
           _isLoading = false;
         });
       } else {
@@ -141,8 +177,11 @@ class _FacultyHomeState extends State<FacultyHome> {
 
     final isMobile = MediaQuery.of(context).size.width < 600;
     final name = _facultyData?['name'] ?? 'Faculty';
-    final employeeId =
-        _currentUser?.email?.split('@')[0].toUpperCase() ?? 'DEMO';
+  final facultyId = _facultyId.isNotEmpty
+    ? _facultyId
+    : ((UserService.getCurrentUserId() ?? '').trim().toUpperCase().isEmpty
+      ? 'N/A'
+      : (UserService.getCurrentUserId() ?? '').trim().toUpperCase());
     final department = _facultyData?['department'] ?? 'Department';
     final designation = _facultyData?['designation'] ?? 'Faculty';
     final email = _facultyData?['email'] ?? _currentUser?.email ?? 'N/A';
@@ -193,13 +232,13 @@ class _FacultyHomeState extends State<FacultyHome> {
             _buildNavigationMenu(context),
             _buildStatusBar(context),
             _buildWelcomeSection(
-                context, name, employeeId, designation, department),
+                context, name, facultyId, designation, department),
             _buildTimetableLink(context),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(
                 children: [
-                  _buildFacultyDetailsCard(context, employeeId, name, email,
+                  _buildFacultyDetailsCard(context, facultyId, name, email,
                       department, designation, experience),
                   const SizedBox(height: 24),
                   _buildFacultyStatsGrid(context),
@@ -433,7 +472,7 @@ class _FacultyHomeState extends State<FacultyHome> {
   Widget _buildWelcomeSection(
     BuildContext context,
     String name,
-    String employeeId,
+    String facultyId,
     String designation,
     String department,
   ) {
@@ -444,7 +483,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       color: const Color(0xFF1e3a5f),
       padding: EdgeInsets.all(isMobile ? 12 : 16),
       child: Text(
-        'Welcome to $name - $employeeId - $designation - $department',
+        'Welcome to $name - Faculty ID: $facultyId - $designation - $department',
         style: TextStyle(
           color: Colors.yellow,
           fontSize: isMobile ? 12 : 14,
@@ -481,7 +520,7 @@ class _FacultyHomeState extends State<FacultyHome> {
 
   Widget _buildFacultyDetailsCard(
     BuildContext context,
-    String employeeId,
+    String facultyId,
     String name,
     String email,
     String department,
@@ -528,7 +567,7 @@ class _FacultyHomeState extends State<FacultyHome> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      employeeId,
+                      'Faculty ID: $facultyId',
                       style: TextStyle(
                         fontSize: isMobile ? 11 : 12,
                         color: Colors.grey.shade600,
@@ -543,6 +582,8 @@ class _FacultyHomeState extends State<FacultyHome> {
           const SizedBox(height: 16),
           const Divider(height: 1),
           const SizedBox(height: 16),
+          _buildDetailRow('Faculty ID', facultyId, isMobile),
+          const SizedBox(height: 12),
           _buildDetailRow('Email', email, isMobile),
           const SizedBox(height: 12),
           _buildDetailRow('Department', department, isMobile),

@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../widgets/app_header.dart';
 import '../../../services/feedback_service.dart';
-import '../../../services/user_service.dart';
+import '../services/faculty_scope_service.dart';
 
 class FacultyFeedbackScreen extends StatefulWidget {
   const FacultyFeedbackScreen({super.key});
@@ -16,6 +16,7 @@ class _FacultyFeedbackScreenState extends State<FacultyFeedbackScreen> {
   final FeedbackService _feedbackService = FeedbackService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FacultyScopeService _scopeService = FacultyScopeService();
 
   bool _isLoading = true;
   String? _error;
@@ -38,9 +39,7 @@ class _FacultyFeedbackScreenState extends State<FacultyFeedbackScreen> {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
 
-      final email = user.email ?? '';
-      final docId =
-          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
+        final docId = await _scopeService.resolveCurrentFacultyId();
 
       // Get faculty document to find facultyId
       final facultyDoc =
