@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+const int _mentorBatchLimit = 2;
 
 class MentorAssignmentPage extends StatefulWidget {
   const MentorAssignmentPage({super.key});
@@ -9,13 +11,14 @@ class MentorAssignmentPage extends StatefulWidget {
 }
 
 class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
-  String? selectedBatch;
-  String? selectedFaculty;
+  Set<String> selectedBatches = {};
+  String? selectedDepartment;
+  String? selectedFacultyId;
   int? selectedYear;
   String? editingDocId;
-  List<String> batches = [];
-  List<String> faculties = [];
-  Map<int, List<String>> batchesByYear = {};
+  List<_FacultyOption> faculties = [];
+  Map<int, Map<String, List<String>>> batchesByYearAndDepartment = {};
+  Map<String, int> facultyAssignmentCounts = {};
   bool isLoading = true;
 
   @override
@@ -25,119 +28,250 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
   }
 
   Future<void> _fetchData() async {
+    if (mounted) {
+      setState(() => isLoading = true);
+    }
+
     try {
-      // Get batches grouped by year from students collection
-      final studentSnap = await FirebaseFirestore.instance.collection('students').get();
-      final tempBatchesByYear = <int, Set<String>>{};
-      
-      for (var doc in studentSnap.docs) {
+      final results = await Future.wait<dynamic>([
+        FirebaseFirestore.instance.collection('students').get(),
+        FirebaseFirestore.instance.collection('faculty').get(),
+        FirebaseFirestore.instance.collection('mentorAssignments').get(),
+      ]);
+
+      final studentSnap = results[0] as QuerySnapshot<Map<String, dynamic>>;
+      final facultySnap = results[1] as QuerySnapshot<Map<String, dynamic>>;
+      final mentorAssignmentSnap =
+          results[2] as QuerySnapshot<Map<String, dynamic>>;
+
+      final tempBatchesByYearAndDepartment = <int, Map<String, Set<String>>>{};
+      for (final doc in studentSnap.docs) {
         final data = doc.data();
-        final batchNum = data['batchNumber']?.toString();
-        final year = data['year'];
-        
-        if (batchNum != null && batchNum.isNotEmpty && year != null) {
-          final yearInt = year is int ? year : int.tryParse(year.toString());
-          if (yearInt != null) {
-            tempBatchesByYear.putIfAbsent(yearInt, () => <String>{});
-            tempBatchesByYear[yearInt]!.add(batchNum);
+        final batchNumber = (data['batchNumber'] ?? '').toString().trim();
+        final department =
+            (data['department'] ?? '').toString().trim().toUpperCase();
+        final year = _parseInt(data['year']);
+
+        if (batchNumber.isEmpty || department.isEmpty || year == null) {
+          continue;
+        }
+
+        tempBatchesByYearAndDepartment.putIfAbsent(
+          year,
+          () => <String, Set<String>>{},
+        );
+        tempBatchesByYearAndDepartment[year]!
+            .putIfAbsent(department, () => <String>{});
+        tempBatchesByYearAndDepartment[year]![department]!.add(batchNumber);
+      }
+
+      final sortedBatchesByYearAndDepartment = <int, Map<String, List<String>>>{};
+      for (final yearEntry in tempBatchesByYearAndDepartment.entries) {
+        final batchesByDepartment = <String, List<String>>{};
+        final departmentEntries = yearEntry.value.entries.toList()
+          ..sort((a, b) => a.key.compareTo(b.key));
+        for (final departmentEntry in departmentEntries) {
+          batchesByDepartment[departmentEntry.key] =
+              departmentEntry.value.toList()..sort();
+        }
+        sortedBatchesByYearAndDepartment[yearEntry.key] = batchesByDepartment;
+      }
+
+      final facultyOptions = facultySnap.docs
+          .map(
+            (doc) => _FacultyOption(
+              id: doc.id.trim().toUpperCase(),
+              name: (doc.data()['name'] ?? '').toString().trim(),
+              email: (doc.data()['email'] ?? '').toString().trim(),
+            ),
+          )
+          .where((faculty) => faculty.name.isNotEmpty)
+          .toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+      final countsById = <String, int>{};
+      final countsByName = <String, int>{};
+      for (final doc in mentorAssignmentSnap.docs) {
+        final data = doc.data();
+        final facultyId = _normalizeValue(data['facultyId']);
+        final facultyName = _normalizeValue(data['facultyName']);
+
+        if (facultyId.isNotEmpty) {
+          countsById[facultyId] = (countsById[facultyId] ?? 0) + 1;
+        } else if (facultyName.isNotEmpty) {
+          countsByName[facultyName] = (countsByName[facultyName] ?? 0) + 1;
+        }
+      }
+
+      final nextFacultyAssignmentCounts = <String, int>{};
+      for (final faculty in facultyOptions) {
+        nextFacultyAssignmentCounts[faculty.id] =
+            countsById[faculty.id] ?? countsByName[_normalizeValue(faculty.name)] ?? 0;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        batchesByYearAndDepartment = sortedBatchesByYearAndDepartment;
+        faculties = facultyOptions;
+        facultyAssignmentCounts = nextFacultyAssignmentCounts;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        batchesByYearAndDepartment = {};
+        faculties = [];
+        facultyAssignmentCounts = {};
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading data: $e')),
+      );
+    }
+  }
+
+  Future<void> _saveAssignment(
+    int year,
+    String department,
+    Set<String> batches,
+    _FacultyOption faculty,
+  ) async {
+    try {
+      final mentorAssignmentsCol =
+          FirebaseFirestore.instance.collection('mentorAssignments');
+
+      if (editingDocId != null) {
+        // Edit mode — single batch update
+        final batchNumber = batches.first;
+        final existingCount = await _countAssignmentsForFaculty(
+          faculty,
+          ignoreDocId: editingDocId,
+        );
+        if (existingCount >= _mentorBatchLimit) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Mentor "${faculty.name}" already has $_mentorBatchLimit batch assignments. Remove one before assigning another batch.',
+              ),
+            ),
+          );
+          return;
+        }
+        await mentorAssignmentsCol.doc(editingDocId!).update({
+          'year': year,
+          'department': department,
+          'batchNumber': batchNumber,
+          'facultyId': faculty.id,
+          'facultyName': faculty.name,
+          'facultyEmail': faculty.email,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Create mode — assign all selected batches
+        final existingCount = await _countAssignmentsForFaculty(faculty);
+        if (existingCount + batches.length > _mentorBatchLimit) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Cannot assign ${batches.length} batch(es). Mentor "${faculty.name}" has $existingCount/$_mentorBatchLimit batches assigned.',
+              ),
+            ),
+          );
+          return;
+        }
+        for (final batchNumber in batches) {
+          final existingSnap = await mentorAssignmentsCol
+              .where('year', isEqualTo: year)
+              .where('department', isEqualTo: department)
+              .where('batchNumber', isEqualTo: batchNumber)
+              .limit(1)
+              .get();
+          final payload = <String, dynamic>{
+            'year': year,
+            'department': department,
+            'batchNumber': batchNumber,
+            'facultyId': faculty.id,
+            'facultyName': faculty.name,
+            'facultyEmail': faculty.email,
+            'updatedAt': FieldValue.serverTimestamp(),
+          };
+          if (existingSnap.docs.isNotEmpty) {
+            await existingSnap.docs.first.reference.update(payload);
+          } else {
+            await mentorAssignmentsCol.add({
+              ...payload,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
           }
         }
       }
 
-      // Convert to sorted lists
-      final sortedBatchesByYear = <int, List<String>>{};
-      for (var entry in tempBatchesByYear.entries) {
-        sortedBatchesByYear[entry.key] = entry.value.toList()..sort();
-      }
+      await _fetchData();
+      if (!mounted) return;
 
-      // Get faculty names from faculty collection
-      final facultySnap = await FirebaseFirestore.instance.collection('faculty').get();
-      final facultyList = facultySnap.docs
-          .map((doc) => doc.data()['name']?.toString() ?? '')
-          .where((val) => val.isNotEmpty)
-          .toList();
-
+      final batchLabel = batches.join(', ');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Mentor "${faculty.name}" assigned to Year $year - $department - Batch(es) $batchLabel successfully.',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
       setState(() {
-        batchesByYear = sortedBatchesByYear;
-        faculties = facultyList..sort();
-        isLoading = false;
+        selectedYear = null;
+        selectedDepartment = null;
+        selectedBatches = {};
+        selectedFacultyId = null;
+        editingDocId = null;
       });
     } catch (e) {
-      setState(() { 
-        batchesByYear = {};
-        faculties = [];
-        isLoading = false; 
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading data: $e')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving assignment: $e')),
+      );
     }
   }
 
-  Future<void> _saveAssignment(int year, String batchNumber, String facultyName) async {
-    try {
-      if (editingDocId != null) {
-        // Update existing assignment
-        await FirebaseFirestore.instance
-            .collection('mentorAssignments')
-            .doc(editingDocId!)
-            .update({
-          'facultyName': facultyName,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
-      } else {
-        // Check if assignment already exists for this year+batch combination
-        final existingSnap = await FirebaseFirestore.instance
-            .collection('mentorAssignments')
-            .where('year', isEqualTo: year)
-            .where('batchNumber', isEqualTo: batchNumber)
-            .limit(1)
-            .get();
+  Future<int> _countAssignmentsForFaculty(
+    _FacultyOption faculty, {
+    String? ignoreDocId,
+  }) async {
+    final snap = await FirebaseFirestore.instance
+        .collection('mentorAssignments')
+        .get();
 
-        if (existingSnap.docs.isNotEmpty) {
-          // Update existing assignment
-          await existingSnap.docs.first.reference.update({
-            'facultyName': facultyName,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-        } else {
-          // Create new assignment
-          await FirebaseFirestore.instance
-              .collection('mentorAssignments')
-              .add({
-            'year': year,
-            'batchNumber': batchNumber,
-            'facultyName': facultyName,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        }
+    var count = 0;
+    for (final doc in snap.docs) {
+      if (doc.id == ignoreDocId) {
+        continue;
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Mentor "$facultyName" assigned to Year $year - Batch $batchNumber successfully!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-        // Clear selections
-        setState(() {
-          selectedYear = null;
-          selectedBatch = null;
-          selectedFaculty = null;
-          editingDocId = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving assignment: $e')),
-        );
+      if (_assignmentMatchesFaculty(doc.data(), faculty)) {
+        count++;
       }
     }
+    return count;
+  }
+
+  bool _assignmentMatchesFaculty(
+    Map<String, dynamic> data,
+    _FacultyOption faculty,
+  ) {
+    final assignmentFacultyId = _normalizeValue(data['facultyId']);
+    if (assignmentFacultyId.isNotEmpty) {
+      return assignmentFacultyId == faculty.id;
+    }
+
+    return _normalizeValue(data['facultyName']) == _normalizeValue(faculty.name);
   }
 
   Future<void> _deleteAssignment(String docId) async {
@@ -146,30 +280,41 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
           .collection('mentorAssignments')
           .doc(docId)
           .delete();
+      await _fetchData();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Assignment deleted successfully!'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+      if (!mounted) {
+        return;
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Assignment deleted successfully!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error deleting assignment: $e')),
-        );
+      if (!mounted) {
+        return;
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting assignment: $e')),
+      );
     }
   }
 
-  void _editAssignment(String docId, int year, String batchNumber, String facultyName) {
+  void _editAssignment(
+    String docId,
+    int year,
+    String department,
+    String batchNumber,
+    String facultyName, {
+    String? facultyId,
+  }) {
     setState(() {
       editingDocId = docId;
       selectedYear = year;
-      selectedBatch = batchNumber;
-      selectedFaculty = facultyName;
+      selectedDepartment = department.trim().toUpperCase();
+      selectedBatches = {batchNumber};
+      selectedFacultyId = _resolveFacultySelectionId(facultyId, facultyName);
     });
   }
 
@@ -177,13 +322,91 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
     setState(() {
       editingDocId = null;
       selectedYear = null;
-      selectedBatch = null;
-      selectedFaculty = null;
+      selectedDepartment = null;
+      selectedBatches = {};
+      selectedFacultyId = null;
     });
+  }
+
+  List<String> _availableDepartmentsForSelectedYear() {
+    if (selectedYear == null) {
+      return const [];
+    }
+    return (batchesByYearAndDepartment[selectedYear] ?? const <String, List<String>>{})
+        .keys
+        .toList()
+      ..sort();
+  }
+
+  List<String> _availableBatchesForSelectedScope() {
+    if (selectedYear == null || selectedDepartment == null) {
+      return const [];
+    }
+    return batchesByYearAndDepartment[selectedYear]?[selectedDepartment!] ?? const [];
+  }
+
+  _FacultyOption? _findFacultyById(String? facultyId) {
+    if (facultyId == null || facultyId.trim().isEmpty) {
+      return null;
+    }
+
+    final normalizedFacultyId = facultyId.trim().toUpperCase();
+    for (final faculty in faculties) {
+      if (faculty.id == normalizedFacultyId) {
+        return faculty;
+      }
+    }
+    return null;
+  }
+
+  String? _resolveFacultySelectionId(String? facultyId, String facultyName) {
+    final exactMatch = _findFacultyById(facultyId);
+    if (exactMatch != null) {
+      return exactMatch.id;
+    }
+
+    final normalizedFacultyName = _normalizeValue(facultyName);
+    for (final faculty in faculties) {
+      if (_normalizeValue(faculty.name) == normalizedFacultyName) {
+        return faculty.id;
+      }
+    }
+    return null;
+  }
+
+  int _assignmentCountFor(String? facultyId, String facultyName) {
+    final exactMatch = _findFacultyById(facultyId);
+    if (exactMatch != null) {
+      return facultyAssignmentCounts[exactMatch.id] ?? 0;
+    }
+
+    final normalizedFacultyName = _normalizeValue(facultyName);
+    for (final faculty in faculties) {
+      if (_normalizeValue(faculty.name) == normalizedFacultyName) {
+        return facultyAssignmentCounts[faculty.id] ?? 0;
+      }
+    }
+    return 0;
+  }
+
+  String _normalizeValue(Object? value) {
+    return value?.toString().trim().toUpperCase() ?? '';
+  }
+
+  int? _parseInt(Object? value) {
+    if (value is int) {
+      return value;
+    }
+    return int.tryParse(value?.toString() ?? '');
   }
 
   @override
   Widget build(BuildContext context) {
+    final selectedFaculty = _findFacultyById(selectedFacultyId);
+    final selectedFacultyLoad = selectedFaculty == null
+        ? null
+        : facultyAssignmentCounts[selectedFaculty.id] ?? 0;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Assign Mentor to Batch'),
@@ -195,7 +418,6 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Assignment Form
                     Card(
                       elevation: 2,
                       child: Padding(
@@ -204,66 +426,129 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              editingDocId != null ? 'Edit Mentor Assignment' : 'Create New Assignment',
+                              editingDocId != null
+                                  ? 'Edit Mentor Assignment'
+                                  : 'Create New Assignment',
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Each mentor can be assigned to at most $_mentorBatchLimit batches.',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Colors.grey.shade700),
+                            ),
                             const SizedBox(height: 16),
-                            
-                            // Year Dropdown
                             DropdownButtonFormField<int>(
                               decoration: const InputDecoration(
                                 labelText: 'Select Year',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: selectedYear,
-                              items: batchesByYear.keys.isEmpty
-                                  ? [
-                                      const DropdownMenuItem(
-                                        value: null,
-                                        child: Text('No years available'),
-                                      )
-                                    ]
-                                  : (batchesByYear.keys.toList()..sort())
-                                      .map((year) {
-                                        return DropdownMenuItem(
-                                          value: year,
-                                          child: Text('Year $year'),
-                                        );
-                                      }).toList(),
-                              onChanged: batchesByYear.keys.isEmpty
+                              items: (batchesByYearAndDepartment.keys.toList()..sort())
+                                  .map(
+                                    (year) => DropdownMenuItem<int>(
+                                      value: year,
+                                      child: Text('Year $year'),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: batchesByYearAndDepartment.isEmpty
                                   ? null
-                                  : (val) {
+                                  : (value) {
                                       setState(() {
-                                        selectedYear = val;
-                                        selectedBatch = null; // Reset batch when year changes
+                                        selectedYear = value;
+                                        selectedDepartment = null;
+                                        selectedBatches = {};
                                       });
                                     },
                             ),
                             const SizedBox(height: 16),
-                            
-                            // Batch Dropdown (filtered by selected year)
                             DropdownButtonFormField<String>(
                               decoration: const InputDecoration(
-                                labelText: 'Select Batch',
+                                labelText: 'Select Branch',
                                 border: OutlineInputBorder(),
                               ),
-                              initialValue: selectedBatch,
-                              items: selectedYear != null && batchesByYear[selectedYear] != null && batchesByYear[selectedYear]!.isNotEmpty
-                                  ? batchesByYear[selectedYear]!
-                                      .map((batch) => DropdownMenuItem(
-                                            value: batch,
-                                            child: Text(batch),
-                                          ))
-                                      .toList()
-                                  : [
-                                      const DropdownMenuItem(
-                                        value: null,
-                                        child: Text('Select year first'),
-                                      )
-                                    ],
-                              onChanged: selectedYear != null && batchesByYear[selectedYear] != null
-                                  ? (val) => setState(() => selectedBatch = val)
+                              initialValue: selectedDepartment,
+                              items: _availableDepartmentsForSelectedYear()
+                                  .map(
+                                    (department) => DropdownMenuItem<String>(
+                                      value: department,
+                                      child: Text(department),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: selectedYear != null
+                                  ? (value) {
+                                      setState(() {
+                                        selectedDepartment = value;
+                                        selectedBatches = {};
+                                      });
+                                    }
                                   : null,
+                            ),
+                            const SizedBox(height: 16),
+                            InputDecorator(
+                              decoration: InputDecoration(
+                                labelText: editingDocId != null
+                                    ? 'Select Batch'
+                                    : 'Select Batch(es) — up to $_mentorBatchLimit',
+                                border: const OutlineInputBorder(),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
+                              child: _availableBatchesForSelectedScope().isEmpty
+                                  ? Text(
+                                      selectedDepartment == null
+                                          ? 'Select a branch first'
+                                          : 'No batches available',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    )
+                                  : Wrap(
+                                      spacing: 8,
+                                      runSpacing: 4,
+                                      children: _availableBatchesForSelectedScope()
+                                          .map(
+                                            (batch) {
+                                              final isSelected =
+                                                  selectedBatches.contains(batch);
+                                              final maxReached =
+                                                  selectedBatches.length >=
+                                                  (editingDocId != null
+                                                      ? 1
+                                                      : _mentorBatchLimit);
+                                              return FilterChip(
+                                                label: Text(batch),
+                                                selected: isSelected,
+                                                onSelected:
+                                                    selectedDepartment != null
+                                                        ? (value) {
+                                                            setState(() {
+                                                              if (value &&
+                                                                  !maxReached) {
+                                                                selectedBatches = {
+                                                                  ...selectedBatches,
+                                                                  batch,
+                                                                };
+                                                              } else if (!value) {
+                                                                selectedBatches =
+                                                                    Set<String>.from(
+                                                                  selectedBatches,
+                                                                )..remove(batch);
+                                                              }
+                                                            });
+                                                          }
+                                                        : null,
+                                              );
+                                            },
+                                          )
+                                          .toList(),
+                                    ),
                             ),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
@@ -271,41 +556,61 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                 labelText: 'Select Faculty',
                                 border: OutlineInputBorder(),
                               ),
-                              initialValue: selectedFaculty,
-                              items: faculties.isNotEmpty
-                                  ? faculties
-                                      .map((faculty) => DropdownMenuItem(
-                                            value: faculty,
-                                            child: Text(faculty),
-                                          ))
-                                      .toList()
-                                  : [
-                                      const DropdownMenuItem(
-                                        value: null,
-                                        child: Text('No faculties found'),
-                                      )
-                                    ],
-                              onChanged: faculties.isNotEmpty
-                                  ? (val) => setState(() => selectedFaculty = val)
-                                  : null,
+                              initialValue: selectedFacultyId,
+                              items: faculties
+                                  .map(
+                                    (faculty) => DropdownMenuItem<String>(
+                                      value: faculty.id,
+                                      child: Text(
+                                        '${faculty.name}  (${facultyAssignmentCounts[faculty.id] ?? 0}/$_mentorBatchLimit)',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: faculties.isEmpty
+                                  ? null
+                                  : (value) =>
+                                      setState(() => selectedFacultyId = value),
                             ),
+                            if (selectedFacultyLoad != null) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                selectedFacultyLoad >= _mentorBatchLimit
+                                    ? 'This mentor is already at capacity ($_mentorBatchLimit/$_mentorBatchLimit batches).'
+                                    : 'Current load: $selectedFacultyLoad/$_mentorBatchLimit batches.',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: selectedFacultyLoad >=
+                                              _mentorBatchLimit
+                                          ? Colors.orange.shade800
+                                          : Colors.grey.shade700,
+                                    ),
+                              ),
+                            ],
                             const SizedBox(height: 24),
                             Row(
                               children: [
                                 Expanded(
                                   child: ElevatedButton(
                                     onPressed: selectedYear != null &&
-                                            selectedBatch != null &&
-                                            selectedFaculty != null &&
-                                            faculties.isNotEmpty
-                                        ? () {
-                                            _saveAssignment(
-                                                selectedYear!, selectedBatch!, selectedFaculty!);
-                                          }
+                                            selectedDepartment != null &&
+                                            selectedBatches.isNotEmpty &&
+                                            selectedFaculty != null
+                                        ? () => _saveAssignment(
+                                              selectedYear!,
+                                              selectedDepartment!,
+                                              selectedBatches,
+                                              selectedFaculty,
+                                            )
                                         : null,
-                                    child: Text(editingDocId != null
-                                        ? 'Update Assignment'
-                                        : 'Assign Mentor'),
+                                    child: Text(
+                                      editingDocId != null
+                                          ? 'Update Assignment'
+                                          : 'Assign Mentor',
+                                    ),
                                   ),
                                 ),
                                 if (editingDocId != null) ...[
@@ -317,7 +622,7 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                     ),
                                     child: const Text('Cancel'),
                                   ),
-                                ]
+                                ],
                               ],
                             ),
                           ],
@@ -325,13 +630,12 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    // List of Assigned Mentors
                     Text(
                       'Assigned Mentors',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 16),
-                    StreamBuilder<QuerySnapshot>(
+                    StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                       stream: FirebaseFirestore.instance
                           .collection('mentorAssignments')
                           .snapshots(),
@@ -339,7 +643,8 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
                           return const Center(
-                              child: CircularProgressIndicator());
+                            child: CircularProgressIndicator(),
+                          );
                         }
 
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -349,24 +654,36 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                         }
 
                         final assignments = snapshot.data!.docs;
-
                         return ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: assignments.length,
                           itemBuilder: (context, index) {
                             final assignment = assignments[index];
-                            final data = assignment.data() as Map<String, dynamic>;
+                            final data = assignment.data();
                             final year = data['year'] ?? 'N/A';
-                            final batchNumber = data['batchNumber'] ?? '';
-                            final facultyName = data['facultyName'] ?? '';
+                            final department =
+                              (data['department'] ?? '').toString().trim().toUpperCase();
+                            final batchNumber =
+                                (data['batchNumber'] ?? '').toString();
+                            final facultyName =
+                                (data['facultyName'] ?? '').toString();
+                            final facultyId = data['facultyId']?.toString();
                             final docId = assignment.id;
+                            final assignmentCount =
+                                _assignmentCountFor(facultyId, facultyName);
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
                               child: ListTile(
-                                title: Text('Year $year - Batch $batchNumber'),
-                                subtitle: Text('Mentor: $facultyName'),
+                                title: Text(
+                                  department.isEmpty
+                                      ? 'Year $year - Batch $batchNumber'
+                                      : 'Year $year - $department - Batch $batchNumber',
+                                ),
+                                subtitle: Text(
+                                  'Mentor: $facultyName  •  Load: $assignmentCount/$_mentorBatchLimit batches',
+                                ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -374,9 +691,17 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                       icon: const Icon(Icons.edit),
                                       color: Colors.blue,
                                       onPressed: () {
-                                        final yearInt = year is int ? year : int.tryParse(year.toString()) ?? 1;
-                                        _editAssignment(docId, yearInt, batchNumber, facultyName);
-                                        // Scroll to top to see form
+                                        final yearInt = year is int
+                                            ? year
+                                            : int.tryParse(year.toString()) ?? 1;
+                                        _editAssignment(
+                                          docId,
+                                          yearInt,
+                                          department,
+                                          batchNumber,
+                                          facultyName,
+                                          facultyId: facultyId,
+                                        );
                                         Scrollable.ensureVisible(
                                           context,
                                           alignment: 0.0,
@@ -390,30 +715,33 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                       icon: const Icon(Icons.delete),
                                       color: Colors.red,
                                       onPressed: () {
-                                        showDialog(
+                                        showDialog<void>(
                                           context: context,
-                                          builder: (BuildContext dialogContext) {
+                                          builder: (dialogContext) {
                                             return AlertDialog(
                                               title: const Text('Delete Assignment'),
                                               content: Text(
-                                                  'Are you sure you want to delete the assignment of Year $year - Batch $batchNumber from mentor $facultyName?'),
+                                                department.isEmpty
+                                                    ? 'Are you sure you want to delete the assignment of Year $year - Batch $batchNumber from mentor $facultyName?'
+                                                    : 'Are you sure you want to delete the assignment of Year $year - $department - Batch $batchNumber from mentor $facultyName?',
+                                              ),
                                               actions: [
                                                 TextButton(
-                                                  onPressed: () {
-                                                    Navigator.pop(
-                                                        dialogContext);
-                                                  },
+                                                  onPressed: () =>
+                                                      Navigator.pop(dialogContext),
                                                   child: const Text('Cancel'),
                                                 ),
                                                 TextButton(
                                                   onPressed: () {
-                                                    Navigator.pop(
-                                                        dialogContext);
+                                                    Navigator.pop(dialogContext);
                                                     _deleteAssignment(docId);
                                                   },
-                                                  child: const Text('Delete',
-                                                      style: TextStyle(
-                                                          color: Colors.red)),
+                                                  child: const Text(
+                                                    'Delete',
+                                                    style: TextStyle(
+                                                      color: Colors.red,
+                                                    ),
+                                                  ),
                                                 ),
                                               ],
                                             );
@@ -436,4 +764,16 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
             ),
     );
   }
+}
+
+class _FacultyOption {
+  const _FacultyOption({
+    required this.id,
+    required this.name,
+    required this.email,
+  });
+
+  final String id;
+  final String name;
+  final String email;
 }

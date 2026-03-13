@@ -19,6 +19,7 @@ class StudentPromotionService {
   static Future<void> runPostPromotionTasks({
     required List<String> rollNumbers,
     required List<String> batchNumbers,
+    List<String>? departments,
   }) async {
     if (rollNumbers.isEmpty) return;
     try {
@@ -38,13 +39,24 @@ class StudentPromotionService {
 
       // ── 3 · Delete mentorAssignments for affected batches ─────────────────
       final mentorRefs = <DocumentReference>[];
+      final normalizedDepartments =
+          departments?.map((d) => d.trim().toUpperCase()).where((d) => d.isNotEmpty).toSet().toList() ?? const <String>[];
       for (final batchNum in batchNumbers) {
         if (batchNum.isEmpty) continue;
         final snap = await _firestore
             .collection('mentorAssignments')
             .where('batchNumber', isEqualTo: batchNum)
             .get();
-        mentorRefs.addAll(snap.docs.map((d) => d.reference));
+        for (final doc in snap.docs) {
+          final department =
+              (doc.data()['department'] ?? '').toString().trim().toUpperCase();
+          if (normalizedDepartments.isNotEmpty &&
+              department.isNotEmpty &&
+              !normalizedDepartments.contains(department)) {
+            continue;
+          }
+          mentorRefs.add(doc.reference);
+        }
       }
       if (mentorRefs.isNotEmpty) await _batchDelete(mentorRefs);
 
@@ -253,9 +265,11 @@ class StudentPromotionService {
 
       // Run post-promotion side effects
       final batchNum = data['batchNumber']?.toString() ?? '';
+      final department = data['department']?.toString() ?? '';
       await runPostPromotionTasks(
         rollNumbers: [hallTicketNumber],
         batchNumbers: batchNum.isNotEmpty ? [batchNum] : [],
+        departments: department.isNotEmpty ? [department] : const [],
       );
 
       return {
@@ -351,9 +365,15 @@ class StudentPromotionService {
           .where((b) => b.isNotEmpty)
           .toSet()
           .toList();
+      final departments = matchingDocs
+          .map((d) => d.data()['department']?.toString() ?? '')
+          .where((d) => d.isNotEmpty)
+          .toSet()
+          .toList();
       await runPostPromotionTasks(
         rollNumbers: rollNums,
         batchNumbers: batchNums,
+        departments: departments,
       );
 
       return {
@@ -543,9 +563,11 @@ class StudentPromotionService {
 
       // Run post-promotion side effects
       final batchNum = data['batchNumber']?.toString() ?? '';
+      final department = data['department']?.toString() ?? '';
       await runPostPromotionTasks(
         rollNumbers: [hallTicketNumber],
         batchNumbers: batchNum.isNotEmpty ? [batchNum] : [],
+        departments: department.isNotEmpty ? [department] : const [],
       );
 
       return {

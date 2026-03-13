@@ -19,7 +19,7 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   String? _facultyName;
-  String? _assignedBatch;
+  List<_MentorAssignment> _assignments = [];
   List<Map<String, dynamic>> _students = [];
   List<Map<String, dynamic>> _filteredStudents = [];
 
@@ -96,16 +96,52 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
         return;
       }
 
-      // Step 3: find mentorAssignments where facultyName matches
-      final assignSnap = await _firestore
+      var assignSnap = await _firestore
           .collection('mentorAssignments')
-          .where('facultyName', isEqualTo: facultyName)
+          .where('facultyId', isEqualTo: facultyId)
           .get();
 
       if (assignSnap.docs.isEmpty) {
+        assignSnap = await _firestore
+            .collection('mentorAssignments')
+            .where('facultyName', isEqualTo: facultyName)
+            .get();
+      }
+
+      final assignments = assignSnap.docs
+          .map((doc) {
+            final data = doc.data();
+            final department =
+                (data['department'] ?? '').toString().trim().toUpperCase();
+            final batchNumber = (data['batchNumber'] ?? '').toString().trim();
+            final year = data['year'];
+            final yearInt = year is int ? year : int.tryParse(year.toString());
+
+            if (batchNumber.isEmpty) {
+              return null;
+            }
+
+            return _MentorAssignment(
+              id: doc.id,
+              department: department,
+              batchNumber: batchNumber,
+              year: yearInt,
+            );
+          })
+          .whereType<_MentorAssignment>()
+          .toList()
+        ..sort((a, b) {
+          final yearCompare = (a.year ?? 0).compareTo(b.year ?? 0);
+          if (yearCompare != 0) {
+            return yearCompare;
+          }
+          return a.batchNumber.compareTo(b.batchNumber);
+        });
+
+      if (assignments.isEmpty) {
         setState(() {
           _facultyName = facultyName;
-          _assignedBatch = null;
+          _assignments = [];
           _students = [];
           _filteredStudents = [];
           _isLoading = false;
@@ -113,39 +149,43 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
         return;
       }
 
-      // Faculty may have multiple assignments (different years), take first one
-      final assignmentData = assignSnap.docs.first.data();
-      final batchNumber =
-          (assignmentData['batchNumber'] ?? '').toString().trim();
-      final year = assignmentData['year'];
-      final yearInt = year is int ? year : int.tryParse(year.toString());
+      final studentResults = await Future.wait(
+        assignments.map(_loadStudentsForAssignment),
+      );
 
-      // Step 4: fetch all students in that year+batch combination
-      Query<Map<String, dynamic>> studentsQuery = _firestore
-          .collection('students')
-          .where('batchNumber', isEqualTo: batchNumber);
-
-      // Add year filter if available
-      if (yearInt != null) {
-        studentsQuery = studentsQuery.where('year', isEqualTo: yearInt);
+      final studentsByRollNumber = <String, Map<String, dynamic>>{};
+      for (final students in studentResults) {
+        for (final student in students) {
+          final rollNumber = (student['rollNumber'] ?? '').toString();
+          if (rollNumber.isEmpty) {
+            continue;
+          }
+          studentsByRollNumber[rollNumber] = student;
+        }
       }
 
-      final studentsSnap = await studentsQuery.get();
+      final studentsList = studentsByRollNumber.values.toList()
+        ..sort((a, b) {
+          final yearCompare = _parseInt(a['year']).compareTo(_parseInt(b['year']));
+          if (yearCompare != 0) {
+            return yearCompare;
+          }
 
-      final studentsList = studentsSnap.docs.map((doc) {
-        final data = doc.data();
-        data['rollNumber'] = doc.id; // roll number is the doc ID
-        return data;
-      }).toList();
+          final batchCompare = (a['batchNumber'] ?? '')
+              .toString()
+              .compareTo((b['batchNumber'] ?? '').toString());
+          if (batchCompare != 0) {
+            return batchCompare;
+          }
 
-      // Sort by roll number
-      studentsList.sort(
-          (a, b) => (a['rollNumber'] ?? '').compareTo(b['rollNumber'] ?? ''));
+          return (a['rollNumber'] ?? '')
+              .toString()
+              .compareTo((b['rollNumber'] ?? '').toString());
+        });
 
       setState(() {
         _facultyName = facultyName;
-        _assignedBatch =
-            yearInt != null ? 'Year $yearInt - $batchNumber' : batchNumber;
+        _assignments = assignments;
         _students = studentsList;
         _filteredStudents = List.from(studentsList);
         _isLoading = false;
@@ -156,6 +196,40 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadStudentsForAssignment(
+    _MentorAssignment assignment,
+  ) async {
+    Query<Map<String, dynamic>> studentsQuery = _firestore
+        .collection('students')
+        .where('batchNumber', isEqualTo: assignment.batchNumber);
+
+    if (assignment.year != null) {
+      studentsQuery = studentsQuery.where('year', isEqualTo: assignment.year);
+    }
+
+    if (assignment.department.isNotEmpty) {
+      studentsQuery = studentsQuery.where(
+        'department',
+        isEqualTo: assignment.department,
+      );
+    }
+
+    final studentsSnap = await studentsQuery.get();
+    return studentsSnap.docs.map((doc) {
+      final data = doc.data();
+      data['rollNumber'] = doc.id;
+      data['mentorAssignmentLabel'] = assignment.label;
+      return data;
+    }).toList();
+  }
+
+  int _parseInt(Object? value) {
+    if (value is int) {
+      return value;
+    }
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   @override
@@ -232,7 +306,7 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Text(
-            'Showing ${_filteredStudents.length} of ${_students.length} student(s)',
+            'Showing ${_filteredStudents.length} of ${_students.length} student(s) across ${_assignments.length} batch(es)',
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ),
@@ -244,7 +318,7 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
   }
 
   Widget _buildInfoBanner() {
-    if (_assignedBatch == null) {
+    if (_assignments.isEmpty) {
       return Container(
         width: double.infinity,
         color: Colors.orange.shade100,
@@ -269,6 +343,7 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
       color: const Color(0xFF1e3a5f),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.group, color: Colors.white70),
           const SizedBox(width: 10),
@@ -284,8 +359,33 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
                       fontSize: 15),
                 ),
                 Text(
-                  'Assigned Batch: $_assignedBatch  ·  ${_students.length} students',
+                  'Assigned Batches: ${_assignments.length}  ·  ${_students.length} students',
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _assignments
+                      .map(
+                        (assignment) => Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: Text(
+                            assignment.label,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
               ],
             ),
@@ -299,7 +399,7 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
     return const Expanded(
       child: Center(
         child: Text(
-          'No students found in this batch.',
+          'No students found in your assigned batches.',
           style: TextStyle(fontSize: 16, color: Colors.grey),
         ),
       ),
@@ -629,6 +729,7 @@ class _StudentCardState extends State<_StudentCard> {
     final program = _str('program');
     final year = _str('year');
     final batch = _str('batchNumber');
+    final assignmentLabel = _str('mentorAssignmentLabel');
     final cgpaDisplay = _computedCgpa ?? '—';
 
     return Card(
@@ -666,6 +767,17 @@ class _StudentCardState extends State<_StudentCard> {
                           style:
                               const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
+                        if (assignmentLabel != '—') ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            assignmentLabel,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1e3a5f),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1101,5 +1213,24 @@ class _StudentCardState extends State<_StudentCard> {
         ],
       ),
     );
+  }
+}
+
+class _MentorAssignment {
+  const _MentorAssignment({
+    required this.id,
+    required this.department,
+    required this.batchNumber,
+    required this.year,
+  });
+
+  final String id;
+  final String department;
+  final String batchNumber;
+  final int? year;
+
+  String get label {
+    final scope = department.isNotEmpty ? '$department - Batch $batchNumber' : 'Batch $batchNumber';
+    return year != null ? 'Year $year - $scope' : scope;
   }
 }
