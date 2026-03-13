@@ -72,12 +72,12 @@ class _AdminHomeState extends State<AdminHome> {
         fs.collection('grievances').where('status', isEqualTo: 'Pending').get(),
       ]);
 
-        final studentSnap = futures[0];
-        final adminSnap = futures[1];
-        final subjectSnap = futures[2];
-        final editAccessPendingSnap = futures[3];
-        final attendancePendingSnap = futures[4];
-        final grievancePendingSnap = futures[5];
+      final studentSnap = futures[0];
+      final adminSnap = futures[1];
+      final subjectSnap = futures[2];
+      final editAccessPendingSnap = futures[3];
+      final attendancePendingSnap = futures[4];
+      final grievancePendingSnap = futures[5];
 
       // Admin records may or may not include status; treat missing status as active.
       final activeAdmins = adminSnap.docs.where((doc) {
@@ -1111,7 +1111,8 @@ class _AdminHomeState extends State<AdminHome> {
                   final activity = _buildOperationText(log);
                   final time = _timeAgo(log.timestamp);
                   return Padding(
-                    padding: EdgeInsets.only(bottom: index == logs.length - 1 ? 0 : 10),
+                    padding: EdgeInsets.only(
+                        bottom: index == logs.length - 1 ? 0 : 10),
                     child: _buildActivityItem(activity, time, isMobile),
                   );
                 }),

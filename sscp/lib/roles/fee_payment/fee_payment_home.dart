@@ -783,58 +783,53 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                     // ── Fee summary ──────────────────────────────
                     if (_needsSubjectPicker &&
                         _selectedSubjectCodes.isNotEmpty &&
-                        _feePerSubject > 0) ...
-                      [
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1e3a5f)
-                                .withValues(alpha: 0.06),
-                            border: Border.all(
-                                color: const Color(0xFF1e3a5f)
-                                    .withValues(alpha: 0.25)),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.currency_rupee,
-                                  size: 16,
-                                  color: Color(0xFF1e3a5f)),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: RichText(
-                                  text: TextSpan(
-                                    style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.black87),
-                                    children: [
-                                      TextSpan(
-                                          text:
-                                              '₹${_feePerSubject.toStringAsFixed(0)}',
-                                          style: const TextStyle(
-                                              fontWeight:
-                                                  FontWeight.w600)),
-                                      TextSpan(
-                                          text:
-                                              ' × ${_selectedSubjectCodes.length} subject${_selectedSubjectCodes.length == 1 ? '' : 's'} = '),
-                                      TextSpan(
-                                          text:
-                                              '₹${_totalFee.toStringAsFixed(0)}',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                              color:
-                                                  Color(0xFF1e3a5f))),
-                                    ],
-                                  ),
+                        _feePerSubject > 0) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFF1e3a5f).withValues(alpha: 0.06),
+                          border: Border.all(
+                              color: const Color(0xFF1e3a5f)
+                                  .withValues(alpha: 0.25)),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.currency_rupee,
+                                size: 16, color: Color(0xFF1e3a5f)),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(
+                                      fontSize: 13, color: Colors.black87),
+                                  children: [
+                                    TextSpan(
+                                        text:
+                                            '₹${_feePerSubject.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600)),
+                                    TextSpan(
+                                        text:
+                                            ' × ${_selectedSubjectCodes.length} subject${_selectedSubjectCodes.length == 1 ? '' : 's'} = '),
+                                    TextSpan(
+                                        text:
+                                            '₹${_totalFee.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            color: Color(0xFF1e3a5f))),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                    ],
 
                     const SizedBox(height: 14),
 
