@@ -666,8 +666,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                 _buildStatusInfoChip(
                   'Registration',
                   isOpen ? 'Open' : 'Closed',
-                  valueColor:
-                      isOpen ? Colors.greenAccent : Colors.redAccent,
+                  valueColor: isOpen ? Colors.greenAccent : Colors.redAccent,
                 ),
               ],
             ),
@@ -741,8 +740,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
           // Section header
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: const BoxDecoration(
               color: Color(0xFF1e3a5f),
               borderRadius: BorderRadius.only(
@@ -829,8 +827,9 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
               return Column(
                 children: List.generate(courseEntries.length, (idx) {
                   final entry = courseEntries[idx];
-                  final course =
-                      idx < resolvedCourses.length ? resolvedCourses[idx] : null;
+                  final course = idx < resolvedCourses.length
+                      ? resolvedCourses[idx]
+                      : null;
                   final isEven = idx % 2 == 0;
                   return Container(
                     color: isEven ? Colors.white : Colors.grey[50],
@@ -848,8 +847,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                           flex: 2,
                           child: Text(course?.code ?? '—',
                               style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600)),
+                                  fontSize: 12, fontWeight: FontWeight.w600)),
                         ),
                         Expanded(
                           flex: 5,
@@ -922,7 +920,8 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
       ),
       child: Text(
         type,
-        style: TextStyle(fontSize: 10, color: c[1], fontWeight: FontWeight.bold),
+        style:
+            TextStyle(fontSize: 10, color: c[1], fontWeight: FontWeight.bold),
         textAlign: TextAlign.center,
       ),
     );
@@ -969,8 +968,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
               String dateLabel = 'Archived';
               if (archivedAt is Timestamp) {
                 final d = archivedAt.toDate();
-                dateLabel =
-                    'Archived on ${d.day.toString().padLeft(2, '0')}-'
+                dateLabel = 'Archived on ${d.day.toString().padLeft(2, '0')}-'
                     '${d.month.toString().padLeft(2, '0')}-${d.year}';
               }
               final docYear = data['year']?.toString() ?? '';
@@ -1018,18 +1016,15 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                         fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                   subtitle: Text(dateLabel,
-                      style:
-                          TextStyle(fontSize: 11, color: Colors.grey[600])),
-                  childrenPadding:
-                      const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                  childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   children: archEntries.isEmpty
                       ? [
                           Padding(
                             padding: const EdgeInsets.all(8),
                             child: Text('No courses recorded.',
                                 style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12)),
+                                    color: Colors.grey[600], fontSize: 12)),
                           )
                         ]
                       : [
@@ -1074,8 +1069,8 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                           ),
                           const Divider(height: 1),
                           FutureBuilder<List<Course?>>(
-                            future: Future.wait(archEntries
-                                .map((e) => _courseService.getCourse(e['id']!))),
+                            future: Future.wait(archEntries.map(
+                                (e) => _courseService.getCourse(e['id']!))),
                             builder: (ctx, cs) {
                               if (cs.connectionState ==
                                   ConnectionState.waiting) {
@@ -1095,9 +1090,8 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                                       : null;
                                   final isEven = idx % 2 == 0;
                                   return Container(
-                                    color: isEven
-                                        ? Colors.white
-                                        : Colors.grey[50],
+                                    color:
+                                        isEven ? Colors.white : Colors.grey[50],
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 8),
                                     child: Row(
@@ -1122,8 +1116,8 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
                                           flex: 5,
                                           child: Text(
                                             course?.name ?? entry['id']!,
-                                            style: const TextStyle(
-                                                fontSize: 12),
+                                            style:
+                                                const TextStyle(fontSize: 12),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),

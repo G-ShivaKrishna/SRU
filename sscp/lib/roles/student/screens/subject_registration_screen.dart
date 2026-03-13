@@ -606,8 +606,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(0.2),
                     border: Border.all(color: statusColor),
@@ -672,9 +672,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
         const SizedBox(height: 2),
         Text(value,
             style: TextStyle(
-                fontSize: 13,
-                color: valueColor,
-                fontWeight: FontWeight.w600)),
+                fontSize: 13, color: valueColor, fontWeight: FontWeight.w600)),
       ],
     );
   }
@@ -734,8 +732,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
         children: [
           Container(
             width: double.infinity,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: const BoxDecoration(
               color: Color(0xFF1e3a5f),
               borderRadius: BorderRadius.only(
@@ -753,8 +750,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
           ),
           Container(
             color: Colors.grey[100],
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
                 const SizedBox(
@@ -814,8 +810,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
             final isEven = idx % 2 == 0;
             return Container(
               color: isEven ? Colors.white : Colors.grey[50],
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
                   SizedBox(
@@ -827,8 +822,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                       flex: 2,
                       child: Text(subj.code,
                           style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600))),
+                              fontSize: 12, fontWeight: FontWeight.w600))),
                   Expanded(
                     flex: 5,
                     child: Text(subj.name,
@@ -896,10 +890,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
           return const Center(child: CircularProgressIndicator());
         }
         final docs = snapshot.data?.docs ?? [];
-        final currentDocId =
-            '${_studentId}_${_studentYear}_$_studentSemester';
-        final historyDocs =
-            docs.where((d) => d.id != currentDocId).toList();
+        final currentDocId = '${_studentId}_${_studentYear}_$_studentSemester';
+        final historyDocs = docs.where((d) => d.id != currentDocId).toList();
         if (historyDocs.isEmpty) return const SizedBox.shrink();
 
         return Column(
@@ -928,26 +920,20 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
               final docDept = data['department']?.toString() ?? '';
               final docSubmitted = data['isSubmitted'] == true;
 
-              final coreIds =
-                  List<String>.from(data['coreSubjectIds'] ?? []);
+              final coreIds = List<String>.from(data['coreSubjectIds'] ?? []);
               final coreCodes =
                   List<String>.from(data['coreSubjectCodes'] ?? []);
-              final oeIds =
-                  List<String>.from(data['selectedOEIds'] ?? []);
-              final peIds =
-                  List<String>.from(data['selectedPEIds'] ?? []);
+              final oeIds = List<String>.from(data['selectedOEIds'] ?? []);
+              final peIds = List<String>.from(data['selectedPEIds'] ?? []);
 
               final allEntries = [
                 ...coreIds.asMap().entries.map((e) => {
                       'id': e.value,
-                      'code':
-                          e.key < coreCodes.length ? coreCodes[e.key] : '',
+                      'code': e.key < coreCodes.length ? coreCodes[e.key] : '',
                       'type': 'Core',
                     }),
-                ...oeIds.map(
-                    (id) => {'id': id, 'code': '', 'type': 'OE'}),
-                ...peIds.map(
-                    (id) => {'id': id, 'code': '', 'type': 'PE'}),
+                ...oeIds.map((id) => {'id': id, 'code': '', 'type': 'OE'}),
+                ...peIds.map((id) => {'id': id, 'code': '', 'type': 'PE'}),
               ];
 
               final titleParts = [
@@ -1016,16 +1002,14 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                       ],
                     ),
                   ),
-                  childrenPadding:
-                      const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                   children: allEntries.isEmpty
                       ? [
                           Padding(
                             padding: const EdgeInsets.all(8),
                             child: Text('No subjects recorded.',
                                 style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12)),
+                                    color: Colors.grey[600], fontSize: 12)),
                           )
                         ]
                       : [
@@ -1083,10 +1067,10 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                               'OE': Colors.purple.shade700,
                               'PE': Colors.teal.shade700,
                             };
-                            final bg = bgMap[subjectType] ??
-                                Colors.grey.shade50;
-                            final fg = fgMap[subjectType] ??
-                                Colors.grey.shade700;
+                            final bg =
+                                bgMap[subjectType] ?? Colors.grey.shade50;
+                            final fg =
+                                fgMap[subjectType] ?? Colors.grey.shade700;
                             final isEven = idx % 2 == 0;
                             return FutureBuilder<DocumentSnapshot>(
                               future: FirebaseFirestore.instance
@@ -1095,8 +1079,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                                   .get(),
                               builder: (ctx, cs) {
                                 final sData = cs.data?.exists == true
-                                    ? cs.data!.data()
-                                        as Map<String, dynamic>?
+                                    ? cs.data!.data() as Map<String, dynamic>?
                                     : null;
                                 final name = sData?['subjectName'] ??
                                     sData?['name'] ??
@@ -1105,9 +1088,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                                     sData?['code'] ??
                                     prefetchCode;
                                 return Container(
-                                  color: isEven
-                                      ? Colors.white
-                                      : Colors.grey[50],
+                                  color:
+                                      isEven ? Colors.white : Colors.grey[50],
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 8),
                                   child: Row(
@@ -1117,49 +1099,39 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                                           child: Text('${idx + 1}',
                                               style: TextStyle(
                                                   fontSize: 12,
-                                                  color:
-                                                      Colors.grey[600]))),
+                                                  color: Colors.grey[600]))),
                                       Expanded(
                                           flex: 3,
-                                          child: Text(
-                                              code.toString(),
+                                          child: Text(code.toString(),
                                               style: const TextStyle(
                                                   fontSize: 12,
                                                   fontWeight:
                                                       FontWeight.w600))),
                                       Expanded(
                                         flex: 4,
-                                        child: Text(
-                                            name.toString(),
-                                            style: const TextStyle(
-                                                fontSize: 12),
+                                        child: Text(name.toString(),
+                                            style:
+                                                const TextStyle(fontSize: 12),
                                             maxLines: 2,
-                                            overflow:
-                                                TextOverflow.ellipsis),
+                                            overflow: TextOverflow.ellipsis),
                                       ),
                                       Expanded(
                                         flex: 2,
                                         child: Container(
-                                          padding: const EdgeInsets
-                                              .symmetric(
-                                              horizontal: 6,
-                                              vertical: 3),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 3),
                                           decoration: BoxDecoration(
                                             color: bg,
-                                            border:
-                                                Border.all(color: fg),
+                                            border: Border.all(color: fg),
                                             borderRadius:
-                                                BorderRadius.circular(
-                                                    12),
+                                                BorderRadius.circular(12),
                                           ),
                                           child: Text(subjectType,
                                               style: TextStyle(
                                                   fontSize: 10,
                                                   color: fg,
-                                                  fontWeight:
-                                                      FontWeight.bold),
-                                              textAlign:
-                                                  TextAlign.center),
+                                                  fontWeight: FontWeight.bold),
+                                              textAlign: TextAlign.center),
                                         ),
                                       ),
                                     ],
