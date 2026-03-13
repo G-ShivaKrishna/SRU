@@ -39,8 +39,12 @@ class StudentPromotionService {
 
       // ── 3 · Delete mentorAssignments for affected batches ─────────────────
       final mentorRefs = <DocumentReference>[];
-      final normalizedDepartments =
-          departments?.map((d) => d.trim().toUpperCase()).where((d) => d.isNotEmpty).toSet().toList() ?? const <String>[];
+      final normalizedDepartments = departments
+              ?.map((d) => d.trim().toUpperCase())
+              .where((d) => d.isNotEmpty)
+              .toSet()
+              .toList() ??
+          const <String>[];
       for (final batchNum in batchNumbers) {
         if (batchNum.isEmpty) continue;
         final snap = await _firestore

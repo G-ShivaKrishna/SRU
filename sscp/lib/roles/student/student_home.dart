@@ -113,7 +113,8 @@ class _StudentHomeState extends State<StudentHome> {
         final batchNumber = studentData['batchNumber']?.toString();
         final department = studentData['department']?.toString();
         if (batchNumber != null && batchNumber.isNotEmpty) {
-          await _fetchMentorData(studentData, batchNumber, department: department);
+          await _fetchMentorData(studentData, batchNumber,
+              department: department);
         }
         setState(() {
           _studentData = studentData;

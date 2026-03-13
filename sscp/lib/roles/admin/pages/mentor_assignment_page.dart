@@ -65,7 +65,8 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
         tempBatchesByYearAndDepartment[year]![department]!.add(batchNumber);
       }
 
-      final sortedBatchesByYearAndDepartment = <int, Map<String, List<String>>>{};
+      final sortedBatchesByYearAndDepartment =
+          <int, Map<String, List<String>>>{};
       for (final yearEntry in tempBatchesByYearAndDepartment.entries) {
         final batchesByDepartment = <String, List<String>>{};
         final departmentEntries = yearEntry.value.entries.toList()
@@ -105,8 +106,9 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
 
       final nextFacultyAssignmentCounts = <String, int>{};
       for (final faculty in facultyOptions) {
-        nextFacultyAssignmentCounts[faculty.id] =
-            countsById[faculty.id] ?? countsByName[_normalizeValue(faculty.name)] ?? 0;
+        nextFacultyAssignmentCounts[faculty.id] = countsById[faculty.id] ??
+            countsByName[_normalizeValue(faculty.name)] ??
+            0;
       }
 
       if (!mounted) {
@@ -245,9 +247,8 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
     _FacultyOption faculty, {
     String? ignoreDocId,
   }) async {
-    final snap = await FirebaseFirestore.instance
-        .collection('mentorAssignments')
-        .get();
+    final snap =
+        await FirebaseFirestore.instance.collection('mentorAssignments').get();
 
     var count = 0;
     for (final doc in snap.docs) {
@@ -271,7 +272,8 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
       return assignmentFacultyId == faculty.id;
     }
 
-    return _normalizeValue(data['facultyName']) == _normalizeValue(faculty.name);
+    return _normalizeValue(data['facultyName']) ==
+        _normalizeValue(faculty.name);
   }
 
   Future<void> _deleteAssignment(String docId) async {
@@ -332,7 +334,8 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
     if (selectedYear == null) {
       return const [];
     }
-    return (batchesByYearAndDepartment[selectedYear] ?? const <String, List<String>>{})
+    return (batchesByYearAndDepartment[selectedYear] ??
+            const <String, List<String>>{})
         .keys
         .toList()
       ..sort();
@@ -342,7 +345,8 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
     if (selectedYear == null || selectedDepartment == null) {
       return const [];
     }
-    return batchesByYearAndDepartment[selectedYear]?[selectedDepartment!] ?? const [];
+    return batchesByYearAndDepartment[selectedYear]?[selectedDepartment!] ??
+        const [];
   }
 
   _FacultyOption? _findFacultyById(String? facultyId) {
@@ -446,7 +450,8 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: selectedYear,
-                              items: (batchesByYearAndDepartment.keys.toList()..sort())
+                              items: (batchesByYearAndDepartment.keys.toList()
+                                    ..sort())
                                   .map(
                                     (year) => DropdownMenuItem<int>(
                                       value: year,
@@ -512,42 +517,42 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                   : Wrap(
                                       spacing: 8,
                                       runSpacing: 4,
-                                      children: _availableBatchesForSelectedScope()
-                                          .map(
-                                            (batch) {
-                                              final isSelected =
-                                                  selectedBatches.contains(batch);
-                                              final maxReached =
-                                                  selectedBatches.length >=
+                                      children:
+                                          _availableBatchesForSelectedScope()
+                                              .map(
+                                        (batch) {
+                                          final isSelected =
+                                              selectedBatches.contains(batch);
+                                          final maxReached =
+                                              selectedBatches.length >=
                                                   (editingDocId != null
                                                       ? 1
                                                       : _mentorBatchLimit);
-                                              return FilterChip(
-                                                label: Text(batch),
-                                                selected: isSelected,
-                                                onSelected:
-                                                    selectedDepartment != null
-                                                        ? (value) {
-                                                            setState(() {
-                                                              if (value &&
-                                                                  !maxReached) {
-                                                                selectedBatches = {
-                                                                  ...selectedBatches,
-                                                                  batch,
-                                                                };
-                                                              } else if (!value) {
-                                                                selectedBatches =
-                                                                    Set<String>.from(
-                                                                  selectedBatches,
-                                                                )..remove(batch);
-                                                              }
-                                                            });
+                                          return FilterChip(
+                                            label: Text(batch),
+                                            selected: isSelected,
+                                            onSelected:
+                                                selectedDepartment != null
+                                                    ? (value) {
+                                                        setState(() {
+                                                          if (value &&
+                                                              !maxReached) {
+                                                            selectedBatches = {
+                                                              ...selectedBatches,
+                                                              batch,
+                                                            };
+                                                          } else if (!value) {
+                                                            selectedBatches =
+                                                                Set<String>.from(
+                                                              selectedBatches,
+                                                            )..remove(batch);
                                                           }
-                                                        : null,
-                                              );
-                                            },
-                                          )
-                                          .toList(),
+                                                        });
+                                                      }
+                                                    : null,
+                                          );
+                                        },
+                                      ).toList(),
                                     ),
                             ),
                             const SizedBox(height: 16),
@@ -662,8 +667,10 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                             final assignment = assignments[index];
                             final data = assignment.data();
                             final year = data['year'] ?? 'N/A';
-                            final department =
-                              (data['department'] ?? '').toString().trim().toUpperCase();
+                            final department = (data['department'] ?? '')
+                                .toString()
+                                .trim()
+                                .toUpperCase();
                             final batchNumber =
                                 (data['batchNumber'] ?? '').toString();
                             final facultyName =
@@ -693,7 +700,8 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                       onPressed: () {
                                         final yearInt = year is int
                                             ? year
-                                            : int.tryParse(year.toString()) ?? 1;
+                                            : int.tryParse(year.toString()) ??
+                                                1;
                                         _editAssignment(
                                           docId,
                                           yearInt,
@@ -719,7 +727,8 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                           context: context,
                                           builder: (dialogContext) {
                                             return AlertDialog(
-                                              title: const Text('Delete Assignment'),
+                                              title: const Text(
+                                                  'Delete Assignment'),
                                               content: Text(
                                                 department.isEmpty
                                                     ? 'Are you sure you want to delete the assignment of Year $year - Batch $batchNumber from mentor $facultyName?'
@@ -728,12 +737,14 @@ class _MentorAssignmentPageState extends State<MentorAssignmentPage> {
                                               actions: [
                                                 TextButton(
                                                   onPressed: () =>
-                                                      Navigator.pop(dialogContext),
+                                                      Navigator.pop(
+                                                          dialogContext),
                                                   child: const Text('Cancel'),
                                                 ),
                                                 TextButton(
                                                   onPressed: () {
-                                                    Navigator.pop(dialogContext);
+                                                    Navigator.pop(
+                                                        dialogContext);
                                                     _deleteAssignment(docId);
                                                   },
                                                   child: const Text(

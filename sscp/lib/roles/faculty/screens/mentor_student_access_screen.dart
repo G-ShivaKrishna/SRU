@@ -166,7 +166,8 @@ class _MentorStudentAccessScreenState extends State<MentorStudentAccessScreen> {
 
       final studentsList = studentsByRollNumber.values.toList()
         ..sort((a, b) {
-          final yearCompare = _parseInt(a['year']).compareTo(_parseInt(b['year']));
+          final yearCompare =
+              _parseInt(a['year']).compareTo(_parseInt(b['year']));
           if (yearCompare != 0) {
             return yearCompare;
           }
@@ -1230,7 +1231,9 @@ class _MentorAssignment {
   final int? year;
 
   String get label {
-    final scope = department.isNotEmpty ? '$department - Batch $batchNumber' : 'Batch $batchNumber';
+    final scope = department.isNotEmpty
+        ? '$department - Batch $batchNumber'
+        : 'Batch $batchNumber';
     return year != null ? 'Year $year - $scope' : scope;
   }
 }
