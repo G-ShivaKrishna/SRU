@@ -10,6 +10,8 @@ class ExamsScreen extends StatefulWidget {
 
 class _ExamsScreenState extends State<ExamsScreen> {
   bool hasPdfUploaded = false; // Toggle based on admin upload
+  static const int _pageCount = 2;
+  int _currentPage = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +179,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Page 1 of 2',
+                        'Page $_currentPage of $_pageCount',
                         style: TextStyle(
                           fontSize: isMobile ? 11 : 12,
                           color: Colors.grey[600],
@@ -208,8 +210,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios),
-                      onPressed: () {},
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: _currentPage > 1
+                          ? () => setState(() => _currentPage--)
+                          : null,
                       tooltip: 'Previous Page',
                     ),
                     Container(
@@ -220,7 +224,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        'Page 1 of 2',
+                        'Page $_currentPage of $_pageCount',
                         style: TextStyle(
                           fontSize: isMobile ? 11 : 12,
                           color: Colors.grey[700],
@@ -229,7 +233,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.arrow_forward_ios),
-                      onPressed: () {},
+                      onPressed: _currentPage < _pageCount
+                          ? () => setState(() => _currentPage++)
+                          : null,
                       tooltip: 'Next Page',
                     ),
                   ],
