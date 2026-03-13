@@ -424,16 +424,56 @@ class FeedbackService {
   /// Get aggregated feedback for faculty (no student info visible)
   Future<List<Map<String, dynamic>>> getFacultyFeedbackSummary({
     required String facultyId,
+    List<String>? alternateFacultyIds,
   }) async {
     try {
-      final snapshot = await _feedbackCollection
-          .where('facultyId', isEqualTo: facultyId)
-          .get();
+      final candidateIds = _buildFacultyIdCandidates(
+        facultyId,
+        alternateFacultyIds,
+      );
+
+      final docsById = <String, QueryDocumentSnapshot>{};
+
+      if (candidateIds.length == 1) {
+        final snapshot = await _feedbackCollection
+            .where('facultyId', isEqualTo: candidateIds.first)
+            .get();
+        for (final doc in snapshot.docs) {
+          docsById[doc.id] = doc;
+        }
+      } else {
+        final ids = candidateIds.toList();
+        for (var i = 0; i < ids.length; i += 10) {
+          final chunk = ids.sublist(i, (i + 10).clamp(0, ids.length));
+          if (chunk.isEmpty) continue;
+          final snapshot =
+              await _feedbackCollection.where('facultyId', whereIn: chunk).get();
+          for (final doc in snapshot.docs) {
+            docsById[doc.id] = doc;
+          }
+        }
+      }
+
+      // Fallback for inconsistent casing/format in older data.
+      if (docsById.isEmpty && candidateIds.isNotEmpty) {
+        final normalizedCandidates =
+            candidateIds.map(_normalizeFacultyId).where((e) => e.isNotEmpty).toSet();
+        if (normalizedCandidates.isNotEmpty) {
+          final snapshot = await _feedbackCollection.get();
+          for (final doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final docFacultyId = _normalizeFacultyId(data['facultyId']?.toString());
+            if (normalizedCandidates.contains(docFacultyId)) {
+              docsById[doc.id] = doc;
+            }
+          }
+        }
+      }
 
       // Group feedback by subject and session
       final Map<String, Map<String, dynamic>> groupedFeedback = {};
 
-      for (final doc in snapshot.docs) {
+      for (final doc in docsById.values) {
         final data = doc.data() as Map<String, dynamic>;
         final key = '${data['sessionId']}_${data['subjectCode']}';
 
@@ -529,20 +569,44 @@ class FeedbackService {
   /// Formula: Sum of all feedback scores / Number of students who gave feedback
   Future<double> getOverallAverageFeedback({
     required String facultyId,
+    List<String>? alternateFacultyIds,
   }) async {
     try {
-      final snapshot = await _feedbackCollection
-          .where('facultyId', isEqualTo: facultyId)
-          .get();
+      final candidateIds = _buildFacultyIdCandidates(
+        facultyId,
+        alternateFacultyIds,
+      );
 
-      if (snapshot.docs.isEmpty) {
+      final docsById = <String, QueryDocumentSnapshot>{};
+
+      if (candidateIds.length == 1) {
+        final snapshot = await _feedbackCollection
+            .where('facultyId', isEqualTo: candidateIds.first)
+            .get();
+        for (final doc in snapshot.docs) {
+          docsById[doc.id] = doc;
+        }
+      } else {
+        final ids = candidateIds.toList();
+        for (var i = 0; i < ids.length; i += 10) {
+          final chunk = ids.sublist(i, (i + 10).clamp(0, ids.length));
+          if (chunk.isEmpty) continue;
+          final snapshot =
+              await _feedbackCollection.where('facultyId', whereIn: chunk).get();
+          for (final doc in snapshot.docs) {
+            docsById[doc.id] = doc;
+          }
+        }
+      }
+
+      if (docsById.isEmpty) {
         return 0.0;
       }
 
       double totalRating = 0.0;
       int totalResponses = 0;
 
-      for (final doc in snapshot.docs) {
+      for (final doc in docsById.values) {
         final data = doc.data() as Map<String, dynamic>;
         final averageRating = (data['averageRating'] ?? 0.0);
         totalRating += averageRating;
@@ -569,5 +633,29 @@ class FeedbackService {
       'Student Interaction',
       'Overall Satisfaction',
     ];
+  }
+
+  Set<String> _buildFacultyIdCandidates(
+    String facultyId,
+    List<String>? alternateFacultyIds,
+  ) {
+    final raw = <String>{
+      facultyId,
+      ...?alternateFacultyIds,
+    };
+
+    final candidates = <String>{};
+    for (final id in raw) {
+      final trimmed = id.trim();
+      if (trimmed.isEmpty) continue;
+      candidates.add(trimmed);
+      candidates.add(trimmed.toUpperCase());
+      candidates.add(trimmed.toLowerCase());
+    }
+    return candidates;
+  }
+
+  String _normalizeFacultyId(String? value) {
+    return (value ?? '').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
   }
 }

@@ -41,18 +41,25 @@ class _FacultyFeedbackScreenState extends State<FacultyFeedbackScreen> {
 
       final docId = await _scopeService.resolveCurrentFacultyId();
 
-      // Get faculty document to find facultyId
-      final facultyDoc =
-          await _firestore.collection('faculty').doc(docId).get();
+      // Build all possible faculty ID aliases used across collections.
+      final facultyIdCandidates = <String>{docId};
+      final facultyDoc = await _firestore.collection('faculty').doc(docId).get();
       if (facultyDoc.exists) {
-        _facultyId = facultyDoc.data()?['employeeId'] ?? docId;
-      } else {
-        _facultyId = docId;
+        final data = facultyDoc.data() ?? <String, dynamic>{};
+        for (final key in const ['employeeId', 'facultyId', 'id']) {
+          final value = (data[key] ?? '').toString().trim();
+          if (value.isNotEmpty) {
+            facultyIdCandidates.add(value);
+          }
+        }
       }
+
+      _facultyId = docId;
 
       // Get aggregated feedback
       _feedbackSummary = await _feedbackService.getFacultyFeedbackSummary(
         facultyId: _facultyId!,
+        alternateFacultyIds: facultyIdCandidates.toList(),
       );
 
       setState(() {

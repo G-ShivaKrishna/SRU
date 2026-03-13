@@ -268,6 +268,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       'Course',
       'Attendance',
       'Marks',
+      'Feedback',
       'Employee Directory',
       'Mentorship',
     ];
@@ -360,6 +361,7 @@ class _FacultyHomeState extends State<FacultyHome> {
           'Consolidated Marks Report(New)',
           'Supply Exam Marks',
         ],
+        'Feedback': ['Feedback'],
         'Employee Directory': ['Employee Directory'],
         'Mentorship': ['Mentorship'],
       };

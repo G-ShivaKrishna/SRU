@@ -199,22 +199,31 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
       final batches = _selectedBatch != null
           ? [_selectedBatch!]
           : _selectedAssignment!.assignedBatches;
+      final selectedBatchTokens = _buildBatchTokens(batches);
+
+      final snap = await _firestore
+          .collection('attendance')
+          .where('dateStr', isEqualTo: dateStr)
+          .get();
 
       final locked = <int>{};
-      for (var i = 0; i < batches.length; i += 10) {
-        final chunk = batches.sublist(i, (i + 10).clamp(0, batches.length));
-        if (chunk.isEmpty) continue;
-        final snap = await _firestore
-            .collection('attendance')
-            .where('dateStr', isEqualTo: dateStr)
-            .where('batches', arrayContainsAny: chunk)
-            .get();
-        for (final doc in snap.docs) {
-          final d = doc.data();
-          final recordedBy = (d['facultyId'] as String? ?? '');
-          if (recordedBy != myFacultyId) {
-            final periods = List<int>.from(d['periods'] ?? []);
-            locked.addAll(periods);
+      for (final doc in snap.docs) {
+        final d = doc.data();
+        final recordedBy = (d['facultyId'] as String? ?? '');
+        if (recordedBy == myFacultyId) {
+          continue;
+        }
+        if (!_matchesAssignmentScope(d, _selectedAssignment!)) {
+          continue;
+        }
+        if (!_hasBatchOverlap(d['batches'], selectedBatchTokens)) {
+          continue;
+        }
+
+        for (final p in (d['periods'] as List? ?? const [])) {
+          final period = p is int ? p : int.tryParse(p.toString()) ?? 0;
+          if (period >= 1 && period <= 9) {
+            locked.add(period);
           }
         }
       }
@@ -233,6 +242,83 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
       // Non-critical; fail silently and leave no periods locked
       if (mounted) setState(() => _loadingLockedPeriods = false);
     }
+  }
+
+  bool _matchesAssignmentScope(Map<String, dynamic> data, _Assignment assignment) {
+    final assignmentDepartment = _normalize(assignment.department);
+    final docDepartment = _normalize(data['department']?.toString() ?? '');
+    if (assignmentDepartment.isNotEmpty && docDepartment != assignmentDepartment) {
+      return false;
+    }
+
+    if (assignment.year > 0 && _parseInt(data['year']) != assignment.year) {
+      return false;
+    }
+
+    final assignmentSemester = _normalize(assignment.semester);
+    final docSemester = _normalize(data['semester']?.toString() ?? '');
+    if (assignmentSemester.isNotEmpty &&
+        docSemester.isNotEmpty &&
+        assignmentSemester != docSemester) {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool _hasBatchOverlap(dynamic rawBatches, Set<String> selectedBatchTokens) {
+    if (selectedBatchTokens.isEmpty) {
+      return false;
+    }
+
+    final docBatches = <String>[];
+    if (rawBatches is List) {
+      for (final value in rawBatches) {
+        final batch = value?.toString() ?? '';
+        if (batch.trim().isNotEmpty) {
+          docBatches.add(batch);
+        }
+      }
+    } else {
+      final batch = rawBatches?.toString() ?? '';
+      if (batch.trim().isNotEmpty) {
+        docBatches.add(batch);
+      }
+    }
+
+    final docBatchTokens = _buildBatchTokens(docBatches);
+    return docBatchTokens.any(selectedBatchTokens.contains);
+  }
+
+  Set<String> _buildBatchTokens(Iterable<String> batches) {
+    final tokens = <String>{};
+    for (final batch in batches) {
+      final trimmed = batch.trim();
+      if (trimmed.isEmpty) {
+        continue;
+      }
+      tokens.add(_normalize(trimmed));
+      final parts = trimmed
+          .split(RegExp(r'[-_/\\s]+'))
+          .map(_normalize)
+          .where((part) => part.isNotEmpty);
+      tokens.addAll(parts);
+    }
+    return tokens;
+  }
+
+  String _normalize(String value) {
+    return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  int _parseInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.floor();
+    }
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   Future<void> _submitAttendance() async {
@@ -459,37 +545,17 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           }),
           const SizedBox(height: 20),
           // Date + Submit
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Date of Entry',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        border: Border.all(color: Colors.grey[400]!),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(DateFormat('dd/MM/yyyy').format(_today),
-                          style: const TextStyle(fontSize: 14)),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 24),
-              ElevatedButton(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 420;
+              final submitBtn = ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1565C0),
                   foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  padding: compact
+                      ? const EdgeInsets.symmetric(vertical: 12)
+                      : const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 14),
                 ),
                 onPressed: _selectedAssignment == null || _loadingStudents
                     ? null
@@ -501,8 +567,49 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2))
                     : const Text('Submit', style: TextStyle(fontSize: 15)),
-              ),
-            ],
+              );
+
+              final dateWidget = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Date of Entry',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: compact ? double.infinity : null,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      border: Border.all(color: Colors.grey[400]!),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(DateFormat('dd/MM/yyyy').format(_today),
+                        style: const TextStyle(fontSize: 14)),
+                  ),
+                ],
+              );
+
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    dateWidget,
+                    const SizedBox(height: 12),
+                    SizedBox(width: double.infinity, child: submitBtn),
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(child: dateWidget),
+                  const SizedBox(width: 24),
+                  submitBtn,
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -585,33 +692,54 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           const SizedBox(height: 12),
 
           // Check / UnCheck
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1565C0),
-                  foregroundColor: Colors.white),
-              onPressed: () => setState(() {
-                for (final k in _attendance.keys) {
-                  _attendance[k] = true;
-                }
-              }),
-              child: const Text('Check all'),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Text('|', style: TextStyle(fontSize: 18)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red, foregroundColor: Colors.white),
-              onPressed: () => setState(() {
-                for (final k in _attendance.keys) {
-                  _attendance[k] = false;
-                }
-              }),
-              child: const Text('UnCheck all'),
-            ),
-          ]),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 420;
+
+              final checkAll = ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1565C0),
+                    foregroundColor: Colors.white),
+                onPressed: () => setState(() {
+                  for (final k in _attendance.keys) {
+                    _attendance[k] = true;
+                  }
+                }),
+                child: const Text('Check all'),
+              );
+
+              final uncheckAll = ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red, foregroundColor: Colors.white),
+                onPressed: () => setState(() {
+                  for (final k in _attendance.keys) {
+                    _attendance[k] = false;
+                  }
+                }),
+                child: const Text('UnCheck all'),
+              );
+
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(width: double.infinity, child: checkAll),
+                    const SizedBox(height: 8),
+                    SizedBox(width: double.infinity, child: uncheckAll),
+                  ],
+                );
+              }
+
+              return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                checkAll,
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('|', style: TextStyle(fontSize: 18)),
+                ),
+                uncheckAll,
+              ]);
+            },
+          ),
           const SizedBox(height: 16),
 
           // Student table
@@ -619,23 +747,36 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
           const SizedBox(height: 20),
 
           // Submit
-          Center(
-              child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1e3a5f),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 14),
-            ),
-            onPressed: _submitting ? null : _submitAttendance,
-            child: _submitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2))
-                : const Text('Submit Attendance',
-                    style: TextStyle(fontSize: 15)),
-          )),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 420;
+              final btn = ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1e3a5f),
+                  foregroundColor: Colors.white,
+                  padding: compact
+                      ? const EdgeInsets.symmetric(vertical: 12)
+                      : const EdgeInsets.symmetric(
+                          horizontal: 48, vertical: 14),
+                ),
+                onPressed: _submitting ? null : _submitAttendance,
+                child: _submitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
+                    : const Text('Submit Attendance',
+                        style: TextStyle(fontSize: 15)),
+              );
+
+              if (compact) {
+                return SizedBox(width: double.infinity, child: btn);
+              }
+
+              return Center(child: btn);
+            },
+          ),
           const SizedBox(height: 24),
         ],
       ),
@@ -669,64 +810,92 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         ? List.generate(20, (i) => 'Exp ${i + 1}')
         : List.generate(10, (i) => 'Unit ${i + 1}');
 
-    Widget fieldRow(String label, Widget input) => Row(children: [
+    Widget buildInputRow({
+      required bool compact,
+      required String label,
+      required Widget input,
+    }) {
+      if (compact) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            input,
+          ],
+        );
+      }
+
+      return Row(
+        children: [
           SizedBox(
             width: 160,
-            child: Text(label,
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+            child:
+                Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
           Expanded(child: input),
-        ]);
+        ],
+      );
+    }
 
-    return Column(children: [
-      fieldRow(
-        'L-T-P Type',
-        DropdownButtonFormField<String>(
-          initialValue: _ltpType,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            isDense: true,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 420;
+
+        return Column(children: [
+          buildInputRow(
+            compact: compact,
+            label: 'L-T-P Type',
+            input: DropdownButtonFormField<String>(
+              initialValue: _ltpType,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                isDense: true,
+              ),
+              items: const [
+                DropdownMenuItem(value: 'Lecture', child: Text('Lecture')),
+                DropdownMenuItem(value: 'Tutorial', child: Text('Tutorial')),
+                DropdownMenuItem(value: 'Practical', child: Text('Practical')),
+              ],
+              onChanged: (v) => setState(() => _ltpType = v),
+            ),
           ),
-          items: const [
-            DropdownMenuItem(value: 'Lecture', child: Text('Lecture')),
-            DropdownMenuItem(value: 'Tutorial', child: Text('Tutorial')),
-            DropdownMenuItem(value: 'Practical', child: Text('Practical')),
-          ],
-          onChanged: (v) => setState(() => _ltpType = v),
-        ),
-      ),
-      const SizedBox(height: 10),
-      fieldRow(
-        'Topic Covered',
-        TextFormField(
-          controller: _topicCtrl,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            isDense: true,
+          const SizedBox(height: 10),
+          buildInputRow(
+            compact: compact,
+            label: 'Topic Covered',
+            input: TextFormField(
+              controller: _topicCtrl,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                isDense: true,
+              ),
+            ),
           ),
-        ),
-      ),
-      const SizedBox(height: 10),
-      fieldRow(
-        isLab ? 'Exp No' : 'Unit/Exp No',
-        DropdownButtonFormField<String>(
-          initialValue: _unitExpNo,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            isDense: true,
+          const SizedBox(height: 10),
+          buildInputRow(
+            compact: compact,
+            label: isLab ? 'Exp No' : 'Unit/Exp No',
+            input: DropdownButtonFormField<String>(
+              initialValue: _unitExpNo,
+              isExpanded: true,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                isDense: true,
+              ),
+              items: unitOptions
+                  .map((u) => DropdownMenuItem(value: u, child: Text(u)))
+                  .toList(),
+              onChanged: (v) => setState(() => _unitExpNo = v),
+            ),
           ),
-          items: unitOptions
-              .map((u) => DropdownMenuItem(value: u, child: Text(u)))
-              .toList(),
-          onChanged: (v) => setState(() => _unitExpNo = v),
-        ),
-      ),
-    ]);
+        ]);
+      },
+    );
   }
 
   Widget _buildHoursSection() {
@@ -838,68 +1007,144 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white);
     const dStyle = TextStyle(fontSize: 12, color: Colors.black87);
 
-    Widget hc(String t, {double? w, bool exp = false}) {
-      final c = Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        child: Text(t, style: hStyle),
+    Widget _headerText(String text) {
+      return Text(
+        text,
+        style: hStyle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
-      return exp ? Expanded(child: c) : SizedBox(width: w ?? 60, child: c);
     }
 
-    Widget dc(String t, {double? w, bool exp = false}) {
-      final c = Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Text(t, style: dStyle),
+    Widget _dataText(String text, {TextAlign align = TextAlign.left}) {
+      return Text(
+        text,
+        style: dStyle,
+        textAlign: align,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
-      return exp ? Expanded(child: c) : SizedBox(width: w ?? 60, child: c);
     }
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 800),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[400]!),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Column(children: [
-          // Header
-          Container(
-            color: const Color(0xFF1e3a5f),
-            child: Row(children: [
-              hc('S No', w: 48),
-              hc('Batch ID', w: 130),
-              hc('HallTicket No', w: 115),
-              hc('Check Mark', w: 100),
-              hc('Name', exp: true),
-            ]),
-          ),
-          // Rows
-          ...List.generate(_students.length, (i) {
-            final s = _students[i];
-            final roll = s['rollNo'] as String;
-            final present = _attendance[roll] ?? true;
-            return Container(
-              color: i % 2 == 0 ? Colors.white : const Color(0xFFF5F8FF),
-              child: Row(children: [
-                dc('${i + 1}', w: 48),
-                dc(s['batchNumber'] ?? '', w: 130),
-                dc(s['hallTicketNumber'] ?? '', w: 115),
-                SizedBox(
-                  width: 100,
-                  child: Center(
-                      child: Checkbox(
-                    value: present,
-                    activeColor: const Color(0xFF1565C0),
-                    onChanged: (v) =>
-                        setState(() => _attendance[roll] = v ?? true),
-                  )),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 700;
+
+        if (isCompact) {
+          return Column(
+            children: List.generate(_students.length, (i) {
+              final s = _students[i];
+              final roll = s['rollNo'] as String;
+              final present = _attendance[roll] ?? true;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: i % 2 == 0 ? Colors.white : const Color(0xFFF5F8FF),
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                dc(s['name'] ?? '', exp: true),
-              ]),
-            );
-          }),
-        ]),
-      ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${i + 1}. ${(s['name'] ?? '').toString()}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Checkbox(
+                          value: present,
+                          activeColor: const Color(0xFF1565C0),
+                          onChanged: (v) =>
+                              setState(() => _attendance[roll] = v ?? true),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Batch ID: ${(s['batchNumber'] ?? '').toString()}',
+                        style: dStyle),
+                    const SizedBox(height: 2),
+                    Text('Hall Ticket No: ${(s['hallTicketNumber'] ?? '').toString()}',
+                        style: dStyle),
+                    const SizedBox(height: 2),
+                    Text('Present: ${present ? 'Yes' : 'No'}', style: dStyle),
+                  ],
+                ),
+              );
+            }),
+          );
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey[400]!),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Column(
+            children: [
+              Container(
+                color: const Color(0xFF1e3a5f),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                child: Row(
+                  children: [
+                    Expanded(flex: 1, child: _headerText('S No')),
+                    Expanded(flex: 2, child: _headerText('Batch ID')),
+                    Expanded(flex: 3, child: _headerText('Hall Ticket No')),
+                    Expanded(flex: 4, child: _headerText('Student Name')),
+                    Expanded(flex: 2, child: _headerText('Present')),
+                  ],
+                ),
+              ),
+              ...List.generate(_students.length, (i) {
+                final s = _students[i];
+                final roll = s['rollNo'] as String;
+                final present = _attendance[roll] ?? true;
+
+                return Container(
+                  color: i % 2 == 0 ? Colors.white : const Color(0xFFF5F8FF),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                          flex: 1,
+                          child: _dataText('${i + 1}', align: TextAlign.center)),
+                      Expanded(
+                          flex: 2,
+                          child: _dataText((s['batchNumber'] ?? '').toString())),
+                      Expanded(
+                        flex: 3,
+                        child: _dataText((s['hallTicketNumber'] ?? '').toString()),
+                      ),
+                      Expanded(
+                          flex: 4,
+                          child: _dataText((s['name'] ?? '').toString())),
+                      Expanded(
+                        flex: 2,
+                        child: Center(
+                          child: Checkbox(
+                            value: present,
+                            activeColor: const Color(0xFF1565C0),
+                            onChanged: (v) =>
+                                setState(() => _attendance[roll] = v ?? true),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 }

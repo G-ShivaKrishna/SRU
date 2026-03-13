@@ -168,25 +168,39 @@ class _MultiBatchAttendanceScreenState
   Future<void> _loadLockedPeriods() async {
     setState(() => _loadingLockedPeriods = true);
     try {
+      final assignment = _selectedAssignment;
+      if (assignment == null || _selectedBatches.isEmpty) {
+        if (mounted) setState(() => _lockedPeriods = {});
+        return;
+      }
+
       final dateStr = DateFormat('dd-MM-yyyy').format(_today);
-      final batches = _selectedBatches.toList();
       final facultyId =
           _facultyId ?? await _scopeService.resolveCurrentFacultyId();
+      final selectedBatchTokens = _buildBatchTokens(_selectedBatches);
+
+      final snap = await _firestore
+          .collection('attendance')
+          .where('dateStr', isEqualTo: dateStr)
+          .get();
+
       final locked = <int>{};
-      for (var i = 0; i < batches.length; i += 10) {
-        final chunk = batches.sublist(i, (i + 10).clamp(0, batches.length));
-        if (chunk.isEmpty) continue;
-        final snap = await _firestore
-            .collection('attendance')
-            .where('dateStr', isEqualTo: dateStr)
-            .where('batches', arrayContainsAny: chunk)
-            .get();
-        for (final doc in snap.docs) {
-          final d = doc.data();
-          if ((d['facultyId'] as String? ?? '') != facultyId) {
-            for (final p in (d['periods'] as List? ?? [])) {
-              locked.add(p is int ? p : int.tryParse(p.toString()) ?? 0);
-            }
+      for (final doc in snap.docs) {
+        final d = doc.data();
+        if ((d['facultyId'] as String? ?? '') == facultyId) {
+          continue;
+        }
+        if (!_matchesAssignmentScope(d, assignment)) {
+          continue;
+        }
+        if (!_hasBatchOverlap(d['batches'], selectedBatchTokens)) {
+          continue;
+        }
+
+        for (final p in (d['periods'] as List? ?? const [])) {
+          final period = p is int ? p : int.tryParse(p.toString()) ?? 0;
+          if (period >= 1 && period <= 9) {
+            locked.add(period);
           }
         }
       }
@@ -196,6 +210,83 @@ class _MultiBatchAttendanceScreenState
     } finally {
       if (mounted) setState(() => _loadingLockedPeriods = false);
     }
+  }
+
+  bool _matchesAssignmentScope(Map<String, dynamic> data, _Assign assignment) {
+    final assignmentDepartment = _normalize(assignment.department);
+    final docDepartment = _normalize(data['department']?.toString() ?? '');
+    if (assignmentDepartment.isNotEmpty && docDepartment != assignmentDepartment) {
+      return false;
+    }
+
+    if (assignment.year > 0 && _parseInt(data['year']) != assignment.year) {
+      return false;
+    }
+
+    final assignmentSemester = _normalize(assignment.semester);
+    final docSemester = _normalize(data['semester']?.toString() ?? '');
+    if (assignmentSemester.isNotEmpty &&
+        docSemester.isNotEmpty &&
+        assignmentSemester != docSemester) {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool _hasBatchOverlap(dynamic rawBatches, Set<String> selectedBatchTokens) {
+    if (selectedBatchTokens.isEmpty) {
+      return false;
+    }
+
+    final docBatches = <String>[];
+    if (rawBatches is List) {
+      for (final value in rawBatches) {
+        final batch = value?.toString() ?? '';
+        if (batch.trim().isNotEmpty) {
+          docBatches.add(batch);
+        }
+      }
+    } else {
+      final batch = rawBatches?.toString() ?? '';
+      if (batch.trim().isNotEmpty) {
+        docBatches.add(batch);
+      }
+    }
+
+    final docBatchTokens = _buildBatchTokens(docBatches);
+    return docBatchTokens.any(selectedBatchTokens.contains);
+  }
+
+  Set<String> _buildBatchTokens(Iterable<String> batches) {
+    final tokens = <String>{};
+    for (final batch in batches) {
+      final trimmed = batch.trim();
+      if (trimmed.isEmpty) {
+        continue;
+      }
+      tokens.add(_normalize(trimmed));
+      final parts = trimmed
+          .split(RegExp(r'[-_/\\s]+'))
+          .map(_normalize)
+          .where((part) => part.isNotEmpty);
+      tokens.addAll(parts);
+    }
+    return tokens;
+  }
+
+  String _normalize(String value) {
+    return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  int _parseInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.floor();
+    }
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   Future<void> _submitAttendance() async {
@@ -651,66 +742,79 @@ class _MultiBatchAttendanceScreenState
         border: OutlineInputBorder(),
         contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10));
 
-    return Row(
+    final ltpField = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('L / T / P',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                initialValue: _ltpType,
-                decoration: inputDec,
-                hint: const Text('Select'),
-                items: const ['L', 'T', 'P']
-                    .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                    .toList(),
-                onChanged: (v) => setState(() => _ltpType = v),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 3,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Topic Covered',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: _topicCtrl,
-                decoration: inputDec.copyWith(hintText: 'Enter topic covered'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Unit / Exp No.',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                initialValue: _unitExpNo,
-                decoration: inputDec,
-                hint: const Text('Select'),
-                items: List.generate(
-                    6,
-                    (i) => DropdownMenuItem(
-                        value: '${i + 1}', child: Text('${i + 1}'))).toList(),
-                onChanged: (v) => setState(() => _unitExpNo = v),
-              ),
-            ],
-          ),
+        const Text('L / T / P', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          initialValue: _ltpType,
+          decoration: inputDec,
+          hint: const Text('Select'),
+          items: const ['L', 'T', 'P']
+              .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+              .toList(),
+          onChanged: (v) => setState(() => _ltpType = v),
         ),
       ],
+    );
+
+    final topicField = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Topic Covered', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: _topicCtrl,
+          decoration: inputDec.copyWith(hintText: 'Enter topic covered'),
+        ),
+      ],
+    );
+
+    final unitField = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Unit / Exp No.', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          initialValue: _unitExpNo,
+          decoration: inputDec,
+          hint: const Text('Select'),
+          items: List.generate(
+              6,
+              (i) => DropdownMenuItem(
+                  value: '${i + 1}', child: Text('${i + 1}'))).toList(),
+          onChanged: (v) => setState(() => _unitExpNo = v),
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 760) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ltpField,
+              const SizedBox(height: 12),
+              topicField,
+              const SizedBox(height: 12),
+              unitField,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: ltpField),
+            const SizedBox(width: 16),
+            Expanded(flex: 3, child: topicField),
+            const SizedBox(width: 16),
+            Expanded(child: unitField),
+          ],
+        );
+      },
     );
   }
 
@@ -822,18 +926,21 @@ class _MultiBatchAttendanceScreenState
           border: Border.all(color: Colors.grey.shade300),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _statItem('Present', '$present', Colors.green),
-            _vDivider(),
-            _statItem('Absent', '$absent', Colors.red),
-            _vDivider(),
-            _statItem('Total', '$total', Colors.blueGrey),
-            _vDivider(),
-            _statItem('Batches', '${_selectedBatches.length}',
-                const Color(0xFF1e3a5f)),
-          ],
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _statItem('Present', '$present', Colors.green),
+              _vDivider(),
+              _statItem('Absent', '$absent', Colors.red),
+              _vDivider(),
+              _statItem('Total', '$total', Colors.blueGrey),
+              _vDivider(),
+              _statItem('Batches', '${_selectedBatches.length}',
+                  const Color(0xFF1e3a5f)),
+            ],
+          ),
         ),
       ),
     );
@@ -867,12 +974,23 @@ class _MultiBatchAttendanceScreenState
         fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white);
     const dStyle = TextStyle(fontSize: 12, color: Colors.black87);
 
-    Widget hc(String t, {double? w, bool exp = false}) {
-      final c = Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        child: Text(t, style: hStyle),
+    Widget headerText(String text) {
+      return Text(
+        text,
+        style: hStyle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       );
-      return exp ? Expanded(child: c) : SizedBox(width: w, child: c);
+    }
+
+    Widget dataText(String text, {TextAlign align = TextAlign.left}) {
+      return Text(
+        text,
+        style: dStyle,
+        textAlign: align,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
     }
 
     final batchOrder = _selectedBatches.toList()..sort();
@@ -883,107 +1001,161 @@ class _MultiBatchAttendanceScreenState
             _students.where((s) => s['batchNumber'] == batch).toList();
         if (batchStudents.isEmpty) return const SizedBox.shrink();
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Batch header
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1e3a5f).withOpacity(0.85),
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(7)),
-                ),
-                child: Text(
-                  'Batch: $batch  •  ${batchStudents.length} students',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13),
-                ),
-              ),
-              // Column headers
-              Container(
-                color: const Color(0xFF1e3a5f),
-                child: Row(
-                  children: [
-                    hc('#', w: 40),
-                    hc('Roll No.', w: 110),
-                    hc('Name', exp: true),
-                    hc('Hall Ticket', w: 130),
-                    hc('Present', w: 80),
-                  ],
-                ),
-              ),
-              // Rows
-              ...batchStudents.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final s = entry.value;
-                final roll = s['rollNo'] as String;
-                final isPresent = _attendance[roll] ?? true;
-                final isEven = idx % 2 == 0;
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 760;
 
-                return Container(
-                  color: isEven ? Colors.white : Colors.grey.shade50,
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 40,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 8),
-                          child: Text('${idx + 1}',
-                              style: dStyle, textAlign: TextAlign.center),
-                        ),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1e3a5f).withOpacity(0.85),
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(7)),
+                    ),
+                    child: Text(
+                      'Batch: $batch  •  ${batchStudents.length} students',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13),
+                    ),
+                  ),
+                  if (isCompact)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                      child: Column(
+                        children: batchStudents.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final s = entry.value;
+                          final roll = s['rollNo'] as String;
+                          final isPresent = _attendance[roll] ?? true;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: idx % 2 == 0
+                                  ? Colors.white
+                                  : const Color(0xFFF5F8FF),
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${idx + 1}. ${(s['name'] ?? '').toString()}',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Checkbox(
+                                      value: isPresent,
+                                      activeColor: Colors.green,
+                                      onChanged: (v) => setState(
+                                          () => _attendance[roll] = v ?? true),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text('Roll No: $roll', style: dStyle),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Hall Ticket: ${(s['hallTicketNumber'] ?? '').toString()}',
+                                  style: dStyle,
+                                ),
+                                const SizedBox(height: 2),
+                                Text('Present: ${isPresent ? 'Yes' : 'No'}',
+                                    style: dStyle),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                       ),
-                      SizedBox(
-                        width: 110,
-                        child: Padding(
+                    )
+                  else
+                    Column(
+                      children: [
+                        Container(
+                          color: const Color(0xFF1e3a5f),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 8),
-                          child: Text(roll, style: dStyle),
-                        ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 8),
-                          child: Text(s['name'] as String, style: dStyle),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 130,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 8),
-                          child: Text(s['hallTicketNumber'] as String,
-                              style: dStyle),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 80,
-                        child: Center(
-                          child: Checkbox(
-                            value: isPresent,
-                            activeColor: Colors.green,
-                            onChanged: (v) =>
-                                setState(() => _attendance[roll] = v ?? true),
+                              horizontal: 8, vertical: 10),
+                          child: Row(
+                            children: [
+                              Expanded(flex: 1, child: headerText('#')),
+                              Expanded(flex: 3, child: headerText('Roll No.')),
+                              Expanded(
+                                  flex: 5, child: headerText('Student Name')),
+                              Expanded(
+                                  flex: 4, child: headerText('Hall Ticket')),
+                              Expanded(flex: 2, child: headerText('Present')),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
+                        ...batchStudents.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final s = entry.value;
+                          final roll = s['rollNo'] as String;
+                          final isPresent = _attendance[roll] ?? true;
+
+                          return Container(
+                            color:
+                                idx % 2 == 0 ? Colors.white : Colors.grey.shade50,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                    flex: 1,
+                                    child: dataText('${idx + 1}',
+                                        align: TextAlign.center)),
+                                Expanded(flex: 3, child: dataText(roll)),
+                                Expanded(
+                                    flex: 5,
+                                    child: dataText(
+                                        (s['name'] ?? '').toString())),
+                                Expanded(
+                                  flex: 4,
+                                  child: dataText(
+                                      (s['hallTicketNumber'] ?? '').toString()),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Center(
+                                    child: Checkbox(
+                                      value: isPresent,
+                                      activeColor: Colors.green,
+                                      onChanged: (v) => setState(
+                                          () => _attendance[roll] = v ?? true),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                ],
+              ),
+            );
+          },
         );
       }).toList(),
     );
