@@ -456,8 +456,12 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
       final winData = windowDoc.data() ?? {};
       final windowTitle = winData['title']?.toString() ?? _selectedWindowId!;
       final examSession = winData['examSession']?.toString() ?? '';
-      final amount =
-          status == 'paid' ? (winData['fee'] as num?)?.toDouble() ?? 0 : 0.0;
+      final feePerSubject = (winData['fee'] as num?)?.toDouble() ?? 0;
+      final subjectCount =
+          _needsSubjectPicker ? _selectedSubjectCodes.length : 1;
+      final amount = status == 'paid'
+          ? feePerSubject * (subjectCount > 0 ? subjectCount : 1)
+          : 0.0;
 
       String studentName = '';
       if (status == 'paid') {
@@ -499,6 +503,8 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
         'status': status,
         if (_needsSubjectPicker && selectedSubjects.isNotEmpty)
           'subjects': selectedSubjects,
+        if (_needsSubjectPicker) 'feePerSubject': feePerSubject,
+        if (_needsSubjectPicker) 'subjectCount': subjectCount,
         'updatedBy': staffId,
         'updatedAt': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
@@ -563,6 +569,19 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
         final rollNo = _rollCtrl.text.trim().toUpperCase();
         final rollFilled = rollNo.isNotEmpty;
         final canAct = !_saving && rollFilled && _selectedWindowId != null;
+
+        // Compute fee-per-subject from the selected window (for UI display)
+        double _feePerSubject = 0;
+        if (_selectedWindowId != null && windows.isNotEmpty) {
+          final selWin = windows.where((w) => w.id == _selectedWindowId);
+          if (selWin.isNotEmpty) {
+            final wData = selWin.first.data() as Map<String, dynamic>;
+            _feePerSubject = (wData['fee'] as num?)?.toDouble() ?? 0;
+          }
+        }
+        final _totalFee = _needsSubjectPicker
+            ? _feePerSubject * _selectedSubjectCodes.length
+            : _feePerSubject;
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -760,6 +779,62 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                         ),
                       ],
                     ],
+
+                    // ── Fee summary ──────────────────────────────
+                    if (_needsSubjectPicker &&
+                        _selectedSubjectCodes.isNotEmpty &&
+                        _feePerSubject > 0) ...
+                      [
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1e3a5f)
+                                .withValues(alpha: 0.06),
+                            border: Border.all(
+                                color: const Color(0xFF1e3a5f)
+                                    .withValues(alpha: 0.25)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.currency_rupee,
+                                  size: 16,
+                                  color: Color(0xFF1e3a5f)),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.black87),
+                                    children: [
+                                      TextSpan(
+                                          text:
+                                              '₹${_feePerSubject.toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                              fontWeight:
+                                                  FontWeight.w600)),
+                                      TextSpan(
+                                          text:
+                                              ' × ${_selectedSubjectCodes.length} subject${_selectedSubjectCodes.length == 1 ? '' : 's'} = '),
+                                      TextSpan(
+                                          text:
+                                              '₹${_totalFee.toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              color:
+                                                  Color(0xFF1e3a5f))),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
 
                     const SizedBox(height: 14),
 

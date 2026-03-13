@@ -5,6 +5,8 @@ import 'pages/mentor_assignment_page.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../services/user_service.dart';
 import '../../services/session_service.dart';
+import '../../services/audit_log_service.dart';
+import '../../models/audit_log_model.dart';
 import 'pages/unified_permissions_page.dart';
 import 'pages/account_creation_page.dart';
 import 'pages/student_name_edit_page.dart';
@@ -37,11 +39,94 @@ class AdminHome extends StatefulWidget {
 class _AdminHomeState extends State<AdminHome> {
   Map<String, dynamic>? _adminData;
   bool _isLoading = false;
+  Future<Map<String, int>> _dashboardStatsFuture = Future.value({
+    'totalStudents': 0,
+    'activeAdmins': 0,
+    'departments': 0,
+    'pendingTasks': 0,
+  });
 
   @override
   void initState() {
     super.initState();
+    _dashboardStatsFuture = _loadDashboardStats();
     _loadAdminData();
+  }
+
+  Future<Map<String, int>> _loadDashboardStats() async {
+    try {
+      final fs = FirebaseFirestore.instance;
+
+      final futures = await Future.wait([
+        fs.collection('students').get(),
+        fs.collection('admin').get(),
+        fs.collection('subjects').get(),
+        fs
+            .collection('editAccessRequests')
+            .where('status', isEqualTo: 'pending')
+            .get(),
+        fs
+            .collection('attendanceEditRequests')
+            .where('status', isEqualTo: 'pending')
+            .get(),
+        fs.collection('grievances').where('status', isEqualTo: 'Pending').get(),
+      ]);
+
+        final studentSnap = futures[0];
+        final adminSnap = futures[1];
+        final subjectSnap = futures[2];
+        final editAccessPendingSnap = futures[3];
+        final attendancePendingSnap = futures[4];
+        final grievancePendingSnap = futures[5];
+
+      // Admin records may or may not include status; treat missing status as active.
+      final activeAdmins = adminSnap.docs.where((doc) {
+        final status = doc.data()['status']?.toString().toLowerCase() ?? '';
+        return status.isEmpty || status == 'active';
+      }).length;
+
+      final departments = <String>{};
+      for (final doc in studentSnap.docs) {
+        final data = doc.data();
+        for (final key in ['department', 'dept', 'branch']) {
+          final value = (data[key] ?? '').toString().trim().toUpperCase();
+          if (value.isNotEmpty) departments.add(value);
+        }
+      }
+      if (departments.isEmpty) {
+        for (final doc in subjectSnap.docs) {
+          final data = doc.data();
+          for (final key in ['department', 'dept', 'branch']) {
+            final value = (data[key] ?? '').toString().trim().toUpperCase();
+            if (value.isNotEmpty) departments.add(value);
+          }
+        }
+      }
+
+      final pendingTasks = editAccessPendingSnap.docs.length +
+          attendancePendingSnap.docs.length +
+          grievancePendingSnap.docs.length;
+
+      return {
+        'totalStudents': studentSnap.docs.length,
+        'activeAdmins': activeAdmins,
+        'departments': departments.length,
+        'pendingTasks': pendingTasks,
+      };
+    } catch (_) {
+      return {
+        'totalStudents': 0,
+        'activeAdmins': 0,
+        'departments': 0,
+        'pendingTasks': 0,
+      };
+    }
+  }
+
+  String _formatCount(int value) {
+    return value
+        .toString()
+        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
   }
 
   Future<void> _loadAdminData() async {
@@ -611,39 +696,56 @@ class _AdminHomeState extends State<AdminHome> {
         isMobile ? 2 : (MediaQuery.of(context).size.width < 1024 ? 2 : 4);
     final childAspectRatio = isMobile ? 1.1 : 1.3;
 
-    return GridView.count(
-      crossAxisCount: crossAxisCount,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: childAspectRatio,
-      children: [
-        _buildStatsCard(
-          'Total Students',
-          '1,250',
-          Colors.blue,
-          context,
-        ),
-        _buildStatsCard(
-          'Active Admins',
-          '15',
-          Colors.green,
-          context,
-        ),
-        _buildStatsCard(
-          'Departments',
-          '8',
-          Colors.orange,
-          context,
-        ),
-        _buildStatsCard(
-          'Pending Tasks',
-          '12',
-          Colors.red,
-          context,
-        ),
-      ],
+    return FutureBuilder<Map<String, int>>(
+      future: _dashboardStatsFuture,
+      builder: (context, snapshot) {
+        final stats = snapshot.data;
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+
+        final totalStudents =
+            isLoading ? '...' : _formatCount(stats?['totalStudents'] ?? 0);
+        final activeAdmins =
+            isLoading ? '...' : _formatCount(stats?['activeAdmins'] ?? 0);
+        final departments =
+            isLoading ? '...' : _formatCount(stats?['departments'] ?? 0);
+        final pendingTasks =
+            isLoading ? '...' : _formatCount(stats?['pendingTasks'] ?? 0);
+
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: childAspectRatio,
+          children: [
+            _buildStatsCard(
+              'Total Students',
+              totalStudents,
+              Colors.blue,
+              context,
+            ),
+            _buildStatsCard(
+              'Active Admins',
+              activeAdmins,
+              Colors.green,
+              context,
+            ),
+            _buildStatsCard(
+              'Departments',
+              departments,
+              Colors.orange,
+              context,
+            ),
+            _buildStatsCard(
+              'Pending Tasks',
+              pendingTasks,
+              Colors.red,
+              context,
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -982,17 +1084,90 @@ class _AdminHomeState extends State<AdminHome> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildActivityItem(
-              'Student accounts uploaded', '30 min ago', isMobile),
-          const SizedBox(height: 10),
-          _buildActivityItem(
-              'Permissions granted to 5 users', '2 hours ago', isMobile),
-          const SizedBox(height: 10),
-          _buildActivityItem(
-              'System backup completed', '5 hours ago', isMobile),
+          StreamBuilder<List<AuditLogEntry>>(
+            stream: AuditLogService().getAuditLogs(limit: 3),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final logs = snapshot.data ?? [];
+              if (logs.isEmpty) {
+                return Text(
+                  'No recent operations found.',
+                  style: TextStyle(
+                    fontSize: isMobile ? 10 : 11,
+                    color: Colors.grey.shade600,
+                  ),
+                );
+              }
+
+              return Column(
+                children: List.generate(logs.length, (index) {
+                  final log = logs[index];
+                  final activity = _buildOperationText(log);
+                  final time = _timeAgo(log.timestamp);
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: index == logs.length - 1 ? 0 : 10),
+                    child: _buildActivityItem(activity, time, isMobile),
+                  );
+                }),
+              );
+            },
+          ),
         ],
       ),
     );
+  }
+
+  String _buildOperationText(AuditLogEntry log) {
+    final module = log.module.trim();
+    final operation = log.operation.trim();
+    final userId = log.userId.trim();
+    final affectedCount = log.affectedUsers.length;
+
+    final moduleLabel = module.isNotEmpty
+        ? module[0].toUpperCase() + module.substring(1)
+        : 'System';
+
+    String message = '$moduleLabel $operation';
+
+    if (affectedCount > 0) {
+      message += ' for $affectedCount user${affectedCount == 1 ? '' : 's'}';
+    }
+
+    if (log.targetEntity.isNotEmpty) {
+      message += ' on ${log.targetEntity}';
+    }
+
+    if (userId.isNotEmpty) {
+      message += ' by $userId';
+    }
+
+    return message;
+  }
+
+  String _timeAgo(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+
+    if (diff.inSeconds < 60) return 'just now';
+    if (diff.inMinutes < 60) {
+      return '${diff.inMinutes} min ago';
+    }
+    if (diff.inHours < 24) {
+      return '${diff.inHours} hour${diff.inHours == 1 ? '' : 's'} ago';
+    }
+    if (diff.inDays < 7) {
+      return '${diff.inDays} day${diff.inDays == 1 ? '' : 's'} ago';
+    }
+
+    return '${time.day.toString().padLeft(2, '0')}/'
+        '${time.month.toString().padLeft(2, '0')}/'
+        '${time.year}';
   }
 
   Widget _buildActivityItem(String activity, String time, bool isMobile) {
