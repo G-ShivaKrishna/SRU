@@ -43,7 +43,8 @@ class _FacultyFeedbackScreenState extends State<FacultyFeedbackScreen> {
 
       // Build all possible faculty ID aliases used across collections.
       final facultyIdCandidates = <String>{docId};
-      final facultyDoc = await _firestore.collection('faculty').doc(docId).get();
+      final facultyDoc =
+          await _firestore.collection('faculty').doc(docId).get();
       if (facultyDoc.exists) {
         final data = facultyDoc.data() ?? <String, dynamic>{};
         for (final key in const ['employeeId', 'facultyId', 'id']) {

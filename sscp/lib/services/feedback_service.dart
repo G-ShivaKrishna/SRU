@@ -446,8 +446,9 @@ class FeedbackService {
         for (var i = 0; i < ids.length; i += 10) {
           final chunk = ids.sublist(i, (i + 10).clamp(0, ids.length));
           if (chunk.isEmpty) continue;
-          final snapshot =
-              await _feedbackCollection.where('facultyId', whereIn: chunk).get();
+          final snapshot = await _feedbackCollection
+              .where('facultyId', whereIn: chunk)
+              .get();
           for (final doc in snapshot.docs) {
             docsById[doc.id] = doc;
           }
@@ -456,13 +457,16 @@ class FeedbackService {
 
       // Fallback for inconsistent casing/format in older data.
       if (docsById.isEmpty && candidateIds.isNotEmpty) {
-        final normalizedCandidates =
-            candidateIds.map(_normalizeFacultyId).where((e) => e.isNotEmpty).toSet();
+        final normalizedCandidates = candidateIds
+            .map(_normalizeFacultyId)
+            .where((e) => e.isNotEmpty)
+            .toSet();
         if (normalizedCandidates.isNotEmpty) {
           final snapshot = await _feedbackCollection.get();
           for (final doc in snapshot.docs) {
             final data = doc.data() as Map<String, dynamic>;
-            final docFacultyId = _normalizeFacultyId(data['facultyId']?.toString());
+            final docFacultyId =
+                _normalizeFacultyId(data['facultyId']?.toString());
             if (normalizedCandidates.contains(docFacultyId)) {
               docsById[doc.id] = doc;
             }
@@ -591,8 +595,9 @@ class FeedbackService {
         for (var i = 0; i < ids.length; i += 10) {
           final chunk = ids.sublist(i, (i + 10).clamp(0, ids.length));
           if (chunk.isEmpty) continue;
-          final snapshot =
-              await _feedbackCollection.where('facultyId', whereIn: chunk).get();
+          final snapshot = await _feedbackCollection
+              .where('facultyId', whereIn: chunk)
+              .get();
           for (final doc in snapshot.docs) {
             docsById[doc.id] = doc;
           }

@@ -215,7 +215,8 @@ class _MultiBatchAttendanceScreenState
   bool _matchesAssignmentScope(Map<String, dynamic> data, _Assign assignment) {
     final assignmentDepartment = _normalize(assignment.department);
     final docDepartment = _normalize(data['department']?.toString() ?? '');
-    if (assignmentDepartment.isNotEmpty && docDepartment != assignmentDepartment) {
+    if (assignmentDepartment.isNotEmpty &&
+        docDepartment != assignmentDepartment) {
       return false;
     }
 
@@ -762,7 +763,8 @@ class _MultiBatchAttendanceScreenState
     final topicField = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Topic Covered', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Topic Covered',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         TextFormField(
           controller: _topicCtrl,
@@ -774,7 +776,8 @@ class _MultiBatchAttendanceScreenState
     final unitField = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Unit / Exp No.', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text('Unit / Exp No.',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: _unitExpNo,
@@ -1115,8 +1118,9 @@ class _MultiBatchAttendanceScreenState
                           final isPresent = _attendance[roll] ?? true;
 
                           return Container(
-                            color:
-                                idx % 2 == 0 ? Colors.white : Colors.grey.shade50,
+                            color: idx % 2 == 0
+                                ? Colors.white
+                                : Colors.grey.shade50,
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 8),
                             child: Row(
@@ -1128,8 +1132,8 @@ class _MultiBatchAttendanceScreenState
                                 Expanded(flex: 3, child: dataText(roll)),
                                 Expanded(
                                     flex: 5,
-                                    child: dataText(
-                                        (s['name'] ?? '').toString())),
+                                    child:
+                                        dataText((s['name'] ?? '').toString())),
                                 Expanded(
                                   flex: 4,
                                   child: dataText(

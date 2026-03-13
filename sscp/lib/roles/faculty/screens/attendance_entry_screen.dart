@@ -244,10 +244,12 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
     }
   }
 
-  bool _matchesAssignmentScope(Map<String, dynamic> data, _Assignment assignment) {
+  bool _matchesAssignmentScope(
+      Map<String, dynamic> data, _Assignment assignment) {
     final assignmentDepartment = _normalize(assignment.department);
     final docDepartment = _normalize(data['department']?.toString() ?? '');
-    if (assignmentDepartment.isNotEmpty && docDepartment != assignmentDepartment) {
+    if (assignmentDepartment.isNotEmpty &&
+        docDepartment != assignmentDepartment) {
       return false;
     }
 
@@ -577,8 +579,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                   const SizedBox(height: 6),
                   Container(
                     width: compact ? double.infinity : null,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
                       border: Border.all(color: Colors.grey[400]!),
@@ -730,14 +732,16 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                 );
               }
 
-              return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                checkAll,
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Text('|', style: TextStyle(fontSize: 18)),
-                ),
-                uncheckAll,
-              ]);
+              return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    checkAll,
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('|', style: TextStyle(fontSize: 18)),
+                    ),
+                    uncheckAll,
+                  ]);
             },
           ),
           const SizedBox(height: 16),
@@ -830,8 +834,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
         children: [
           SizedBox(
             width: 160,
-            child:
-                Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
           Expanded(child: input),
         ],
@@ -851,7 +855,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
               isExpanded: true,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 isDense: true,
               ),
               items: const [
@@ -870,7 +875,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
               controller: _topicCtrl,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 isDense: true,
               ),
             ),
@@ -884,7 +890,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
               isExpanded: true,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 isDense: true,
               ),
               items: unitOptions
@@ -1071,7 +1078,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                     Text('Batch ID: ${(s['batchNumber'] ?? '').toString()}',
                         style: dStyle),
                     const SizedBox(height: 2),
-                    Text('Hall Ticket No: ${(s['hallTicketNumber'] ?? '').toString()}',
+                    Text(
+                        'Hall Ticket No: ${(s['hallTicketNumber'] ?? '').toString()}',
                         style: dStyle),
                     const SizedBox(height: 2),
                     Text('Present: ${present ? 'Yes' : 'No'}', style: dStyle),
@@ -1091,7 +1099,8 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
             children: [
               Container(
                 color: const Color(0xFF1e3a5f),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                 child: Row(
                   children: [
                     Expanded(flex: 1, child: _headerText('S No')),
@@ -1115,13 +1124,16 @@ class _AttendanceEntryScreenState extends State<AttendanceEntryScreen> {
                     children: [
                       Expanded(
                           flex: 1,
-                          child: _dataText('${i + 1}', align: TextAlign.center)),
+                          child:
+                              _dataText('${i + 1}', align: TextAlign.center)),
                       Expanded(
                           flex: 2,
-                          child: _dataText((s['batchNumber'] ?? '').toString())),
+                          child:
+                              _dataText((s['batchNumber'] ?? '').toString())),
                       Expanded(
                         flex: 3,
-                        child: _dataText((s['hallTicketNumber'] ?? '').toString()),
+                        child:
+                            _dataText((s['hallTicketNumber'] ?? '').toString()),
                       ),
                       Expanded(
                           flex: 4,
