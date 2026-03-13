@@ -243,11 +243,11 @@ class FeedbackService {
           final facultyAssignment =
               matchingAssignmentsByCode[_normalizeToken(trimmedCode)];
           resolvedFacultyId =
-              facultyAssignment?['facultyId']?.toString().trim() ?? resolvedFacultyId;
-          resolvedFacultyName = facultyAssignment?['facultyName']
-                  ?.toString()
-                  .trim() ??
-              resolvedFacultyName;
+              facultyAssignment?['facultyId']?.toString().trim() ??
+                  resolvedFacultyId;
+          resolvedFacultyName =
+              facultyAssignment?['facultyName']?.toString().trim() ??
+                  resolvedFacultyName;
         }
 
         if (resolvedFacultyName.isEmpty) {
@@ -600,8 +600,9 @@ class FeedbackService {
     required String sessionId,
   }) async {
     try {
-      final snapshot =
-          await _feedbackCollection.where('studentId', isEqualTo: studentId).get();
+      final snapshot = await _feedbackCollection
+          .where('studentId', isEqualTo: studentId)
+          .get();
 
       final subjectCodes = <String>{};
       for (final doc in snapshot.docs) {
@@ -609,7 +610,8 @@ class FeedbackService {
         if ((data['sessionId'] ?? '').toString() != sessionId) {
           continue;
         }
-        final subjectCode = _normalizeToken(data['subjectCode']?.toString() ?? '');
+        final subjectCode =
+            _normalizeToken(data['subjectCode']?.toString() ?? '');
         if (subjectCode.isNotEmpty) {
           subjectCodes.add(subjectCode);
         }
