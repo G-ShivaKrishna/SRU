@@ -151,13 +151,16 @@ class FeedbackService {
       String resolvedStudentSection = studentSection?.trim() ?? '';
 
       if (resolvedStudentBatch.isEmpty || resolvedStudentSection.isEmpty) {
-        final studentDoc = await _firestore.collection('students').doc(studentId).get();
+        final studentDoc =
+            await _firestore.collection('students').doc(studentId).get();
         if (studentDoc.exists) {
           final studentData = studentDoc.data() as Map<String, dynamic>;
-          resolvedStudentBatch =
-              resolvedStudentBatch.isEmpty ? (studentData['batchNumber'] ?? '').toString() : resolvedStudentBatch;
-          resolvedStudentSection =
-              resolvedStudentSection.isEmpty ? (studentData['section'] ?? '').toString() : resolvedStudentSection;
+          resolvedStudentBatch = resolvedStudentBatch.isEmpty
+              ? (studentData['batchNumber'] ?? '').toString()
+              : resolvedStudentBatch;
+          resolvedStudentSection = resolvedStudentSection.isEmpty
+              ? (studentData['section'] ?? '').toString()
+              : resolvedStudentSection;
         }
       }
 
@@ -176,7 +179,9 @@ class FeedbackService {
         var resolvedFacultyId = facultyId.trim();
         var resolvedFacultyName = facultyName.trim();
 
-        if (resolvedFacultyId.isEmpty || resolvedFacultyName.isEmpty || resolvedFacultyName == 'Not Assigned') {
+        if (resolvedFacultyId.isEmpty ||
+            resolvedFacultyName.isEmpty ||
+            resolvedFacultyName == 'Not Assigned') {
           final facultyAssignment = await _getFacultyForSubject(
             subjectCode: trimmedCode,
             year: studentYear,
@@ -185,8 +190,10 @@ class FeedbackService {
             studentBatch: resolvedStudentBatch,
             studentSection: resolvedStudentSection,
           );
-          resolvedFacultyId = facultyAssignment?['facultyId']?.toString() ?? resolvedFacultyId;
-          resolvedFacultyName = facultyAssignment?['facultyName']?.toString() ?? resolvedFacultyName;
+          resolvedFacultyId =
+              facultyAssignment?['facultyId']?.toString() ?? resolvedFacultyId;
+          resolvedFacultyName = facultyAssignment?['facultyName']?.toString() ??
+              resolvedFacultyName;
         }
 
         if (resolvedFacultyName.isEmpty) {
@@ -210,7 +217,8 @@ class FeedbackService {
         final existingFacultyName = (existing['facultyName'] ?? '').toString();
         final existingFacultyId = (existing['facultyId'] ?? '').toString();
 
-        if ((existingFacultyId.isEmpty || existingFacultyName == 'Not Assigned') &&
+        if ((existingFacultyId.isEmpty ||
+                existingFacultyName == 'Not Assigned') &&
             resolvedFacultyId.isNotEmpty) {
           existing['facultyId'] = resolvedFacultyId;
           existing['facultyName'] = resolvedFacultyName;
@@ -470,11 +478,14 @@ class FeedbackService {
   }) {
     final assignmentYear = _parseInt(data['year']);
     final expectedYear = _parseInt(studentYear);
-    if (assignmentYear > 0 && expectedYear > 0 && assignmentYear != expectedYear) {
+    if (assignmentYear > 0 &&
+        expectedYear > 0 &&
+        assignmentYear != expectedYear) {
       return false;
     }
 
-    final assignmentDept = _normalizeToken(data['department']?.toString() ?? '');
+    final assignmentDept =
+        _normalizeToken(data['department']?.toString() ?? '');
     final normalizedBranch = _normalizeToken(studentBranch);
     if (assignmentDept.isNotEmpty && assignmentDept != normalizedBranch) {
       return false;
@@ -485,7 +496,8 @@ class FeedbackService {
       return false;
     }
 
-    final assignedBatches = List<String>.from(data['assignedBatches'] ?? const []);
+    final assignedBatches =
+        List<String>.from(data['assignedBatches'] ?? const []);
     if (assignedBatches.isEmpty) {
       return true;
     }
