@@ -116,22 +116,31 @@ class FeedbackService {
     try {
       final session = await getActiveFeedbackSession();
       if (session == null) return false;
-
-      final enabledYears = List<String>.from(session['enabledYears'] ?? []);
-      final enabledBranches =
-          List<String>.from(session['enabledBranches'] ?? []);
-
-      // Case-insensitive branch matching
-      final branchUpper = studentBranch.toUpperCase();
-      final branchMatches = enabledBranches.any((b) =>
-          b.toUpperCase() == branchUpper ||
-          b.toUpperCase().contains(branchUpper) ||
-          branchUpper.contains(b.toUpperCase()));
-
-      return enabledYears.contains(studentYear) && branchMatches;
+      return isFeedbackSessionEnabledForStudent(
+        session: session,
+        studentYear: studentYear,
+        studentBranch: studentBranch,
+      );
     } catch (e) {
       return false;
     }
+  }
+
+  bool isFeedbackSessionEnabledForStudent({
+    required Map<String, dynamic> session,
+    required String studentYear,
+    required String studentBranch,
+  }) {
+    final enabledYears = List<String>.from(session['enabledYears'] ?? []);
+    final enabledBranches = List<String>.from(session['enabledBranches'] ?? []);
+
+    final branchUpper = studentBranch.toUpperCase();
+    final branchMatches = enabledBranches.any((b) =>
+        b.toUpperCase() == branchUpper ||
+        b.toUpperCase().contains(branchUpper) ||
+        branchUpper.contains(b.toUpperCase()));
+
+    return enabledYears.contains(studentYear) && branchMatches;
   }
 
   /// Get subjects for which student can give feedback
@@ -164,13 +173,62 @@ class FeedbackService {
         }
       }
 
-      Future<void> addOrMergeSubject({
+      final parsedYear = int.tryParse(studentYear);
+      QuerySnapshot<Map<String, dynamic>> assignmentsSnapshot;
+      if (parsedYear != null) {
+        assignmentsSnapshot = await _firestore
+            .collection('facultyAssignments')
+            .where('year', isEqualTo: parsedYear)
+            .where('isActive', isEqualTo: true)
+            .get();
+        if (assignmentsSnapshot.docs.isEmpty) {
+          assignmentsSnapshot = await _firestore
+              .collection('facultyAssignments')
+              .where('isActive', isEqualTo: true)
+              .get();
+        }
+      } else {
+        assignmentsSnapshot = await _firestore
+            .collection('facultyAssignments')
+            .where('isActive', isEqualTo: true)
+            .get();
+      }
+
+      final matchingAssignmentsByCode = <String, Map<String, dynamic>>{};
+      for (final doc in assignmentsSnapshot.docs) {
+        final data = doc.data();
+        if (!_matchesAssignmentForStudent(
+          data,
+          studentYear: studentYear,
+          studentBranch: studentBranch,
+          semester: semester,
+          studentBatch: resolvedStudentBatch,
+          studentSection: resolvedStudentSection,
+        )) {
+          continue;
+        }
+
+        final subjectCode = (data['subjectCode'] ?? '').toString().trim();
+        if (subjectCode.isEmpty) {
+          continue;
+        }
+
+        matchingAssignmentsByCode.putIfAbsent(
+          _normalizeToken(subjectCode),
+          () => {
+            'subjectId': doc.id,
+            ...data,
+          },
+        );
+      }
+
+      void addOrMergeSubject({
         required String subjectId,
         required String subjectCode,
         required String subjectName,
         String facultyId = '',
         String facultyName = 'Not Assigned',
-      }) async {
+      }) {
         final trimmedCode = subjectCode.trim();
         if (trimmedCode.isEmpty) {
           return;
@@ -182,17 +240,13 @@ class FeedbackService {
         if (resolvedFacultyId.isEmpty ||
             resolvedFacultyName.isEmpty ||
             resolvedFacultyName == 'Not Assigned') {
-          final facultyAssignment = await _getFacultyForSubject(
-            subjectCode: trimmedCode,
-            year: studentYear,
-            semester: semester,
-            studentBranch: studentBranch,
-            studentBatch: resolvedStudentBatch,
-            studentSection: resolvedStudentSection,
-          );
+          final facultyAssignment =
+              matchingAssignmentsByCode[_normalizeToken(trimmedCode)];
           resolvedFacultyId =
-              facultyAssignment?['facultyId']?.toString() ?? resolvedFacultyId;
-          resolvedFacultyName = facultyAssignment?['facultyName']?.toString() ??
+              facultyAssignment?['facultyId']?.toString().trim() ?? resolvedFacultyId;
+          resolvedFacultyName = facultyAssignment?['facultyName']
+                  ?.toString()
+                  .trim() ??
               resolvedFacultyName;
         }
 
@@ -247,7 +301,7 @@ class FeedbackService {
             final courseList = entry.value as List<dynamic>? ?? [];
             for (final course in courseList) {
               if (course is Map<String, dynamic>) {
-                await addOrMergeSubject(
+                addOrMergeSubject(
                   subjectId:
                       (course['id'] ?? course['courseId'] ?? '').toString(),
                   subjectCode:
@@ -262,46 +316,13 @@ class FeedbackService {
       }
 
       // Strategy 2: Merge faculty assignments directly for the student's scope.
-      QuerySnapshot<Map<String, dynamic>> assignmentsSnapshot;
-      final parsedYear = int.tryParse(studentYear);
-      if (parsedYear != null) {
-        assignmentsSnapshot = await _firestore
-            .collection('facultyAssignments')
-            .where('year', isEqualTo: parsedYear)
-            .where('isActive', isEqualTo: true)
-            .get();
-        if (assignmentsSnapshot.docs.isEmpty) {
-          assignmentsSnapshot = await _firestore
-              .collection('facultyAssignments')
-              .where('isActive', isEqualTo: true)
-              .get();
-        }
-      } else {
-        assignmentsSnapshot = await _firestore
-            .collection('facultyAssignments')
-            .where('isActive', isEqualTo: true)
-            .get();
-      }
-
-      for (final doc in assignmentsSnapshot.docs) {
-        final data = doc.data();
-        if (!_matchesAssignmentForStudent(
-          data,
-          studentYear: studentYear,
-          studentBranch: studentBranch,
-          semester: semester,
-          studentBatch: resolvedStudentBatch,
-          studentSection: resolvedStudentSection,
-        )) {
-          continue;
-        }
-
-        await addOrMergeSubject(
-          subjectId: doc.id,
-          subjectCode: (data['subjectCode'] ?? '').toString(),
-          subjectName: (data['subjectName'] ?? '').toString(),
-          facultyId: (data['facultyId'] ?? '').toString(),
-          facultyName: (data['facultyName'] ?? '').toString(),
+      for (final entry in matchingAssignmentsByCode.values) {
+        addOrMergeSubject(
+          subjectId: (entry['subjectId'] ?? '').toString(),
+          subjectCode: (entry['subjectCode'] ?? '').toString(),
+          subjectName: (entry['subjectName'] ?? '').toString(),
+          facultyId: (entry['facultyId'] ?? '').toString(),
+          facultyName: (entry['facultyName'] ?? '').toString(),
         );
       }
 
@@ -339,7 +360,7 @@ class FeedbackService {
               continue;
             }
 
-            await addOrMergeSubject(
+            addOrMergeSubject(
               subjectId: doc.id,
               subjectCode: (data['code'] ?? doc.id).toString(),
               subjectName: (data['name'] ?? '').toString(),
@@ -357,7 +378,7 @@ class FeedbackService {
 
         for (final doc in assignmentsSnapshot.docs) {
           final data = doc.data();
-          await addOrMergeSubject(
+          addOrMergeSubject(
             subjectId: doc.id,
             subjectCode: (data['subjectCode'] ?? '').toString(),
             subjectName: (data['subjectName'] ?? '').toString(),
@@ -390,7 +411,7 @@ class FeedbackService {
               b.toLowerCase().contains(branchLower));
 
           if (yearMatches && branchMatches) {
-            await addOrMergeSubject(
+            addOrMergeSubject(
               subjectId: doc.id,
               subjectCode: (data['code'] ?? doc.id).toString(),
               subjectName: (data['name'] ?? '').toString(),
@@ -411,7 +432,7 @@ class FeedbackService {
 
         for (final doc in allSubjects.docs) {
           final data = doc.data();
-          await addOrMergeSubject(
+          addOrMergeSubject(
             subjectId: doc.id,
             subjectCode: (data['code'] ?? doc.id).toString(),
             subjectName: (data['name'] ?? '').toString(),
@@ -426,45 +447,6 @@ class FeedbackService {
       return subjects;
     } catch (e) {
       throw Exception('Failed to get feedback subjects: $e');
-    }
-  }
-
-  Future<Map<String, dynamic>?> _getFacultyForSubject({
-    required String subjectCode,
-    required String year,
-    required String semester,
-    required String studentBranch,
-    String? studentBatch,
-    String? studentSection,
-  }) async {
-    try {
-      final assignmentSnapshot = await _firestore
-          .collection('facultyAssignments')
-          .where('subjectCode', isEqualTo: subjectCode)
-          .get();
-
-      for (final doc in assignmentSnapshot.docs) {
-        final data = doc.data();
-        if (!_matchesAssignmentForStudent(
-          data,
-          studentYear: year,
-          studentBranch: studentBranch,
-          semester: semester,
-          studentBatch: studentBatch,
-          studentSection: studentSection,
-        )) {
-          continue;
-        }
-
-        return {
-          'facultyId': data['facultyId'] ?? '',
-          'facultyName': data['facultyName'] ?? '',
-        };
-      }
-
-      return null;
-    } catch (e) {
-      return null;
     }
   }
 
@@ -610,6 +592,31 @@ class FeedbackService {
       return snapshot.docs.isNotEmpty;
     } catch (e) {
       return false;
+    }
+  }
+
+  Future<Set<String>> getSubmittedFeedbackSubjectCodes({
+    required String studentId,
+    required String sessionId,
+  }) async {
+    try {
+      final snapshot =
+          await _feedbackCollection.where('studentId', isEqualTo: studentId).get();
+
+      final subjectCodes = <String>{};
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        if ((data['sessionId'] ?? '').toString() != sessionId) {
+          continue;
+        }
+        final subjectCode = _normalizeToken(data['subjectCode']?.toString() ?? '');
+        if (subjectCode.isNotEmpty) {
+          subjectCodes.add(subjectCode);
+        }
+      }
+      return subjectCodes;
+    } catch (_) {
+      return <String>{};
     }
   }
 
