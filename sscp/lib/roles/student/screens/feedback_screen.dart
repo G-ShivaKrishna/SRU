@@ -100,31 +100,30 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           );
 
       if (_feedbackEnabled) {
-        // Get subjects for feedback
-        _subjects = await _feedbackService.getStudentFeedbackSubjects(
-          studentId: rollNumber,
-          studentYear: studentYear,
-          studentBranch: studentBranch,
-          semester: semester,
-          studentBatch: _studentData?['batchNumber']?.toString(),
-          studentSection: _studentData?['section']?.toString(),
-        );
-
-        // Check which subjects already have feedback
-        if (_activeSession != null) {
-          final submittedSubjectCodes =
-              await _feedbackService.getSubmittedFeedbackSubjectCodes(
+        final loadResults = await Future.wait<dynamic>([
+          _feedbackService.getStudentFeedbackSubjects(
+            studentId: rollNumber,
+            studentYear: studentYear,
+            studentBranch: studentBranch,
+            semester: semester,
+            studentBatch: _studentData?['batchNumber']?.toString(),
+            studentSection: _studentData?['section']?.toString(),
+          ),
+          _feedbackService.getSubmittedFeedbackSubjectCodes(
             studentId: rollNumber,
             sessionId: _activeSession!['sessionId'],
-          );
+          ),
+        ]);
 
-          for (int i = 0; i < _subjects.length; i++) {
-            final normalizedCode = _normalizeSubjectCode(
-              (_subjects[i]['subjectCode'] ?? '').toString(),
-            );
-            _subjects[i]['submitted'] =
-                submittedSubjectCodes.contains(normalizedCode);
-          }
+        _subjects = loadResults[0] as List<Map<String, dynamic>>;
+        final submittedSubjectCodes = loadResults[1] as Set<String>;
+
+        for (int i = 0; i < _subjects.length; i++) {
+          final normalizedCode = _normalizeSubjectCode(
+            (_subjects[i]['subjectCode'] ?? '').toString(),
+          );
+          _subjects[i]['submitted'] =
+              submittedSubjectCodes.contains(normalizedCode);
         }
 
         // Sort: assigned faculty subjects first (alphabetically), then unassigned

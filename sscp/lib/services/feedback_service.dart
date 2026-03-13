@@ -173,26 +173,18 @@ class FeedbackService {
         }
       }
 
-      final parsedYear = int.tryParse(studentYear);
-      QuerySnapshot<Map<String, dynamic>> assignmentsSnapshot;
-      if (parsedYear != null) {
-        assignmentsSnapshot = await _firestore
-            .collection('facultyAssignments')
-            .where('year', isEqualTo: parsedYear)
-            .where('isActive', isEqualTo: true)
-            .get();
-        if (assignmentsSnapshot.docs.isEmpty) {
-          assignmentsSnapshot = await _firestore
-              .collection('facultyAssignments')
-              .where('isActive', isEqualTo: true)
-              .get();
-        }
-      } else {
-        assignmentsSnapshot = await _firestore
-            .collection('facultyAssignments')
-            .where('isActive', isEqualTo: true)
-            .get();
-      }
+      final results = await Future.wait<dynamic>([
+        _loadActiveAssignmentsForYear(studentYear),
+        _firestore
+            .collection('studentCourses')
+            .where('studentId', isEqualTo: studentId)
+            .get(),
+      ]);
+
+      final assignmentsSnapshot =
+          results[0] as QuerySnapshot<Map<String, dynamic>>;
+      final studentCoursesSnapshot =
+          results[1] as QuerySnapshot<Map<String, dynamic>>;
 
       final matchingAssignmentsByCode = <String, Map<String, dynamic>>{};
       for (final doc in assignmentsSnapshot.docs) {
@@ -285,11 +277,6 @@ class FeedbackService {
       }
 
       // Strategy 1: Get from student's registered courses (studentCourses collection)
-      final studentCoursesSnapshot = await _firestore
-          .collection('studentCourses')
-          .where('studentId', isEqualTo: studentId)
-          .get();
-
       if (studentCoursesSnapshot.docs.isNotEmpty) {
         for (final doc in studentCoursesSnapshot.docs) {
           final data = doc.data();
@@ -573,6 +560,27 @@ class FeedbackService {
       return value.floor();
     }
     return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _loadActiveAssignmentsForYear(
+    String studentYear,
+  ) async {
+    final parsedYear = int.tryParse(studentYear);
+    if (parsedYear != null) {
+      final yearSnapshot = await _firestore
+          .collection('facultyAssignments')
+          .where('year', isEqualTo: parsedYear)
+          .where('isActive', isEqualTo: true)
+          .get();
+      if (yearSnapshot.docs.isNotEmpty) {
+        return yearSnapshot;
+      }
+    }
+
+    return _firestore
+        .collection('facultyAssignments')
+        .where('isActive', isEqualTo: true)
+        .get();
   }
 
   /// Check if student has already submitted feedback for a subject
