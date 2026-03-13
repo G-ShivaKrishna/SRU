@@ -16,6 +16,7 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
   final _firestore = FirebaseFirestore.instance;
 
   Map<String, dynamic>? _data;
+  String _facultyId = '';
   bool _isLoading = true;
   String? _loadError;
 
@@ -33,13 +34,52 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('Not logged in');
-      final email = user.email ?? '';
-      final docId =
-          UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
-      final doc = await _firestore.collection('faculty').doc(docId).get();
+      final email = (user.email ?? '').toLowerCase().trim();
+      final cachedId = (UserService.getCurrentUserId() ?? '').trim();
+
+      DocumentSnapshot<Map<String, dynamic>>? doc;
+      String resolvedFacultyId = cachedId;
+
+      if (cachedId.isNotEmpty) {
+        final byId = await _firestore.collection('faculty').doc(cachedId).get();
+        if (byId.exists) {
+          doc = byId;
+          resolvedFacultyId = byId.id;
+        }
+      }
+
+      if (doc == null && email.isNotEmpty) {
+        final byFirebaseEmail = await _firestore
+            .collection('faculty')
+            .where('firebaseEmail', isEqualTo: email)
+            .limit(1)
+            .get();
+        if (byFirebaseEmail.docs.isNotEmpty) {
+          doc = byFirebaseEmail.docs.first;
+          resolvedFacultyId = doc.id;
+        }
+      }
+
+      if (doc == null && email.isNotEmpty) {
+        final byEmail = await _firestore
+            .collection('faculty')
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
+        if (byEmail.docs.isNotEmpty) {
+          doc = byEmail.docs.first;
+          resolvedFacultyId = doc.id;
+        }
+      }
+
+      if (doc == null) {
+        throw Exception('Faculty profile not found');
+      }
+
       if (!mounted) return;
       setState(() {
-        _data = doc.exists ? (doc.data() ?? {}) : {};
+        _data = doc!.data() ?? {};
+        _facultyId = resolvedFacultyId;
         _isLoading = false;
       });
     } catch (e) {
@@ -147,7 +187,11 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
                                       style: const TextStyle(
                                           color: Colors.white60, fontSize: 13)),
                                   const SizedBox(height: 4),
-                                  Text('ID: ${_v('employeeId')}',
+                                  Text(
+                                      'Faculty ID: ${_facultyId.isEmpty ? '-' : _facultyId}',
+                                      style: const TextStyle(
+                                          color: Colors.white54, fontSize: 12)),
+                                  Text('Employee ID: ${_v('employeeId')}',
                                       style: const TextStyle(
                                           color: Colors.white54, fontSize: 12)),
                                 ],
@@ -160,12 +204,17 @@ class _FacultyProfileScreenState extends State<FacultyProfileScreen> {
 
                       _card('Employee Basic Information',
                           const Color(0xFF2EAD4B), [
-                        _row2('Employee ID', _v('employeeId'),
-                            'Appointment Type', _v('appointmentType')),
-                        _row2('Date of Joining', _v('dateOfJoining'),
-                            'Cabin Number', _v('cabinNumber')),
-                        _row2('Intercom', _v('intercom'), 'Favourite Courses',
-                            _v('favoriteCourses')),
+                        _row2(
+                            'Faculty ID',
+                            _facultyId.isEmpty ? '-' : _facultyId,
+                            'Employee ID',
+                            _v('employeeId')),
+                        _row2('Appointment Type', _v('appointmentType'),
+                            'Date of Joining', _v('dateOfJoining')),
+                        _row2('Cabin Number', _v('cabinNumber'), 'Intercom',
+                            _v('intercom')),
+                        _row2(
+                            'Favourite Courses', _v('favoriteCourses'), '', ''),
                       ]),
                       const SizedBox(height: 12),
 

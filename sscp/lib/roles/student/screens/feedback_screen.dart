@@ -56,6 +56,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     _commentsController.clear();
   }
 
+  String _normalizeSubjectCode(String value) {
+    return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
@@ -70,8 +74,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       final email = user.email ?? '';
       final rollNumber =
           UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
-      final studentDoc =
-          await _firestore.collection('students').doc(rollNumber).get();
+      final results = await Future.wait<dynamic>([
+        _firestore.collection('students').doc(rollNumber).get(),
+        _feedbackService.getActiveFeedbackSession(),
+      ]);
+      final studentDoc = results[0] as DocumentSnapshot<Map<String, dynamic>>;
+      final activeSession = results[1] as Map<String, dynamic>?;
 
       if (!studentDoc.exists) {
         throw Exception('Student data not found');
@@ -83,33 +91,39 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           (_studentData?['department'] ?? '').toString().toUpperCase();
       final semester = _studentData?['semester']?.toString() ?? '';
 
-      // Check if feedback is enabled
-      _feedbackEnabled = await _feedbackService.isFeedbackEnabledForStudent(
-        studentYear: studentYear,
-        studentBranch: studentBranch,
-      );
+      _activeSession = activeSession;
+      _feedbackEnabled = activeSession != null &&
+          _feedbackService.isFeedbackSessionEnabledForStudent(
+            session: activeSession,
+            studentYear: studentYear,
+            studentBranch: studentBranch,
+          );
 
       if (_feedbackEnabled) {
-        _activeSession = await _feedbackService.getActiveFeedbackSession();
+        final loadResults = await Future.wait<dynamic>([
+          _feedbackService.getStudentFeedbackSubjects(
+            studentId: rollNumber,
+            studentYear: studentYear,
+            studentBranch: studentBranch,
+            semester: semester,
+            studentBatch: _studentData?['batchNumber']?.toString(),
+            studentSection: _studentData?['section']?.toString(),
+          ),
+          _feedbackService.getSubmittedFeedbackSubjectCodes(
+            studentId: rollNumber,
+            sessionId: _activeSession!['sessionId'],
+          ),
+        ]);
 
-        // Get subjects for feedback
-        _subjects = await _feedbackService.getStudentFeedbackSubjects(
-          studentId: rollNumber,
-          studentYear: studentYear,
-          studentBranch: studentBranch,
-          semester: semester,
-        );
+        _subjects = loadResults[0] as List<Map<String, dynamic>>;
+        final submittedSubjectCodes = loadResults[1] as Set<String>;
 
-        // Check which subjects already have feedback
-        if (_activeSession != null) {
-          for (int i = 0; i < _subjects.length; i++) {
-            final hasSubmitted = await _feedbackService.hasSubmittedFeedback(
-              studentId: rollNumber,
-              subjectCode: _subjects[i]['subjectCode'],
-              sessionId: _activeSession!['sessionId'],
-            );
-            _subjects[i]['submitted'] = hasSubmitted;
-          }
+        for (int i = 0; i < _subjects.length; i++) {
+          final normalizedCode = _normalizeSubjectCode(
+            (_subjects[i]['subjectCode'] ?? '').toString(),
+          );
+          _subjects[i]['submitted'] =
+              submittedSubjectCodes.contains(normalizedCode);
         }
 
         // Sort: assigned faculty subjects first (alphabetically), then unassigned

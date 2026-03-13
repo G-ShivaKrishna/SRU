@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../services/audit_log_service.dart';
-import '../../../services/user_service.dart';
+import '../services/faculty_scope_service.dart';
 
 /// Faculty: Supply Exam Marks Entry
 /// - Shows subjects assigned to this faculty via [supplySubjectAssignments]
@@ -19,7 +18,8 @@ class SupplyMarksScreen extends StatefulWidget {
 
 class _SupplyMarksScreenState extends State<SupplyMarksScreen> {
   final _firestore = FirebaseFirestore.instance;
-  late final String _facultyId;
+  final _scopeService = FacultyScopeService();
+  String _facultyId = '';
   bool _loading = true;
 
   List<Map<String, dynamic>> _assignments = [];
@@ -28,14 +28,14 @@ class _SupplyMarksScreenState extends State<SupplyMarksScreen> {
   @override
   void initState() {
     super.initState();
-    final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    _facultyId =
-        UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
     _loadAssignments();
   }
 
   Future<void> _loadAssignments() async {
     setState(() => _loading = true);
+    if (_facultyId.isEmpty) {
+      _facultyId = await _scopeService.resolveCurrentFacultyId();
+    }
     final snap = await _firestore
         .collection('supplySubjectAssignments')
         .where('facultyId', isEqualTo: _facultyId)

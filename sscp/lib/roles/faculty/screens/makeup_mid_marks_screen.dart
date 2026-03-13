@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../services/audit_log_service.dart';
-import '../../../services/user_service.dart';
+import '../services/faculty_scope_service.dart';
 
 /// Faculty: Makeup Mid Exam Marks Entry
 /// - Shows subjects assigned to this faculty via [makeupMidSubjectAssignments]
@@ -17,7 +16,8 @@ class MakeupMidMarksScreen extends StatefulWidget {
 
 class _MakeupMidMarksScreenState extends State<MakeupMidMarksScreen> {
   final _firestore = FirebaseFirestore.instance;
-  late final String _facultyId;
+  final _scopeService = FacultyScopeService();
+  String _facultyId = '';
   bool _loading = true;
 
   List<Map<String, dynamic>> _assignments = [];
@@ -26,14 +26,14 @@ class _MakeupMidMarksScreenState extends State<MakeupMidMarksScreen> {
   @override
   void initState() {
     super.initState();
-    final email = FirebaseAuth.instance.currentUser?.email ?? '';
-    _facultyId =
-        UserService.getCurrentUserId() ?? email.split('@')[0].toUpperCase();
     _loadAssignments();
   }
 
   Future<void> _loadAssignments() async {
     setState(() => _loading = true);
+    if (_facultyId.isEmpty) {
+      _facultyId = await _scopeService.resolveCurrentFacultyId();
+    }
 
     final snap = await _firestore
         .collection('makeupMidSubjectAssignments')

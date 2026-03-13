@@ -111,8 +111,10 @@ class _StudentHomeState extends State<StudentHome> {
         final studentData = doc.data()!;
         // Fetch mentor information based on batch
         final batchNumber = studentData['batchNumber']?.toString();
+        final department = studentData['department']?.toString();
         if (batchNumber != null && batchNumber.isNotEmpty) {
-          await _fetchMentorData(studentData, batchNumber);
+          await _fetchMentorData(studentData, batchNumber,
+              department: department);
         }
         setState(() {
           _studentData = studentData;
@@ -261,15 +263,20 @@ class _StudentHomeState extends State<StudentHome> {
 
   /// Fetch mentor information from backend based on year and batch assignment
   Future<void> _fetchMentorData(
-      Map<String, dynamic> studentData, String batchNumber) async {
+    Map<String, dynamic> studentData,
+    String batchNumber, {
+    String? department,
+  }) async {
     try {
       // Get student's year
       final year = studentData['year'];
       final yearInt = year is int ? year : int.tryParse(year.toString());
+      final normalizedDepartment = department?.trim().toUpperCase() ?? '';
 
       if (yearInt == null) {
         // No valid year found
         studentData['mentorName'] = 'Not Assigned';
+        studentData['mentor'] = 'N/A';
         studentData['mentorPhone'] = 'N/A';
         studentData['mentorEmail'] = 'N/A';
         return;
@@ -280,49 +287,88 @@ class _StudentHomeState extends State<StudentHome> {
           .collection('mentorAssignments')
           .where('year', isEqualTo: yearInt)
           .where('batchNumber', isEqualTo: batchNumber)
-          .limit(1)
           .get();
 
       if (assignmentSnap.docs.isEmpty) {
         // No mentor assigned for this year+batch
         studentData['mentorName'] = 'Not Assigned';
+        studentData['mentor'] = 'N/A';
         studentData['mentorPhone'] = 'N/A';
         studentData['mentorEmail'] = 'N/A';
         return;
       }
 
-      final assignmentData = assignmentSnap.docs.first.data();
-      final mentorFacultyName = assignmentData['facultyName']?.toString();
+      // Prefer dept-matching doc; fall back to first doc for legacy records
+      var assignmentDoc = assignmentSnap.docs.first;
+      if (normalizedDepartment.isNotEmpty) {
+        for (final doc in assignmentSnap.docs) {
+          final assignmentDepartment =
+              (doc.data()['department'] ?? '').toString().trim().toUpperCase();
+          if (assignmentDepartment == normalizedDepartment) {
+            assignmentDoc = doc;
+            break;
+          }
+        }
+      }
 
-      if (mentorFacultyName == null || mentorFacultyName.isEmpty) {
+      final assignmentData = assignmentDoc.data();
+      final mentorFacultyId =
+          (assignmentData['facultyId'] ?? '').toString().trim().toUpperCase();
+      final mentorFacultyName =
+          (assignmentData['facultyName'] ?? '').toString().trim();
+
+      if (mentorFacultyId.isEmpty && mentorFacultyName.isEmpty) {
         studentData['mentorName'] = 'Not Assigned';
+        studentData['mentor'] = 'N/A';
         studentData['mentorPhone'] = 'N/A';
         studentData['mentorEmail'] = 'N/A';
         return;
       }
 
-      // Get mentor's details from faculty collection
-      final facultySnap = await _firestore
-          .collection('faculty')
-          .where('name', isEqualTo: mentorFacultyName)
-          .limit(1)
-          .get();
+      Map<String, dynamic>? facultyData;
+      String resolvedFacultyId = mentorFacultyId;
 
-      if (facultySnap.docs.isNotEmpty) {
-        final facultyData = facultySnap.docs.first.data();
+      if (mentorFacultyId.isNotEmpty) {
+        final facultyDoc =
+            await _firestore.collection('faculty').doc(mentorFacultyId).get();
+        if (facultyDoc.exists) {
+          facultyData = facultyDoc.data();
+          resolvedFacultyId = facultyDoc.id;
+        }
+      }
+
+      if (facultyData == null && mentorFacultyName.isNotEmpty) {
+        final facultySnap = await _firestore
+            .collection('faculty')
+            .where('name', isEqualTo: mentorFacultyName)
+            .limit(1)
+            .get();
+
+        if (facultySnap.docs.isNotEmpty) {
+          facultyData = facultySnap.docs.first.data();
+          resolvedFacultyId = facultySnap.docs.first.id;
+        }
+      }
+
+      if (facultyData != null) {
         studentData['mentorName'] =
             facultyData['name']?.toString() ?? mentorFacultyName;
+        studentData['mentor'] = resolvedFacultyId;
         studentData['mentorPhone'] = facultyData['phone']?.toString() ?? 'N/A';
         studentData['mentorEmail'] = facultyData['email']?.toString() ?? 'N/A';
       } else {
         // Faculty not found, use assignment name
-        studentData['mentorName'] = mentorFacultyName;
+        studentData['mentorName'] =
+            mentorFacultyName.isNotEmpty ? mentorFacultyName : mentorFacultyId;
+        studentData['mentor'] =
+            resolvedFacultyId.isNotEmpty ? resolvedFacultyId : 'N/A';
         studentData['mentorPhone'] = 'N/A';
         studentData['mentorEmail'] = 'N/A';
       }
     } catch (e) {
       debugPrint('[Mentor] Error fetching mentor data: $e');
       studentData['mentorName'] = 'Error Loading';
+      studentData['mentor'] = 'N/A';
       studentData['mentorPhone'] = 'N/A';
       studentData['mentorEmail'] = 'N/A';
     }

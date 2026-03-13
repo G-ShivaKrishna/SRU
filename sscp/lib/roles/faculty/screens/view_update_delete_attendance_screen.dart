@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import '../../../widgets/app_header.dart';
+import '../services/faculty_scope_service.dart';
 
 class ViewUpdateDeleteAttendanceScreen extends StatefulWidget {
   const ViewUpdateDeleteAttendanceScreen({super.key});
@@ -15,6 +15,7 @@ class ViewUpdateDeleteAttendanceScreen extends StatefulWidget {
 class _ViewUpdateDeleteAttendanceScreenState
     extends State<ViewUpdateDeleteAttendanceScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FacultyScopeService _scopeService = FacultyScopeService();
 
   DateTime _selectedDate = DateTime.now();
 
@@ -31,9 +32,7 @@ class _ViewUpdateDeleteAttendanceScreenState
   /// Approved edit requests from admin for this faculty
   List<Map<String, dynamic>> _approvedRequests = [];
 
-  String get _facultyId =>
-      FirebaseAuth.instance.currentUser?.email?.split('@')[0].toUpperCase() ??
-      '';
+  String _facultyId = '';
 
   String _dateStr(DateTime d) => DateFormat('dd-MM-yyyy').format(d);
 
@@ -56,6 +55,10 @@ class _ViewUpdateDeleteAttendanceScreenState
   Future<void> _loadDocs() async {
     setState(() => _isLoading = true);
     try {
+      if (_facultyId.isEmpty) {
+        _facultyId = await _scopeService.resolveCurrentFacultyId();
+      }
+
       final results = await Future.wait([
         _firestore
             .collection('attendance')
@@ -865,13 +868,13 @@ class _ViewUpdateDeleteAttendanceScreenState
           .where('subjectCode', isEqualTo: subjectCode)
           .limit(1)
           .get();
-      
+
       // Filter by isActive to ensure only currently active courses
       final activeDocs = assignSnap.docs.where((doc) {
         final d = doc.data();
         return (d['isActive'] ?? true) == true;
       }).toList();
-      
+
       final subjectName = activeDocs.isNotEmpty
           ? (activeDocs.first.data()['subjectName'] as String? ?? '')
           : '';
