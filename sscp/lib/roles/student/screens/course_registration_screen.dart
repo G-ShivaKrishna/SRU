@@ -557,111 +557,373 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
 
   Widget _buildStatusTab(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCurrentStatusSummaryCard(context),
+          const SizedBox(height: 16),
+          _buildCurrentRegistrationTable(context),
+          const SizedBox(height: 24),
+          _buildCourseHistory(context),
+        ],
+      ),
+    );
+  }
+
+  // ── Status tab helpers ────────────────────────────────────────────────────
+
+  Widget _buildCurrentStatusSummaryCard(BuildContext context) {
+    final isSubmitted = _studentSelection?.isSubmitted ?? false;
+    final isUnlocked = _studentSelection?.isUnlocked ?? false;
+    final isOpen = _isRegistrationOpen();
+
+    final String statusLabel;
+    final Color statusColor;
+    final IconData statusIcon;
+
+    if (isSubmitted && !isUnlocked) {
+      statusLabel = 'Submitted';
+      statusColor = Colors.green;
+      statusIcon = Icons.verified;
+    } else if (isSubmitted && isUnlocked) {
+      statusLabel = 'Unlocked for Editing';
+      statusColor = Colors.blue;
+      statusIcon = Icons.lock_open;
+    } else if (_studentSelection != null &&
+        _studentSelection!.selectedCourseIds.isNotEmpty) {
+      statusLabel = 'Draft';
+      statusColor = Colors.orange;
+      statusIcon = Icons.edit_note;
+    } else {
+      statusLabel = 'Not Started';
+      statusColor = Colors.grey;
+      statusIcon = Icons.radio_button_unchecked;
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1e3a5f),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: Row(
+              children: [
+                const Icon(Icons.assignment, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Current Registration',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.2),
+                    border: Border.all(color: statusColor),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, size: 13, color: statusColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        statusLabel,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Colors.white24),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Wrap(
+              spacing: 24,
+              runSpacing: 10,
+              children: [
+                _buildStatusInfoChip('Year', studentYear),
+                _buildStatusInfoChip('Branch', studentBranch),
+                _buildStatusInfoChip('Academic Year', '2025-26'),
+                _buildStatusInfoChip(
+                  'Registration',
+                  isOpen ? 'Open' : 'Closed',
+                  valueColor:
+                      isOpen ? Colors.greenAccent : Colors.redAccent,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusInfoChip(String label, String value,
+      {Color valueColor = Colors.yellow}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(fontSize: 10, color: Colors.white60)),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+              fontSize: 13, color: valueColor, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCurrentRegistrationTable(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     if (_studentSelection == null ||
         _studentSelection!.selectedCourseIds.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? 16 : 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.info_outline,
-                size: 64,
-                color: Colors.grey[400],
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'No Courses Registered Yet',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'You have not registered for any courses yet. Go to the Register tab to select courses.',
-                style: TextStyle(
-                  fontSize: isMobile ? 12 : 14,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        alignment: Alignment.center,
+        child: Column(
+          children: [
+            Icon(Icons.inbox_outlined, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 12),
+            const Text(
+              'No courses registered yet',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Go to the Register tab to select courses.',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
         ),
       );
     }
 
-    return SingleChildScrollView(
-      child: Padding(
-        padding: EdgeInsets.all(isMobile ? 12 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...CourseType.values.map((type) {
-              final typeStr = type.toString().split('.').last;
-              final selectedIds = (_studentSelection!.selectionsByType[typeStr]
-                      as List<dynamic>?) ??
-                  [];
+    // Build ordered list of {type, id} from selectionsByType
+    final List<Map<String, String>> courseEntries = [];
+    for (final type in ['OE', 'PE', 'SE']) {
+      final ids =
+          (_studentSelection!.selectionsByType[type] as List<dynamic>?) ?? [];
+      for (final id in ids) {
+        courseEntries.add({'type': type, 'id': id.toString()});
+      }
+    }
 
-              return FutureBuilder<List<Course>>(
-                future: Future.wait<Course?>(
-                  selectedIds
-                      .map((id) => _courseService.getCourse(id as String)),
-                ).then((courses) => courses.whereType<Course>().toList()),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final courses =
-                      snapshot.data?.whereType<Course>().toList() ?? [];
-
-                  if (courses.isEmpty) return const SizedBox.shrink();
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _buildRegisteredCoursesSection(
-                      context,
-                      typeStr,
-                      courses,
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header
+          Container(
+            width: double.infinity,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1e3a5f),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(7),
+                topRight: Radius.circular(7),
+              ),
+            ),
+            child: Text(
+              'Registered Courses  '
+              '(${_studentSelection!.selectedCourseIds.length} '
+              'course${_studentSelection!.selectedCourseIds.length == 1 ? '' : 's'})',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          // Table header row
+          Container(
+            color: Colors.grey[100],
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                const SizedBox(
+                    width: 32,
+                    child: Text('#',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1e3a5f)))),
+                const Expanded(
+                    flex: 2,
+                    child: Text('Code',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1e3a5f)))),
+                const Expanded(
+                    flex: 5,
+                    child: Text('Course Name',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1e3a5f)))),
+                if (!isMobile)
+                  const Expanded(
+                      flex: 2,
+                      child: Text('Type',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1e3a5f)))),
+                if (!isMobile)
+                  const Expanded(
+                      flex: 2,
+                      child: Text('Credits',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1e3a5f)))),
+                const Expanded(
+                    flex: 2,
+                    child: Text('Status',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1e3a5f)))),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          FutureBuilder<List<Course?>>(
+            future: Future.wait(
+                courseEntries.map((e) => _courseService.getCourse(e['id']!))),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              final resolvedCourses = snapshot.data ?? [];
+              return Column(
+                children: List.generate(courseEntries.length, (idx) {
+                  final entry = courseEntries[idx];
+                  final course =
+                      idx < resolvedCourses.length ? resolvedCourses[idx] : null;
+                  final isEven = idx % 2 == 0;
+                  return Container(
+                    color: isEven ? Colors.white : Colors.grey[50],
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 32,
+                          child: Text('${idx + 1}',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey[600])),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(course?.code ?? '—',
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                        Expanded(
+                          flex: 5,
+                          child: Text(
+                            course?.name ?? entry['id']!,
+                            style: const TextStyle(fontSize: 12),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (!isMobile)
+                          Expanded(
+                            flex: 2,
+                            child: _buildCourseTypeBadge(entry['type']!),
+                          ),
+                        if (!isMobile)
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              course != null ? '${course.credits}' : '—',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.green[50],
+                              border: Border.all(color: Colors.green[300]!),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Registered',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.green[800],
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   );
-                },
+                }),
               );
-            }),
-            if (_studentSelection!.isSubmitted)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green[100],
-                  border: Border.all(color: Colors.green[400]!),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.green),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Your registration has been submitted.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green[900],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 24),
-            _buildCourseHistory(context),
-          ],
-        ),
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCourseTypeBadge(String type) {
+    final Map<String, List<Color>> colors = {
+      'OE': [Colors.purple[50]!, Colors.purple[700]!],
+      'PE': [Colors.blue[50]!, Colors.blue[700]!],
+      'SE': [Colors.teal[50]!, Colors.teal[700]!],
+    };
+    final c = colors[type] ?? [Colors.grey[100]!, Colors.grey[700]!];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: c[0],
+        border: Border.all(color: c[1]),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        type,
+        style: TextStyle(fontSize: 10, color: c[1], fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
       ),
     );
   }
@@ -684,15 +946,21 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Divider(),
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'Previous Registrations',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+              padding: EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Icon(Icons.history, size: 18, color: Color(0xFF1e3a5f)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Previous Registrations',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1e3a5f),
+                    ),
+                  ),
+                ],
               ),
             ),
             ...docs.map((doc) {
@@ -702,68 +970,177 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
               if (archivedAt is Timestamp) {
                 final d = archivedAt.toDate();
                 dateLabel =
-                    'Archived ${d.day.toString().padLeft(2, '0')}-${d.month.toString().padLeft(2, '0')}-${d.year}';
+                    'Archived on ${d.day.toString().padLeft(2, '0')}-'
+                    '${d.month.toString().padLeft(2, '0')}-${d.year}';
               }
-              final year = data['year']?.toString() ?? '';
-              final branch = data['branch']?.toString() ?? '';
+              final docYear = data['year']?.toString() ?? '';
+              final docBranch = data['branch']?.toString() ?? '';
+              final docSemester = data['semester']?.toString() ?? '';
               final selByType =
                   (data['selectionsByType'] as Map<String, dynamic>?) ?? {};
+
+              // Build flat (type, id) list from archive
+              final List<Map<String, String>> archEntries = [];
+              for (final e in selByType.entries) {
+                for (final id in (e.value as List<dynamic>? ?? [])) {
+                  archEntries.add({'type': e.key, 'id': id.toString()});
+                }
+              }
+
+              final titleParts = [
+                if (docYear.isNotEmpty) 'Year $docYear',
+                if (docBranch.isNotEmpty) docBranch,
+                if (docSemester.isNotEmpty) 'Sem $docSemester',
+              ];
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(color: Colors.grey[300]!),
+                ),
                 child: ExpansionTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1e3a5f).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.history_edu,
+                        color: Color(0xFF1e3a5f), size: 18),
+                  ),
                   title: Text(
-                    year.isNotEmpty ? 'Year $year  |  $branch' : 'History',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    titleParts.isEmpty
+                        ? 'Previous Registration'
+                        : titleParts.join('  |  '),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13),
                   ),
-                  subtitle: Text(
-                    dateLabel,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  children: selByType.entries.map((e) {
-                    final typeLabel = e.key;
-                    final ids = (e.value as List<dynamic>? ?? []);
-                    if (ids.isEmpty) return const SizedBox.shrink();
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Text(
-                            typeLabel,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w500, fontSize: 13),
+                  subtitle: Text(dateLabel,
+                      style:
+                          TextStyle(fontSize: 11, color: Colors.grey[600])),
+                  childrenPadding:
+                      const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  children: archEntries.isEmpty
+                      ? [
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text('No courses recorded.',
+                                style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12)),
+                          )
+                        ]
+                      : [
+                          // Table header
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            color: Colors.grey[100],
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 6),
+                            child: const Row(
+                              children: [
+                                SizedBox(
+                                    width: 28,
+                                    child: Text('#',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1e3a5f)))),
+                                Expanded(
+                                    flex: 2,
+                                    child: Text('Code',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1e3a5f)))),
+                                Expanded(
+                                    flex: 5,
+                                    child: Text('Course Name',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1e3a5f)))),
+                                Expanded(
+                                    flex: 2,
+                                    child: Text('Type',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1e3a5f)))),
+                              ],
+                            ),
                           ),
-                        ),
-                        ...ids.map((id) => FutureBuilder<Course?>(
-                              future: _courseService.getCourse(id.toString()),
-                              builder: (ctx, cs) {
-                                final name = cs.data?.name ?? id.toString();
-                                final code = cs.data?.code ?? '';
-                                return Padding(
-                                  padding:
-                                      const EdgeInsets.only(left: 8, bottom: 4),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.circle,
-                                          size: 6, color: Colors.grey),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          code.isNotEmpty
-                                              ? '$code — $name'
-                                              : name,
-                                          style: const TextStyle(fontSize: 13),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                          const Divider(height: 1),
+                          FutureBuilder<List<Course?>>(
+                            future: Future.wait(archEntries
+                                .map((e) => _courseService.getCourse(e['id']!))),
+                            builder: (ctx, cs) {
+                              if (cs.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: Center(
+                                      child: CircularProgressIndicator()),
                                 );
-                              },
-                            )),
-                      ],
-                    );
-                  }).toList(),
+                              }
+                              final archCourses = cs.data ?? [];
+                              return Column(
+                                children:
+                                    List.generate(archEntries.length, (idx) {
+                                  final entry = archEntries[idx];
+                                  final course = idx < archCourses.length
+                                      ? archCourses[idx]
+                                      : null;
+                                  final isEven = idx % 2 == 0;
+                                  return Container(
+                                    color: isEven
+                                        ? Colors.white
+                                        : Colors.grey[50],
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 8),
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 28,
+                                          child: Text('${idx + 1}',
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600])),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: Text(
+                                            course?.code ?? '—',
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 5,
+                                          child: Text(
+                                            course?.name ?? entry['id']!,
+                                            style: const TextStyle(
+                                                fontSize: 12),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          flex: 2,
+                                          child: _buildCourseTypeBadge(
+                                              entry['type']!),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }),
+                              );
+                            },
+                          ),
+                        ],
                 ),
               );
             }),
@@ -1122,96 +1499,6 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen>
         }
       }
     }
-  }
-
-  Widget _buildRegisteredCoursesSection(
-    BuildContext context,
-    String typeLabel,
-    List<Course> courses,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1e3a5f),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(7),
-                topRight: Radius.circular(7),
-              ),
-            ),
-            child: Text(
-              '$typeLabel Courses - ${courses.length} course(s)',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: courses.asMap().entries.map((entry) {
-                final course = entry.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.green[100],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Icon(
-                          Icons.check,
-                          size: 16,
-                          color: Colors.green,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${course.code} - ${course.name}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Credits: ${course.credits}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSubmitButton(BuildContext context) {

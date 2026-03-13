@@ -54,6 +54,9 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   int _requiredOECount = 0;
   int _requiredPECount = 0;
 
+  // History future for Status tab
+  Future<QuerySnapshot>? _historyFuture;
+
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isSubmitted = false;
@@ -64,7 +67,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadStudentDataAndSubjects();
   }
 
@@ -158,6 +161,11 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
 
       _isSubmitted = await submittedFuture;
       _isRegistrationOpen = await registrationOpenFuture;
+
+      _historyFuture = FirebaseFirestore.instance
+          .collection('studentSubjectSelections')
+          .where('studentId', isEqualTo: _studentId)
+          .get();
 
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -471,6 +479,16 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                 ],
               ),
             ),
+            const Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.assignment_turned_in, size: 16),
+                  SizedBox(width: 4),
+                  Text('Status'),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -511,6 +529,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
                             requiredCount: _requiredPECount,
                             isMobile: isMobile,
                           ),
+                          _buildStatusTab(isMobile),
                         ],
                       ),
                     ),
@@ -519,6 +538,643 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
       bottomNavigationBar: _isLoading || _errorMessage != null
           ? null
           : _buildBottomBar(isMobile),
+    );
+  }
+
+  // ── Status Tab ──────────────────────────────────────────────────────────
+
+  Widget _buildStatusTab(bool isMobile) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildStatusSummaryCard(),
+          const SizedBox(height: 16),
+          _buildCurrentRegistrationTable(isMobile),
+          const SizedBox(height: 24),
+          _buildSubjectHistory(isMobile),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusSummaryCard() {
+    final String statusLabel;
+    final Color statusColor;
+    final IconData statusIcon;
+
+    if (_isSubmitted && !_isRegistrationOpen) {
+      statusLabel = 'Submitted';
+      statusColor = Colors.green;
+      statusIcon = Icons.verified;
+    } else if (_isSubmitted && _isRegistrationOpen) {
+      statusLabel = 'Submitted (Editable)';
+      statusColor = Colors.blue;
+      statusIcon = Icons.edit_note;
+    } else if (_selectedOEIds.isNotEmpty || _selectedPEIds.isNotEmpty) {
+      statusLabel = 'Draft';
+      statusColor = Colors.orange;
+      statusIcon = Icons.edit;
+    } else {
+      statusLabel = 'Not Started';
+      statusColor = Colors.grey;
+      statusIcon = Icons.radio_button_unchecked;
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1e3a5f),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: Row(
+              children: [
+                const Icon(Icons.assignment, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Current Registration',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.2),
+                    border: Border.all(color: statusColor),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(statusIcon, size: 13, color: statusColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        statusLabel,
+                        style: TextStyle(
+                            color: statusColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Colors.white24),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Wrap(
+              spacing: 24,
+              runSpacing: 10,
+              children: [
+                _statusInfoChip('Name', _studentName),
+                _statusInfoChip('Year', '$_studentYear'),
+                _statusInfoChip('Semester', _studentSemester),
+                _statusInfoChip('Branch', _studentDepartment),
+                _statusInfoChip(
+                  'Registration',
+                  _isRegistrationOpen ? 'Open' : 'Closed',
+                  valueColor: _isRegistrationOpen
+                      ? Colors.greenAccent
+                      : Colors.redAccent,
+                ),
+                _statusInfoChip(
+                  'Total Credits',
+                  '$_totalCredits',
+                  valueColor: Colors.yellow,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusInfoChip(String label, String value,
+      {Color valueColor = Colors.yellow}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(fontSize: 10, color: Colors.white60)),
+        const SizedBox(height: 2),
+        Text(value,
+            style: TextStyle(
+                fontSize: 13,
+                color: valueColor,
+                fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+
+  Widget _buildCurrentRegistrationTable(bool isMobile) {
+    final rows = <Map<String, dynamic>>[];
+    for (final s in _coreSubjects) {
+      rows.add({
+        'subject': s,
+        'type': 'Core',
+        'bg': Colors.indigo.shade50,
+        'fg': Colors.indigo.shade700,
+      });
+    }
+    for (final s in _oeSubjects.where((s) => _selectedOEIds.contains(s.id))) {
+      rows.add({
+        'subject': s,
+        'type': 'OE',
+        'bg': Colors.purple.shade50,
+        'fg': Colors.purple.shade700,
+      });
+    }
+    for (final s in _peSubjects.where((s) => _selectedPEIds.contains(s.id))) {
+      rows.add({
+        'subject': s,
+        'type': 'PE',
+        'bg': Colors.teal.shade50,
+        'fg': Colors.teal.shade700,
+      });
+    }
+
+    if (rows.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        alignment: Alignment.center,
+        child: Column(
+          children: [
+            Icon(Icons.inbox_outlined, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 12),
+            const Text('No subjects registered yet',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('Go to Core / OE / PE tabs to register.',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1e3a5f),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(7),
+                topRight: Radius.circular(7),
+              ),
+            ),
+            child: Text(
+              'Registered Subjects  (${rows.length})',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13),
+            ),
+          ),
+          Container(
+            color: Colors.grey[100],
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                const SizedBox(
+                    width: 28,
+                    child: Text('#',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1e3a5f)))),
+                const Expanded(
+                    flex: 2,
+                    child: Text('Code',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1e3a5f)))),
+                const Expanded(
+                    flex: 5,
+                    child: Text('Subject Name',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1e3a5f)))),
+                if (!isMobile)
+                  const Expanded(
+                      flex: 2,
+                      child: Text('Type',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1e3a5f)))),
+                if (!isMobile)
+                  const Expanded(
+                      flex: 2,
+                      child: Text('Credits',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1e3a5f)))),
+                const Expanded(
+                    flex: 2,
+                    child: Text('Status',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1e3a5f)))),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          ...List.generate(rows.length, (idx) {
+            final row = rows[idx];
+            final Subject subj = row['subject'] as Subject;
+            final String type = row['type'] as String;
+            final Color bg = row['bg'] as Color;
+            final Color fg = row['fg'] as Color;
+            final isEven = idx % 2 == 0;
+            return Container(
+              color: isEven ? Colors.white : Colors.grey[50],
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  SizedBox(
+                      width: 28,
+                      child: Text('${idx + 1}',
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.grey[600]))),
+                  Expanded(
+                      flex: 2,
+                      child: Text(subj.code,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600))),
+                  Expanded(
+                    flex: 5,
+                    child: Text(subj.name,
+                        style: const TextStyle(fontSize: 12),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                  if (!isMobile)
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: bg,
+                          border: Border.all(color: fg),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(type,
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: fg,
+                                fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center),
+                      ),
+                    ),
+                  if (!isMobile)
+                    Expanded(
+                        flex: 2,
+                        child: Text('${subj.credits}',
+                            style: const TextStyle(fontSize: 12))),
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        border: Border.all(color: Colors.green.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text('Registered',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.green.shade800,
+                              fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubjectHistory(bool isMobile) {
+    if (_historyFuture == null) return const SizedBox.shrink();
+    return FutureBuilder<QuerySnapshot>(
+      future: _historyFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final docs = snapshot.data?.docs ?? [];
+        final currentDocId =
+            '${_studentId}_${_studentYear}_$_studentSemester';
+        final historyDocs =
+            docs.where((d) => d.id != currentDocId).toList();
+        if (historyDocs.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Icon(Icons.history, size: 18, color: Color(0xFF1e3a5f)),
+                  SizedBox(width: 8),
+                  Text(
+                    'Previous Registrations',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1e3a5f)),
+                  ),
+                ],
+              ),
+            ),
+            ...historyDocs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final docYear = data['year']?.toString() ?? '';
+              final docSem = data['semester']?.toString() ?? '';
+              final docDept = data['department']?.toString() ?? '';
+              final docSubmitted = data['isSubmitted'] == true;
+
+              final coreIds =
+                  List<String>.from(data['coreSubjectIds'] ?? []);
+              final coreCodes =
+                  List<String>.from(data['coreSubjectCodes'] ?? []);
+              final oeIds =
+                  List<String>.from(data['selectedOEIds'] ?? []);
+              final peIds =
+                  List<String>.from(data['selectedPEIds'] ?? []);
+
+              final allEntries = [
+                ...coreIds.asMap().entries.map((e) => {
+                      'id': e.value,
+                      'code':
+                          e.key < coreCodes.length ? coreCodes[e.key] : '',
+                      'type': 'Core',
+                    }),
+                ...oeIds.map(
+                    (id) => {'id': id, 'code': '', 'type': 'OE'}),
+                ...peIds.map(
+                    (id) => {'id': id, 'code': '', 'type': 'PE'}),
+              ];
+
+              final titleParts = [
+                if (docYear.isNotEmpty) 'Year $docYear',
+                if (docDept.isNotEmpty) docDept,
+                if (docSem.isNotEmpty) 'Sem $docSem',
+              ];
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(color: Colors.grey.shade300),
+                ),
+                child: ExpansionTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1e3a5f).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.history_edu,
+                        color: Color(0xFF1e3a5f), size: 18),
+                  ),
+                  title: Text(
+                    titleParts.isEmpty
+                        ? 'Previous Registration'
+                        : titleParts.join('  |  '),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: docSubmitted
+                                ? Colors.green.shade50
+                                : Colors.orange.shade50,
+                            border: Border.all(
+                              color: docSubmitted
+                                  ? Colors.green.shade300
+                                  : Colors.orange.shade300,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            docSubmitted ? 'Submitted' : 'Draft',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: docSubmitted
+                                  ? Colors.green.shade700
+                                  : Colors.orange.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text('${allEntries.length} subject(s)',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[600])),
+                      ],
+                    ),
+                  ),
+                  childrenPadding:
+                      const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  children: allEntries.isEmpty
+                      ? [
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text('No subjects recorded.',
+                                style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 12)),
+                          )
+                        ]
+                      : [
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            color: Colors.grey[100],
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 6),
+                            child: const Row(
+                              children: [
+                                SizedBox(
+                                    width: 28,
+                                    child: Text('#',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1e3a5f)))),
+                                Expanded(
+                                    flex: 3,
+                                    child: Text('Code',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1e3a5f)))),
+                                Expanded(
+                                    flex: 4,
+                                    child: Text('Subject Name',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1e3a5f)))),
+                                Expanded(
+                                    flex: 2,
+                                    child: Text('Type',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1e3a5f)))),
+                              ],
+                            ),
+                          ),
+                          const Divider(height: 1),
+                          ...List.generate(allEntries.length, (idx) {
+                            final entry = allEntries[idx];
+                            final String subjectId = entry['id']!;
+                            final String prefetchCode = entry['code']!;
+                            final String subjectType = entry['type']!;
+                            final Map<String, Color> bgMap = {
+                              'Core': Colors.indigo.shade50,
+                              'OE': Colors.purple.shade50,
+                              'PE': Colors.teal.shade50,
+                            };
+                            final Map<String, Color> fgMap = {
+                              'Core': Colors.indigo.shade700,
+                              'OE': Colors.purple.shade700,
+                              'PE': Colors.teal.shade700,
+                            };
+                            final bg = bgMap[subjectType] ??
+                                Colors.grey.shade50;
+                            final fg = fgMap[subjectType] ??
+                                Colors.grey.shade700;
+                            final isEven = idx % 2 == 0;
+                            return FutureBuilder<DocumentSnapshot>(
+                              future: FirebaseFirestore.instance
+                                  .collection('subjects')
+                                  .doc(subjectId)
+                                  .get(),
+                              builder: (ctx, cs) {
+                                final sData = cs.data?.exists == true
+                                    ? cs.data!.data()
+                                        as Map<String, dynamic>?
+                                    : null;
+                                final name = sData?['subjectName'] ??
+                                    sData?['name'] ??
+                                    subjectId;
+                                final code = sData?['subjectCode'] ??
+                                    sData?['code'] ??
+                                    prefetchCode;
+                                return Container(
+                                  color: isEven
+                                      ? Colors.white
+                                      : Colors.grey[50],
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 8),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                          width: 28,
+                                          child: Text('${idx + 1}',
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  color:
+                                                      Colors.grey[600]))),
+                                      Expanded(
+                                          flex: 3,
+                                          child: Text(
+                                              code.toString(),
+                                              style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight:
+                                                      FontWeight.w600))),
+                                      Expanded(
+                                        flex: 4,
+                                        child: Text(
+                                            name.toString(),
+                                            style: const TextStyle(
+                                                fontSize: 12),
+                                            maxLines: 2,
+                                            overflow:
+                                                TextOverflow.ellipsis),
+                                      ),
+                                      Expanded(
+                                        flex: 2,
+                                        child: Container(
+                                          padding: const EdgeInsets
+                                              .symmetric(
+                                              horizontal: 6,
+                                              vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: bg,
+                                            border:
+                                                Border.all(color: fg),
+                                            borderRadius:
+                                                BorderRadius.circular(
+                                                    12),
+                                          ),
+                                          child: Text(subjectType,
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: fg,
+                                                  fontWeight:
+                                                      FontWeight.bold),
+                                              textAlign:
+                                                  TextAlign.center),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          }),
+                        ],
+                ),
+              );
+            }),
+          ],
+        );
+      },
     );
   }
 
