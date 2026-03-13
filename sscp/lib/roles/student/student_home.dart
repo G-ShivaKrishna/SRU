@@ -298,17 +298,18 @@ class _StudentHomeState extends State<StudentHome> {
         return;
       }
 
-      final assignmentDoc = assignmentSnap.docs.firstWhere(
-        (doc) {
+      // Prefer dept-matching doc; fall back to first doc for legacy records
+      var assignmentDoc = assignmentSnap.docs.first;
+      if (normalizedDepartment.isNotEmpty) {
+        for (final doc in assignmentSnap.docs) {
           final assignmentDepartment =
               (doc.data()['department'] ?? '').toString().trim().toUpperCase();
-          if (assignmentDepartment.isEmpty || normalizedDepartment.isEmpty) {
-            return true;
+          if (assignmentDepartment == normalizedDepartment) {
+            assignmentDoc = doc;
+            break;
           }
-          return assignmentDepartment == normalizedDepartment;
-        },
-        orElse: () => assignmentSnap.docs.first,
-      );
+        }
+      }
 
       final assignmentData = assignmentDoc.data();
       final mentorFacultyId =
