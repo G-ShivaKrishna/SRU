@@ -98,6 +98,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           studentYear: studentYear,
           studentBranch: studentBranch,
           semester: semester,
+          studentBatch: _studentData?['batchNumber']?.toString(),
+          studentSection: _studentData?['section']?.toString(),
         );
 
         // Check which subjects already have feedback

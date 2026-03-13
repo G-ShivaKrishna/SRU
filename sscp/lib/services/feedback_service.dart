@@ -141,9 +141,86 @@ class FeedbackService {
     required String studentYear,
     required String studentBranch,
     required String semester,
+    String? studentBatch,
+    String? studentSection,
   }) async {
     try {
-      final subjects = <Map<String, dynamic>>[];
+      final subjectsByCode = <String, Map<String, dynamic>>{};
+
+      String resolvedStudentBatch = studentBatch?.trim() ?? '';
+      String resolvedStudentSection = studentSection?.trim() ?? '';
+
+      if (resolvedStudentBatch.isEmpty || resolvedStudentSection.isEmpty) {
+        final studentDoc = await _firestore.collection('students').doc(studentId).get();
+        if (studentDoc.exists) {
+          final studentData = studentDoc.data() as Map<String, dynamic>;
+          resolvedStudentBatch =
+              resolvedStudentBatch.isEmpty ? (studentData['batchNumber'] ?? '').toString() : resolvedStudentBatch;
+          resolvedStudentSection =
+              resolvedStudentSection.isEmpty ? (studentData['section'] ?? '').toString() : resolvedStudentSection;
+        }
+      }
+
+      Future<void> addOrMergeSubject({
+        required String subjectId,
+        required String subjectCode,
+        required String subjectName,
+        String facultyId = '',
+        String facultyName = 'Not Assigned',
+      }) async {
+        final trimmedCode = subjectCode.trim();
+        if (trimmedCode.isEmpty) {
+          return;
+        }
+
+        var resolvedFacultyId = facultyId.trim();
+        var resolvedFacultyName = facultyName.trim();
+
+        if (resolvedFacultyId.isEmpty || resolvedFacultyName.isEmpty || resolvedFacultyName == 'Not Assigned') {
+          final facultyAssignment = await _getFacultyForSubject(
+            subjectCode: trimmedCode,
+            year: studentYear,
+            semester: semester,
+            studentBranch: studentBranch,
+            studentBatch: resolvedStudentBatch,
+            studentSection: resolvedStudentSection,
+          );
+          resolvedFacultyId = facultyAssignment?['facultyId']?.toString() ?? resolvedFacultyId;
+          resolvedFacultyName = facultyAssignment?['facultyName']?.toString() ?? resolvedFacultyName;
+        }
+
+        if (resolvedFacultyName.isEmpty) {
+          resolvedFacultyName = 'Not Assigned';
+        }
+
+        final key = _normalizeToken(trimmedCode);
+        final existing = subjectsByCode[key];
+
+        if (existing == null) {
+          subjectsByCode[key] = {
+            'subjectId': subjectId.isNotEmpty ? subjectId : trimmedCode,
+            'subjectCode': trimmedCode,
+            'subjectName': subjectName.trim(),
+            'facultyId': resolvedFacultyId,
+            'facultyName': resolvedFacultyName,
+          };
+          return;
+        }
+
+        final existingFacultyName = (existing['facultyName'] ?? '').toString();
+        final existingFacultyId = (existing['facultyId'] ?? '').toString();
+
+        if ((existingFacultyId.isEmpty || existingFacultyName == 'Not Assigned') &&
+            resolvedFacultyId.isNotEmpty) {
+          existing['facultyId'] = resolvedFacultyId;
+          existing['facultyName'] = resolvedFacultyName;
+        }
+
+        if ((existing['subjectName'] ?? '').toString().trim().isEmpty &&
+            subjectName.trim().isNotEmpty) {
+          existing['subjectName'] = subjectName.trim();
+        }
+      }
 
       // Strategy 1: Get from student's registered courses (studentCourses collection)
       final studentCoursesSnapshot = await _firestore
@@ -162,28 +239,66 @@ class FeedbackService {
             final courseList = entry.value as List<dynamic>? ?? [];
             for (final course in courseList) {
               if (course is Map<String, dynamic>) {
-                final facultyAssignment = await _getFacultyForSubject(
-                  subjectCode: course['code'] ?? course['courseCode'] ?? '',
-                  year: studentYear,
-                  semester: semester,
+                await addOrMergeSubject(
+                  subjectId:
+                      (course['id'] ?? course['courseId'] ?? '').toString(),
+                  subjectCode:
+                      (course['code'] ?? course['courseCode'] ?? '').toString(),
+                  subjectName:
+                      (course['name'] ?? course['courseName'] ?? '').toString(),
                 );
-
-                subjects.add({
-                  'subjectId': course['id'] ?? course['courseId'] ?? '',
-                  'subjectCode': course['code'] ?? course['courseCode'] ?? '',
-                  'subjectName': course['name'] ?? course['courseName'] ?? '',
-                  'facultyId': facultyAssignment?['facultyId'] ?? '',
-                  'facultyName':
-                      facultyAssignment?['facultyName'] ?? 'Not Assigned',
-                });
               }
             }
           }
         }
       }
 
-      // Strategy 2: If no courses from studentCourses, try subjects collection
-      if (subjects.isEmpty) {
+      // Strategy 2: Merge faculty assignments directly for the student's scope.
+      QuerySnapshot<Map<String, dynamic>> assignmentsSnapshot;
+      final parsedYear = int.tryParse(studentYear);
+      if (parsedYear != null) {
+        assignmentsSnapshot = await _firestore
+            .collection('facultyAssignments')
+            .where('year', isEqualTo: parsedYear)
+            .where('isActive', isEqualTo: true)
+            .get();
+        if (assignmentsSnapshot.docs.isEmpty) {
+          assignmentsSnapshot = await _firestore
+              .collection('facultyAssignments')
+              .where('isActive', isEqualTo: true)
+              .get();
+        }
+      } else {
+        assignmentsSnapshot = await _firestore
+            .collection('facultyAssignments')
+            .where('isActive', isEqualTo: true)
+            .get();
+      }
+
+      for (final doc in assignmentsSnapshot.docs) {
+        final data = doc.data();
+        if (!_matchesAssignmentForStudent(
+          data,
+          studentYear: studentYear,
+          studentBranch: studentBranch,
+          semester: semester,
+          studentBatch: resolvedStudentBatch,
+          studentSection: resolvedStudentSection,
+        )) {
+          continue;
+        }
+
+        await addOrMergeSubject(
+          subjectId: doc.id,
+          subjectCode: (data['subjectCode'] ?? '').toString(),
+          subjectName: (data['subjectName'] ?? '').toString(),
+          facultyId: (data['facultyId'] ?? '').toString(),
+          facultyName: (data['facultyName'] ?? '').toString(),
+        );
+      }
+
+      // Strategy 3: Merge from subjects collection for current branch/year/semester.
+      if (subjectsByCode.isEmpty) {
         // Try multiple query approaches for subjects
         QuerySnapshot? subjectsSnapshot;
 
@@ -206,31 +321,27 @@ class FeedbackService {
         for (final doc in subjectsSnapshot.docs) {
           final data = doc.data() as Map<String, dynamic>;
           final docDept = (data['department'] ?? '').toString().toLowerCase();
+          final docSemester = (data['semester'] ?? '').toString();
 
           // Check if department matches (case-insensitive)
           if (docDept == branchLower ||
               docDept.contains(branchLower) ||
               branchLower.contains(docDept)) {
-            final facultyAssignment = await _getFacultyForSubject(
-              subjectCode: data['code'] ?? doc.id,
-              year: studentYear,
-              semester: semester,
-            );
+            if (!_semesterMatches(docSemester, semester)) {
+              continue;
+            }
 
-            subjects.add({
-              'subjectId': doc.id,
-              'subjectCode': data['code'] ?? doc.id,
-              'subjectName': data['name'] ?? '',
-              'facultyId': facultyAssignment?['facultyId'] ?? '',
-              'facultyName':
-                  facultyAssignment?['facultyName'] ?? 'Not Assigned',
-            });
+            await addOrMergeSubject(
+              subjectId: doc.id,
+              subjectCode: (data['code'] ?? doc.id).toString(),
+              subjectName: (data['name'] ?? '').toString(),
+            );
           }
         }
       }
 
-      // Strategy 3: If still empty, get from facultyAssignments for this year
-      if (subjects.isEmpty) {
+      // Strategy 4: If still empty, fall back to year-level assignments.
+      if (subjectsByCode.isEmpty) {
         final assignmentsSnapshot = await _firestore
             .collection('facultyAssignments')
             .where('year', isEqualTo: int.tryParse(studentYear) ?? studentYear)
@@ -238,18 +349,18 @@ class FeedbackService {
 
         for (final doc in assignmentsSnapshot.docs) {
           final data = doc.data();
-          subjects.add({
-            'subjectId': doc.id,
-            'subjectCode': data['subjectCode'] ?? '',
-            'subjectName': data['subjectName'] ?? '',
-            'facultyId': data['facultyId'] ?? '',
-            'facultyName': data['facultyName'] ?? 'Not Assigned',
-          });
+          await addOrMergeSubject(
+            subjectId: doc.id,
+            subjectCode: (data['subjectCode'] ?? '').toString(),
+            subjectName: (data['subjectName'] ?? '').toString(),
+            facultyId: (data['facultyId'] ?? '').toString(),
+            facultyName: (data['facultyName'] ?? '').toString(),
+          );
         }
       }
 
-      // Strategy 4: Get from courses collection (applicable to this year/branch)
-      if (subjects.isEmpty) {
+      // Strategy 5: Get from courses collection (applicable to this year/branch)
+      if (subjectsByCode.isEmpty) {
         final coursesSnapshot = await _firestore
             .collection('courses')
             .where('isActive', isEqualTo: true)
@@ -271,26 +382,17 @@ class FeedbackService {
               b.toLowerCase().contains(branchLower));
 
           if (yearMatches && branchMatches) {
-            final facultyAssignment = await _getFacultyForSubject(
-              subjectCode: data['code'] ?? doc.id,
-              year: studentYear,
-              semester: semester,
+            await addOrMergeSubject(
+              subjectId: doc.id,
+              subjectCode: (data['code'] ?? doc.id).toString(),
+              subjectName: (data['name'] ?? '').toString(),
             );
-
-            subjects.add({
-              'subjectId': doc.id,
-              'subjectCode': data['code'] ?? doc.id,
-              'subjectName': data['name'] ?? '',
-              'facultyId': facultyAssignment?['facultyId'] ?? '',
-              'facultyName':
-                  facultyAssignment?['facultyName'] ?? 'Not Assigned',
-            });
           }
         }
       }
 
-      // Strategy 5: As last resort, get ALL active subjects/courses to show something
-      if (subjects.isEmpty) {
+      // Strategy 6: As last resort, get ALL active subjects/courses to show something
+      if (subjectsByCode.isEmpty) {
         // Try subjects collection without filters
         var allSubjects =
             await _firestore.collection('subjects').limit(20).get();
@@ -301,22 +403,18 @@ class FeedbackService {
 
         for (final doc in allSubjects.docs) {
           final data = doc.data();
-          final facultyAssignment = await _getFacultyForSubject(
-            subjectCode: data['code'] ?? doc.id,
-            year: studentYear,
-            semester: semester,
+          await addOrMergeSubject(
+            subjectId: doc.id,
+            subjectCode: (data['code'] ?? doc.id).toString(),
+            subjectName: (data['name'] ?? '').toString(),
           );
-
-          subjects.add({
-            'subjectId': doc.id,
-            'subjectCode': data['code'] ?? doc.id,
-            'subjectName': data['name'] ?? '',
-            'facultyId': facultyAssignment?['facultyId'] ?? '',
-            'facultyName': facultyAssignment?['facultyName'] ?? 'Not Assigned',
-          });
         }
       }
 
+      final subjects = subjectsByCode.values.toList();
+      subjects.sort((a, b) => (a['subjectName'] ?? '')
+          .toString()
+          .compareTo((b['subjectName'] ?? '').toString()));
       return subjects;
     } catch (e) {
       throw Exception('Failed to get feedback subjects: $e');
@@ -327,25 +425,160 @@ class FeedbackService {
     required String subjectCode,
     required String year,
     required String semester,
+    required String studentBranch,
+    String? studentBatch,
+    String? studentSection,
   }) async {
     try {
       final assignmentSnapshot = await _firestore
           .collection('facultyAssignments')
           .where('subjectCode', isEqualTo: subjectCode)
-          .limit(1)
           .get();
 
-      if (assignmentSnapshot.docs.isNotEmpty) {
-        final data = assignmentSnapshot.docs.first.data();
+      for (final doc in assignmentSnapshot.docs) {
+        final data = doc.data();
+        if (!_matchesAssignmentForStudent(
+          data,
+          studentYear: year,
+          studentBranch: studentBranch,
+          semester: semester,
+          studentBatch: studentBatch,
+          studentSection: studentSection,
+        )) {
+          continue;
+        }
+
         return {
           'facultyId': data['facultyId'] ?? '',
           'facultyName': data['facultyName'] ?? '',
         };
       }
+
       return null;
     } catch (e) {
       return null;
     }
+  }
+
+  bool _matchesAssignmentForStudent(
+    Map<String, dynamic> data, {
+    required String studentYear,
+    required String studentBranch,
+    required String semester,
+    String? studentBatch,
+    String? studentSection,
+  }) {
+    final assignmentYear = _parseInt(data['year']);
+    final expectedYear = _parseInt(studentYear);
+    if (assignmentYear > 0 && expectedYear > 0 && assignmentYear != expectedYear) {
+      return false;
+    }
+
+    final assignmentDept = _normalizeToken(data['department']?.toString() ?? '');
+    final normalizedBranch = _normalizeToken(studentBranch);
+    if (assignmentDept.isNotEmpty && assignmentDept != normalizedBranch) {
+      return false;
+    }
+
+    final assignmentSemester = data['semester']?.toString() ?? '';
+    if (!_semesterMatches(assignmentSemester, semester)) {
+      return false;
+    }
+
+    final assignedBatches = List<String>.from(data['assignedBatches'] ?? const []);
+    if (assignedBatches.isEmpty) {
+      return true;
+    }
+
+    final studentBatchTokens = _buildBatchTokens([
+      if ((studentBatch ?? '').trim().isNotEmpty) studentBatch!.trim(),
+      if ((studentSection ?? '').trim().isNotEmpty) studentSection!.trim(),
+    ]);
+    if (studentBatchTokens.isEmpty) {
+      return true;
+    }
+
+    final assignedTokens = _buildBatchTokens(assignedBatches);
+    return assignedTokens.any(studentBatchTokens.contains);
+  }
+
+  bool _semesterMatches(String left, String right) {
+    final normalizedLeft = _normalizeSemester(left);
+    final normalizedRight = _normalizeSemester(right);
+    if (normalizedLeft.isEmpty || normalizedRight.isEmpty) {
+      return true;
+    }
+    return normalizedLeft == normalizedRight;
+  }
+
+  String _normalizeSemester(String value) {
+    final raw = value.trim().toUpperCase();
+    if (raw.isEmpty) return '';
+    switch (raw) {
+      case '1':
+      case 'I':
+      case '01':
+        return '1';
+      case '2':
+      case 'II':
+      case '02':
+        return '2';
+      case '3':
+      case 'III':
+      case '03':
+        return '3';
+      case '4':
+      case 'IV':
+      case '04':
+        return '4';
+      case '5':
+      case 'V':
+      case '05':
+        return '5';
+      case '6':
+      case 'VI':
+      case '06':
+        return '6';
+      case '7':
+      case 'VII':
+      case '07':
+        return '7';
+      case '8':
+      case 'VIII':
+      case '08':
+        return '8';
+      default:
+        return _normalizeToken(raw);
+    }
+  }
+
+  Set<String> _buildBatchTokens(List<String> values) {
+    final tokens = <String>{};
+    for (final value in values) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) continue;
+      tokens.add(_normalizeToken(trimmed));
+      final parts = trimmed
+          .split(RegExp(r'[-_/\\s]+'))
+          .map(_normalizeToken)
+          .where((part) => part.isNotEmpty);
+      tokens.addAll(parts);
+    }
+    return tokens;
+  }
+
+  String _normalizeToken(String value) {
+    return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  int _parseInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.floor();
+    }
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
   /// Check if student has already submitted feedback for a subject
