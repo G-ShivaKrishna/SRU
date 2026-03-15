@@ -1839,7 +1839,8 @@ class _AdminCourseManagementScreenState
                             (d['studentId'] ?? d['hallTicketNumber'] ?? '')
                                 .toString()
                                 .trim();
-                        return sid.isNotEmpty && eligibleStudentIds.contains(sid);
+                        return sid.isNotEmpty &&
+                            eligibleStudentIds.contains(sid);
                       }).toList();
 
                       if (submissions.isEmpty) {

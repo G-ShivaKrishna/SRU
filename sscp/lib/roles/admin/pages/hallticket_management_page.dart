@@ -87,9 +87,8 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
         if (branch.isNotEmpty) {
           branches.add(branch);
         }
-        final year = (data['year'] ?? data['currentYear'] ?? '')
-            .toString()
-            .trim();
+        final year =
+            (data['year'] ?? data['currentYear'] ?? '').toString().trim();
         if (year.isNotEmpty) years.add(year);
       }
 
@@ -110,7 +109,8 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
 
       final sortedBranches = branches.toList()..sort();
       final sortedYears = years.toList()
-        ..sort((a, b) => (int.tryParse(b) ?? 0).compareTo(int.tryParse(a) ?? 0));
+        ..sort(
+            (a, b) => (int.tryParse(b) ?? 0).compareTo(int.tryParse(a) ?? 0));
 
       if (!mounted) return;
       setState(() {
@@ -164,12 +164,10 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
                 .toUpperCase();
         final rawYear =
             (data['year'] ?? data['currentYear'] ?? '').toString().trim();
-        final rawSemester =
-            (data['semester'] ?? data['currentSemester'] ?? '')
-                .toString()
-                .trim();
-        final year =
-            _normalizedYear(year: rawYear, semester: rawSemester);
+        final rawSemester = (data['semester'] ?? data['currentSemester'] ?? '')
+            .toString()
+            .trim();
+        final year = _normalizedYear(year: rawYear, semester: rawSemester);
         final semester = _normalizedSemester(rawSemester);
 
         if (name.isEmpty || branch.isEmpty) {
@@ -270,7 +268,8 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
   }
 
   Future<void> _setPreferredHourForSubject(String subjectId, int hour24) async {
-    setState(() => _subjectTimes[subjectId] = TimeOfDay(hour: hour24, minute: 0));
+    setState(
+        () => _subjectTimes[subjectId] = TimeOfDay(hour: hour24, minute: 0));
     await _maybeAutoSaveSubject(subjectId);
   }
 
@@ -447,11 +446,11 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
         final year = (data['year'] ?? '').toString().trim();
         final semester = (data['semester'] ?? '').toString().trim();
         final examType =
-          (data['examType'] ?? 'regular').toString().trim().toLowerCase();
+            (data['examType'] ?? 'regular').toString().trim().toLowerCase();
         return status == 'draft' &&
-          year == _selectedYear &&
-          semester == _selectedSemester &&
-          examType == _selectedExamType;
+            year == _selectedYear &&
+            semester == _selectedSemester &&
+            examType == _selectedExamType;
       }).toList();
 
       final existingForSubject = draftSchedules.where((doc) {
@@ -553,11 +552,12 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
     try {
       final branch = _selectedBranch!;
       final branchSubjects = _allSubjects
-        .where((s) =>
-          (s['branch'] ?? '').toUpperCase() == branch &&
-          ((s['year'] ?? '').isEmpty || (s['year'] ?? '') == _selectedYear) &&
-          ((s['semester'] ?? '').isEmpty ||
-            (s['semester'] ?? '') == _selectedSemester))
+          .where((s) =>
+              (s['branch'] ?? '').toUpperCase() == branch &&
+              ((s['year'] ?? '').isEmpty ||
+                  (s['year'] ?? '') == _selectedYear) &&
+              ((s['semester'] ?? '').isEmpty ||
+                  (s['semester'] ?? '') == _selectedSemester))
           .toList();
 
       final schedulesSnapshot = await _firestore
@@ -759,7 +759,10 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
 
     try {
       if (releaseId.isEmpty) {
-        await _firestore.collection('hallticketSchedules').doc(scheduleDocId).delete();
+        await _firestore
+            .collection('hallticketSchedules')
+            .doc(scheduleDocId)
+            .delete();
       } else {
         final linked = await _firestore
             .collection('hallticketSchedules')
@@ -777,14 +780,16 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
           });
         }
 
-        final releaseRef = _firestore.collection('hallticketReleases').doc(releaseId);
+        final releaseRef =
+            _firestore.collection('hallticketReleases').doc(releaseId);
         batch.delete(releaseRef);
         await batch.commit();
       }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Released hallticket deleted successfully')),
+        const SnackBar(
+            content: Text('Released hallticket deleted successfully')),
       );
     } catch (e) {
       if (!mounted) return;
@@ -1186,7 +1191,7 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
             final year = (data['year'] ?? '').toString();
             final semester = (data['semester'] ?? '').toString();
             final examType = _displayExamType(
-              (data['examType'] ?? 'regular').toString().toLowerCase());
+                (data['examType'] ?? 'regular').toString().toLowerCase());
             final isReleased = releaseStatus == 'RELEASED';
 
             final ts = data['examDateTime'] as Timestamp?;

@@ -122,9 +122,9 @@ class FacultyAssignment {
 
 /// Subject types for classification
 enum SubjectType {
-  core,    // Core/Mandatory subject
-  oe,      // Open Elective
-  pe,      // Programme Elective
+  core, // Core/Mandatory subject
+  oe, // Open Elective
+  pe, // Programme Elective
 }
 
 extension SubjectTypeExtension on SubjectType {
@@ -177,7 +177,8 @@ class Subject {
   final int credits;
   final int year; // Which year students study this
   final String semester;
-  final SubjectType subjectType; // Core, OE (Open Elective), PE (Programme Elective)
+  final SubjectType
+      subjectType; // Core, OE (Open Elective), PE (Programme Elective)
   final bool isActive;
 
   Subject({
@@ -215,7 +216,8 @@ class Subject {
       credits: data['credits'] ?? 0,
       year: data['year'] ?? 1,
       semester: data['semester'] ?? 'I',
-      subjectType: SubjectTypeExtension.fromString(data['subjectType']?.toString()),
+      subjectType:
+          SubjectTypeExtension.fromString(data['subjectType']?.toString()),
       isActive: data['isActive'] ?? true,
     );
   }

@@ -196,8 +196,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
   }
 
   List<Map<String, dynamic>> _sortedSchedules(Map<String, dynamic> release) {
-    final list =
-        List<Map<String, dynamic>>.from(release['schedules'] ?? []);
+    final list = List<Map<String, dynamic>>.from(release['schedules'] ?? []);
     list.sort((a, b) {
       final aTs = a['examDateTime'] as Timestamp?;
       final bTs = b['examDateTime'] as Timestamp?;
@@ -256,7 +255,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
     final registeredCodes = <String>{};
     final idList = ids.toList();
     for (int i = 0; i < idList.length; i += 10) {
-      final chunk = idList.sublist(i, i + 10 > idList.length ? idList.length : i + 10);
+      final chunk =
+          idList.sublist(i, i + 10 > idList.length ? idList.length : i + 10);
       final subjectsSnap = await _firestore
           .collection('subjects')
           .where(FieldPath.documentId, whereIn: chunk)
@@ -264,14 +264,16 @@ class _ExamsScreenState extends State<ExamsScreen> {
       for (final doc in subjectsSnap.docs) {
         final code =
             (doc.data()['code'] ?? doc.data()['subjectCode'] ?? '').toString();
-        if (code.trim().isNotEmpty) registeredCodes.add(code.trim().toUpperCase());
+        if (code.trim().isNotEmpty)
+          registeredCodes.add(code.trim().toUpperCase());
       }
     }
 
     final filtered = schedules.where((s) {
       final sid = (s['subjectId'] ?? '').toString().trim();
       final scode = (s['subjectCode'] ?? '').toString().trim().toUpperCase();
-      return ids.contains(sid) || (scode.isNotEmpty && registeredCodes.contains(scode));
+      return ids.contains(sid) ||
+          (scode.isNotEmpty && registeredCodes.contains(scode));
     }).toList();
 
     return filtered;
@@ -303,8 +305,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
     // Load app logo from assets
     pw.ImageProvider? logoProvider;
     try {
-      final logoData =
-          await rootBundle.load('assets/images/logo.png');
+      final logoData = await rootBundle.load('assets/images/logo.png');
       logoProvider = pw.MemoryImage(logoData.buffer.asUint8List());
     } catch (_) {
       // Logo not critical; fall back gracefully.
@@ -351,8 +352,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         height: 52,
                         decoration: pw.BoxDecoration(
                           color: PdfColors.white,
-                          borderRadius: const pw.BorderRadius.all(
-                              pw.Radius.circular(4)),
+                          borderRadius:
+                              const pw.BorderRadius.all(pw.Radius.circular(4)),
                         ),
                         padding: const pw.EdgeInsets.all(3),
                         child: logoProvider != null
@@ -496,9 +497,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         final isEven = entry.key.isEven;
                         return pw.TableRow(
                           decoration: pw.BoxDecoration(
-                            color: isEven
-                                ? PdfColors.white
-                                : PdfColors.blueGrey50,
+                            color:
+                                isEven ? PdfColors.white : PdfColors.blueGrey50,
                           ),
                           children: entry.value
                               .map(
@@ -506,8 +506,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                                   padding: const pw.EdgeInsets.symmetric(
                                       horizontal: 6, vertical: 4),
                                   child: pw.Text(cell,
-                                      style:
-                                          const pw.TextStyle(fontSize: 8.5)),
+                                      style: const pw.TextStyle(fontSize: 8.5)),
                                 ),
                               )
                               .toList(),
@@ -519,8 +518,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                             padding: const pw.EdgeInsets.all(8),
                             child: pw.Text('No schedule available.',
                                 style: const pw.TextStyle(
-                                    fontSize: 8.5,
-                                    color: PdfColors.grey)),
+                                    fontSize: 8.5, color: PdfColors.grey)),
                           ),
                           for (var _ in List.generate(3, (_) => null))
                             pw.SizedBox(),
@@ -531,8 +529,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 // ── Signature row ─────────────────────────────────────────
                 pw.Container(
                   color: PdfColors.blueGrey50,
-                  padding:
-                      const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
                   child: pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
@@ -540,9 +538,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         crossAxisAlignment: pw.CrossAxisAlignment.center,
                         children: [
                           pw.Container(
-                              width: 100,
-                              height: 0.5,
-                              color: PdfColors.black),
+                              width: 100, height: 0.5, color: PdfColors.black),
                           pw.SizedBox(height: 2),
                           pw.Text('Signature of Candidate',
                               style: pw.TextStyle(
@@ -554,9 +550,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                         crossAxisAlignment: pw.CrossAxisAlignment.center,
                         children: [
                           pw.Container(
-                              width: 120,
-                              height: 0.5,
-                              color: PdfColors.black),
+                              width: 120, height: 0.5, color: PdfColors.black),
                           pw.SizedBox(height: 2),
                           pw.Text('Controller of Examinations',
                               style: pw.TextStyle(
@@ -626,15 +620,12 @@ class _ExamsScreenState extends State<ExamsScreen> {
         throw Exception('Student branch not available');
       }
 
-      final studentYear =
-          _normalizedYear(
-            year: (student['year'] ?? student['currentYear'] ?? '').toString(),
-            semester:
-              (student['semester'] ?? student['currentSemester'] ?? '')
-                .toString());
-        final studentSem = _normalizedSemester(
-          (student['semester'] ?? student['currentSemester'] ?? '')
-            .toString());
+      final studentYear = _normalizedYear(
+          year: (student['year'] ?? student['currentYear'] ?? '').toString(),
+          semester: (student['semester'] ?? student['currentSemester'] ?? '')
+              .toString());
+      final studentSem = _normalizedSemester(
+          (student['semester'] ?? student['currentSemester'] ?? '').toString());
 
       final releases = await _fetchReleasedHalltickets(branch);
       if (releases.isEmpty) {
@@ -708,10 +699,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
             .toString()
             .trim()
             .toUpperCase();
-    final sem =
-      _normalizedSemester(
-        (student['semester'] ?? student['currentSemester'] ?? '')
-          .toString());
+    final sem = _normalizedSemester(
+        (student['semester'] ?? student['currentSemester'] ?? '').toString());
 
     setState(() {
       _isApplyingFilter = true;
@@ -739,7 +728,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
         schedules: sorted,
         selectedYear: _selectedYear ??
             _normalizedYear(
-              year: (student['year'] ?? student['currentYear'] ?? '').toString(),
+              year:
+                  (student['year'] ?? student['currentYear'] ?? '').toString(),
               semester:
                   (student['semester'] ?? student['currentSemester'] ?? '')
                       .toString(),
@@ -836,8 +826,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
         content: Text('Saved: ${file.path}'),
         action: SnackBarAction(
           label: 'Share',
-          onPressed: () =>
-              Printing.sharePdf(bytes: bytes, filename: fileName),
+          onPressed: () => Printing.sharePdf(bytes: bytes, filename: fileName),
         ),
       ),
     );
@@ -935,8 +924,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
               ),
               onPressed: _loadHallticket,
               icon: const Icon(Icons.refresh, color: Colors.white),
-              label: const Text('Refresh',
-                  style: TextStyle(color: Colors.white)),
+              label:
+                  const Text('Refresh', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -1039,7 +1028,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               ),
               items: years
-                  .map((y) => DropdownMenuItem(value: y, child: Text('Year $y')))
+                  .map(
+                      (y) => DropdownMenuItem(value: y, child: Text('Year $y')))
                   .toList(),
               onChanged: (v) {
                 if (v == null) return;
@@ -1137,8 +1127,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 const SizedBox(height: 2),
                 Text(
                   'Hanmakonda - 506 371, Telangana State, INDIA',
-                  style:
-                      TextStyle(fontSize: 11, color: Colors.white70),
+                  style: TextStyle(fontSize: 11, color: Colors.white70),
                 ),
               ],
             ),
@@ -1157,8 +1146,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
               const SizedBox(height: 2),
               Text(
                 examSession,
-                style:
-                    const TextStyle(fontSize: 11, color: Colors.white70),
+                style: const TextStyle(fontSize: 11, color: Colors.white70),
               ),
             ],
           ),
@@ -1175,12 +1163,10 @@ class _ExamsScreenState extends State<ExamsScreen> {
         // Branch band
         Container(
           color: const Color(0xFFECEFF1),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           child: Text(
             '$branch  —  THEORY EXAMINATIONS',
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 12),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           ),
         ),
         Padding(
@@ -1224,8 +1210,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
             ),
           ),
           const Text(': ',
-              style:
-                  TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
           Expanded(
             child: Text(
               value,
@@ -1247,22 +1232,18 @@ class _ExamsScreenState extends State<ExamsScreen> {
       children: [
         Container(
           color: const Color(0xFFECEFF1),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           child: const Text(
             'EXAMINATION SCHEDULE',
             style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                letterSpacing: 0.5),
+                fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5),
           ),
         ),
         Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Table(
-            border: TableBorder.all(
-                color: Colors.blueGrey.shade200, width: 0.8),
+            border:
+                TableBorder.all(color: Colors.blueGrey.shade200, width: 0.8),
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             columnWidths: const {
               0: FlexColumnWidth(2.8),
@@ -1273,8 +1254,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
             children: [
               // Header
               TableRow(
-                decoration:
-                    const BoxDecoration(color: Color(0xFF1e3a5f)),
+                decoration: const BoxDecoration(color: Color(0xFF1e3a5f)),
                 children: [
                   'Date',
                   'Time',
@@ -1297,9 +1277,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                 final dateText = dt == null
                     ? (s['examDate'] ?? '').toString()
                     : DateFormat('dd/MM/yyyy').format(dt);
-                final bg = i.isEven
-                    ? Colors.white
-                    : const Color(0xFFF5F7FA);
+                final bg = i.isEven ? Colors.white : const Color(0xFFF5F7FA);
                 return TableRow(
                   decoration: BoxDecoration(color: bg),
                   children: [
@@ -1321,8 +1299,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
                   Padding(
                     padding: const EdgeInsets.all(12),
                     child: Text('No schedule available.',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.grey[500])),
+                        style:
+                            TextStyle(fontSize: 12, color: Colors.grey[500])),
                   ),
                   const SizedBox(),
                   const SizedBox(),
@@ -1355,8 +1333,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
         Container(width: 120, height: 1, color: Colors.black54),
         const SizedBox(height: 4),
         Text(label,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 11)),
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11)),
       ],
     );
   }
@@ -1386,8 +1363,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
           ..._hallticketInstructions.map(
             (line) => Padding(
               padding: const EdgeInsets.only(bottom: 5),
-              child:
-                  Text(line, style: const TextStyle(fontSize: 12)),
+              child: Text(line, style: const TextStyle(fontSize: 12)),
             ),
           ),
         ],
@@ -1407,8 +1383,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                   borderRadius: BorderRadius.circular(6)),
             ),
             onPressed: _pdfBytes == null ? null : _downloadHallticket,
-            icon: const Icon(Icons.download_outlined,
-                color: Colors.white),
+            icon: const Icon(Icons.download_outlined, color: Colors.white),
             label: const Text('Download PDF',
                 style: TextStyle(color: Colors.white, fontSize: 14)),
           ),
@@ -1423,11 +1398,9 @@ class _ExamsScreenState extends State<ExamsScreen> {
                   borderRadius: BorderRadius.circular(6)),
             ),
             onPressed: _pdfBytes == null ? null : _printHallticket,
-            icon: const Icon(Icons.print_outlined,
-                color: Color(0xFF1e3a5f)),
+            icon: const Icon(Icons.print_outlined, color: Color(0xFF1e3a5f)),
             label: const Text('Print',
-                style: TextStyle(
-                    color: Color(0xFF1e3a5f), fontSize: 14)),
+                style: TextStyle(color: Color(0xFF1e3a5f), fontSize: 14)),
           ),
         ),
       ],
@@ -1444,29 +1417,27 @@ class _ExamsScreenState extends State<ExamsScreen> {
           pw.SizedBox(
             width: 110,
             child: pw.Text(label,
-                style: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                style:
+                    pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9)),
           ),
           pw.Text(': ', style: const pw.TextStyle(fontSize: 9)),
           pw.Expanded(
-              child: pw.Text(value,
-                  style: const pw.TextStyle(fontSize: 9))),
+              child: pw.Text(value, style: const pw.TextStyle(fontSize: 9))),
         ],
       ),
     );
   }
 
   List<String> get _hallticketInstructions => const [
-    '1. Candidate must carry Hall Ticket and ID Card to the exam hall.',
-    '2. Reach the exam hall at least 30 minutes before exam commencement.',
-    '3. Mobile phones, smart watches and electronic gadgets are not allowed.',
-    '4. Follow invigilator instructions and maintain discipline.',
-    '5. Candidates are responsible for verifying subject code and timing.',
-    '6. University reserves the right to change schedule in exceptional cases.',
-    '7. Any malpractice leads to cancellation of examination.',
-    '8. Preserve this hallticket until completion of all examinations.',
-  ];
-
+        '1. Candidate must carry Hall Ticket and ID Card to the exam hall.',
+        '2. Reach the exam hall at least 30 minutes before exam commencement.',
+        '3. Mobile phones, smart watches and electronic gadgets are not allowed.',
+        '4. Follow invigilator instructions and maintain discipline.',
+        '5. Candidates are responsible for verifying subject code and timing.',
+        '6. University reserves the right to change schedule in exceptional cases.',
+        '7. Any malpractice leads to cancellation of examination.',
+        '8. Preserve this hallticket until completion of all examinations.',
+      ];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1511,8 +1482,7 @@ class _SavedFilesSheetState extends State<_SavedFilesSheet> {
               child: const Text('Cancel')),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete',
-                  style: TextStyle(color: Colors.red))),
+              child: const Text('Delete', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -1524,8 +1494,8 @@ class _SavedFilesSheetState extends State<_SavedFilesSheet> {
       if (_files.isEmpty && mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not delete: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Could not delete: $e')));
       }
     }
   }
@@ -1579,8 +1549,8 @@ class _SavedFilesSheetState extends State<_SavedFilesSheet> {
               children: [
                 const Expanded(
                   child: Text('Saved Hall Ticket Files',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
                 if (_files.isNotEmpty)
                   TextButton.icon(
@@ -1617,8 +1587,8 @@ class _SavedFilesSheetState extends State<_SavedFilesSheet> {
                         title: Text(name,
                             style: const TextStyle(fontSize: 13),
                             overflow: TextOverflow.ellipsis),
-                        subtitle: Text(size,
-                            style: const TextStyle(fontSize: 11)),
+                        subtitle:
+                            Text(size, style: const TextStyle(fontSize: 11)),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete_outline,
                               color: Colors.red),
