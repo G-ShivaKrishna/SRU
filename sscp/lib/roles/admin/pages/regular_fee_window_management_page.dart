@@ -16,7 +16,8 @@ class _RegularFeeWindowManagementPageState
 
   Future<void> _showWindowDialog({QueryDocumentSnapshot? existing}) async {
     final data = existing?.data() as Map<String, dynamic>?;
-    final titleCtrl = TextEditingController(text: data?['title']?.toString() ?? '');
+    final titleCtrl =
+        TextEditingController(text: data?['title']?.toString() ?? '');
     final sessionCtrl =
         TextEditingController(text: data?['examSession']?.toString() ?? '');
     final feeCtrl = TextEditingController(
@@ -40,12 +41,14 @@ class _RegularFeeWindowManagementPageState
               children: [
                 TextField(
                   controller: titleCtrl,
-                  decoration: const InputDecoration(labelText: 'Window Title *'),
+                  decoration:
+                      const InputDecoration(labelText: 'Window Title *'),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: sessionCtrl,
-                  decoration: const InputDecoration(labelText: 'Exam Session *'),
+                  decoration:
+                      const InputDecoration(labelText: 'Exam Session *'),
                 ),
                 const SizedBox(height: 10),
                 TextField(
@@ -152,7 +155,9 @@ class _RegularFeeWindowManagementPageState
 
                 if (existing == null) {
                   payload['createdAt'] = FieldValue.serverTimestamp();
-                  await _firestore.collection('regularExamWindows').add(payload);
+                  await _firestore
+                      .collection('regularExamWindows')
+                      .add(payload);
                 } else {
                   payload['updatedAt'] = FieldValue.serverTimestamp();
                   await _firestore
@@ -258,7 +263,8 @@ class _RegularFeeWindowManagementPageState
                       final data = doc.data() as Map<String, dynamic>;
                       final isActive = (data['isActive'] as bool?) ?? false;
                       final fee = (data['fee'] as num?)?.toDouble() ?? 0;
-                      final startDate = (data['startDate'] as Timestamp?)?.toDate();
+                      final startDate =
+                          (data['startDate'] as Timestamp?)?.toDate();
                       final endDate = (data['endDate'] as Timestamp?)?.toDate();
 
                       return Card(
@@ -272,7 +278,8 @@ class _RegularFeeWindowManagementPageState
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      data['title']?.toString() ?? 'Untitled Window',
+                                      data['title']?.toString() ??
+                                          'Untitled Window',
                                       style: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
@@ -283,7 +290,8 @@ class _RegularFeeWindowManagementPageState
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: isActive ? Colors.green : Colors.grey,
+                                      color:
+                                          isActive ? Colors.green : Colors.grey,
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
@@ -311,21 +319,24 @@ class _RegularFeeWindowManagementPageState
                                 children: [
                                   Switch(
                                     value: isActive,
-                                    onChanged: (_) => _toggleWindow(doc.id, isActive),
+                                    onChanged: (_) =>
+                                        _toggleWindow(doc.id, isActive),
                                   ),
                                   const Text('Enable in Fee Payment'),
                                   const Spacer(),
                                   IconButton(
                                     tooltip: 'Edit',
                                     icon: const Icon(Icons.edit_outlined),
-                                    onPressed: () => _showWindowDialog(existing: doc),
+                                    onPressed: () =>
+                                        _showWindowDialog(existing: doc),
                                   ),
                                   IconButton(
                                     tooltip: 'Delete',
                                     icon: const Icon(Icons.delete_outline,
                                         color: Colors.red),
                                     onPressed: () async {
-                                      final shouldDelete = await showDialog<bool>(
+                                      final shouldDelete =
+                                          await showDialog<bool>(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
                                           title: const Text('Delete Window'),
