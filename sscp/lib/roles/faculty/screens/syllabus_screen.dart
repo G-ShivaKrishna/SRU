@@ -115,7 +115,8 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                     ? _buildMobileSyllabusCards(syllabusList)
                     : Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!, width: 1),
+                          border:
+                              Border.all(color: Colors.grey[300]!, width: 1),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Column(
@@ -124,14 +125,16 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFFE8E8E8),
                                 border: Border(
-                                  bottom:
-                                      BorderSide(color: Colors.grey[300]!, width: 1),
+                                  bottom: BorderSide(
+                                      color: Colors.grey[300]!, width: 1),
                                 ),
                               ),
                               child: Row(
                                 children: [
-                                  _buildHeaderCell('S.No', flex: 2, isMobile: false),
-                                  _buildHeaderCell('Class Info', flex: 5, isMobile: false),
+                                  _buildHeaderCell('S.No',
+                                      flex: 2, isMobile: false),
+                                  _buildHeaderCell('Class Info',
+                                      flex: 5, isMobile: false),
                                   _buildHeaderCell('Regulation',
                                       flex: 3, isMobile: false),
                                   _buildHeaderCell('View',
@@ -149,8 +152,9 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
 
                               return Container(
                                 decoration: BoxDecoration(
-                                  color:
-                                      isEvenRow ? Colors.white : const Color(0xFFF5F5F5),
+                                  color: isEvenRow
+                                      ? Colors.white
+                                      : const Color(0xFFF5F5F5),
                                   border: Border(
                                     bottom: BorderSide(
                                       color: isLast
@@ -176,7 +180,8 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                                               ? null
                                               : () {
                                                   setState(() {
-                                                    _selectedSyllabus = syllabus;
+                                                    _selectedSyllabus =
+                                                        syllabus;
                                                     _showingPdf = true;
                                                   });
                                                 },
@@ -286,9 +291,8 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                         }
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: hasPdf
-                        ? const Color(0xFF1e3a5f)
-                        : Colors.grey.shade400,
+                    backgroundColor:
+                        hasPdf ? const Color(0xFF1e3a5f) : Colors.grey.shade400,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
