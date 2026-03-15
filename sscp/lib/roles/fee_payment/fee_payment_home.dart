@@ -627,11 +627,30 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                     else
                       DropdownButtonFormField<String>(
                         initialValue: _selectedWindowId,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Window / Session',
                           border: OutlineInputBorder(),
                           isDense: true,
                         ),
+                        selectedItemBuilder: (context) => windows.map((doc) {
+                          final d = doc.data() as Map<String, dynamic>;
+                          final title = d['title']?.toString() ?? doc.id;
+                          final session = d['examSession']?.toString() ?? '';
+                          final fee = d['fee'];
+                          return Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              [
+                                title,
+                                if (session.isNotEmpty) session,
+                                if (fee != null) '₹$fee',
+                              ].join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
                         items: windows.map((doc) {
                           final d = doc.data() as Map<String, dynamic>;
                           final title = d['title']?.toString() ?? doc.id;
@@ -645,6 +664,7 @@ class _FeeUpdatePanelState extends State<_FeeUpdatePanel> {
                                 if (session.isNotEmpty) session,
                                 if (fee != null) '₹$fee',
                               ].join(' · '),
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           );

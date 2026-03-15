@@ -279,6 +279,41 @@ class _ExamsScreenState extends State<ExamsScreen> {
     return filtered;
   }
 
+  Future<bool> _isRegularExamFeePaid(String rollNo) async {
+    if (rollNo.trim().isEmpty) return false;
+
+    try {
+      final snap = await _firestore
+          .collection('feePayments')
+          .where('rollNo', isEqualTo: rollNo.trim().toUpperCase())
+          .where('paymentType', isEqualTo: 'regular_exam')
+          .where('status', isEqualTo: 'paid')
+          .limit(1)
+          .get();
+
+      if (snap.docs.isNotEmpty) return true;
+
+      // Backward compatibility for older values that may be used in data.
+      final fallback = await _firestore
+          .collection('feePayments')
+          .where('rollNo', isEqualTo: rollNo.trim().toUpperCase())
+          .where('status', isEqualTo: 'paid')
+          .limit(30)
+          .get();
+
+      for (final doc in fallback.docs) {
+        final pType =
+            (doc.data()['paymentType'] ?? '').toString().trim().toLowerCase();
+        if (pType == 'regular_exam' || pType == 'regular') {
+          return true;
+        }
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<Uint8List> _buildHallticketPdf({
     required Map<String, dynamic> student,
     required Map<String, dynamic> release,
@@ -653,6 +688,15 @@ class _ExamsScreenState extends State<ExamsScreen> {
             'No hallticket available for selected year and exam type');
       }
 
+      // Regular hall ticket should be visible only after regular fee payment.
+      if (_selectedExamType == 'regular') {
+        final paid = await _isRegularExamFeePaid(_rollNo);
+        if (!paid) {
+          throw Exception(
+              'Regular hall ticket is blocked. Contact the administrative office or fee counter to complete the fee payment.');
+        }
+      }
+
       final sorted = _sortedSchedules(release);
       final registeredOnly = await _registeredOnlySchedules(
         student: student,
@@ -720,6 +764,14 @@ class _ExamsScreenState extends State<ExamsScreen> {
       );
       if (release == null) {
         throw Exception('No hallticket found for selected filter');
+      }
+
+      if (_selectedExamType == 'regular') {
+        final paid = await _isRegularExamFeePaid(_rollNo);
+        if (!paid) {
+          throw Exception(
+              'Regular hall ticket is blocked. Contact the administrative office or fee counter to complete the fee payment.');
+        }
       }
 
       final sorted = _sortedSchedules(release);
@@ -1157,6 +1209,8 @@ class _ExamsScreenState extends State<ExamsScreen> {
 
   Widget _buildStudentDetailsBlock(
       String rollNo, String name, String fatherName, String branch) {
+    final ticketType = _displayExamType(_selectedExamType).toUpperCase();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1182,7 +1236,7 @@ class _ExamsScreenState extends State<ExamsScreen> {
                     _detailRow('Name of Candidate', name),
                     _detailRow('Father\'s Name', fatherName),
                     _detailRow('Branch / Department', branch),
-                    _detailRow('Type', 'REGULAR'),
+                    _detailRow('Type', ticketType),
                   ],
                 ),
               ),

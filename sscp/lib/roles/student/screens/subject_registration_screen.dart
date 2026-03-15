@@ -449,6 +449,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen>
         foregroundColor: Colors.white,
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.yellow,
