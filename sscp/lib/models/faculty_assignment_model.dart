@@ -230,6 +230,7 @@ class StudentBatch {
   final String batchName; // e.g., 'CSE-A', 'ECE-B'
   final String department;
   final int year;
+  final String semester; // 'I' or 'II'
   final String academicYear;
   final int studentCount;
 
@@ -238,6 +239,7 @@ class StudentBatch {
     required this.batchName,
     required this.department,
     required this.year,
+    this.semester = 'I',
     required this.academicYear,
     this.studentCount = 0,
   });
@@ -249,6 +251,7 @@ class StudentBatch {
       batchName: data['batchName'] ?? '',
       department: data['department'] ?? '',
       year: data['year'] ?? 1,
+      semester: data['semester'] ?? 'I',
       academicYear: data['academicYear'] ?? '',
       studentCount: data['studentCount'] ?? 0,
     );
@@ -259,6 +262,7 @@ class StudentBatch {
       'batchName': batchName,
       'department': department,
       'year': year,
+      'semester': semester,
       'academicYear': academicYear,
       'studentCount': studentCount,
     };

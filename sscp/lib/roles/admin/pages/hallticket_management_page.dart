@@ -18,6 +18,11 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
   List<Map<String, String>> _filteredSubjects = [];
   List<String> _branches = [];
   String? _selectedBranch;
+  List<String> _years = const ['1', '2', '3', '4'];
+  List<String> _semesters = const ['1', '2'];
+  String _selectedYear = '1';
+  String _selectedSemester = '1';
+  String _selectedExamType = 'regular';
   final Map<String, DateTime?> _subjectDates = {};
   final Map<String, TimeOfDay?> _subjectTimes = {};
   final Set<String> _savingSubjectIds = <String>{};
@@ -27,6 +32,36 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
   bool _isLoadingSubjects = true;
   bool _isSaving = false;
   bool _isReleasing = false;
+
+  static const List<String> _examTypeValues = [
+    'regular',
+    'mid',
+    'makeupmid',
+    'supply',
+  ];
+
+  String _normalizedSemester(String value) {
+    final raw = value.trim();
+    if (raw.isEmpty) return '';
+    final u = raw.toUpperCase();
+    if (u == 'I' || u == 'SEM I' || u == 'SEMESTER I') return '1';
+    if (u == 'II' || u == 'SEM II' || u == 'SEMESTER II') return '2';
+    final n = int.tryParse(raw);
+    if (n == null || n <= 0) return raw;
+    return (((n - 1) % 2) + 1).toString();
+  }
+
+  String _normalizedYear({String? year, String? semester}) {
+    final y = (year ?? '').trim();
+    final yNum = int.tryParse(y);
+    if (yNum != null && yNum > 0) return yNum.toString();
+
+    final sNum = int.tryParse((semester ?? '').trim());
+    if (sNum != null && sNum > 0) {
+      return (((sNum - 1) ~/ 2) + 1).toString();
+    }
+    return '';
+  }
 
   @override
   void initState() {
@@ -39,6 +74,7 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
 
     try {
       final branches = <String>{};
+      final years = <String>{};
 
       final studentSnapshot = await _firestore.collection('students').get();
       for (final doc in studentSnapshot.docs) {
@@ -51,6 +87,10 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
         if (branch.isNotEmpty) {
           branches.add(branch);
         }
+        final year = (data['year'] ?? data['currentYear'] ?? '')
+            .toString()
+            .trim();
+        if (year.isNotEmpty) years.add(year);
       }
 
       if (branches.isEmpty) {
@@ -69,12 +109,18 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
       }
 
       final sortedBranches = branches.toList()..sort();
+      final sortedYears = years.toList()
+        ..sort((a, b) => (int.tryParse(b) ?? 0).compareTo(int.tryParse(a) ?? 0));
 
       if (!mounted) return;
       setState(() {
         _branches = sortedBranches;
         _selectedBranch =
             sortedBranches.isNotEmpty ? sortedBranches.first : null;
+        if (sortedYears.isNotEmpty) {
+          _years = sortedYears;
+          _selectedYear = sortedYears.first;
+        }
         _isLoadingBranches = false;
       });
 
@@ -116,6 +162,15 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
                 .toString()
                 .trim()
                 .toUpperCase();
+        final rawYear =
+            (data['year'] ?? data['currentYear'] ?? '').toString().trim();
+        final rawSemester =
+            (data['semester'] ?? data['currentSemester'] ?? '')
+                .toString()
+                .trim();
+        final year =
+            _normalizedYear(year: rawYear, semester: rawSemester);
+        final semester = _normalizedSemester(rawSemester);
 
         if (name.isEmpty || branch.isEmpty) {
           continue;
@@ -126,6 +181,8 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
           'name': name,
           'code': code,
           'branch': branch,
+          'year': year,
+          'semester': semester,
           'label': code.isEmpty ? name : '$code - $name',
         });
       }
@@ -152,7 +209,21 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
     final selectedBranch = (_selectedBranch ?? '').toUpperCase();
     final filtered = _allSubjects.where((subject) {
       final subjectBranch = (subject['branch'] ?? '').toUpperCase();
-      return selectedBranch.isNotEmpty && subjectBranch == selectedBranch;
+      if (selectedBranch.isEmpty || subjectBranch != selectedBranch) {
+        return false;
+      }
+
+      final subjectYear = (subject['year'] ?? '').trim();
+      if (subjectYear.isNotEmpty && subjectYear != _selectedYear) {
+        return false;
+      }
+
+      final subjectSemester = (subject['semester'] ?? '').trim();
+      if (subjectSemester.isNotEmpty && subjectSemester != _selectedSemester) {
+        return false;
+      }
+
+      return true;
     }).toList()
       ..sort((a, b) => (a['label'] ?? '')
           .toLowerCase()
@@ -198,6 +269,23 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
     }
   }
 
+  Future<void> _setPreferredHourForSubject(String subjectId, int hour24) async {
+    setState(() => _subjectTimes[subjectId] = TimeOfDay(hour: hour24, minute: 0));
+    await _maybeAutoSaveSubject(subjectId);
+  }
+
+  static const List<Map<String, dynamic>> _preferredHourOptions = [
+    {'label': '9', 'hour24': 9},
+    {'label': '10', 'hour24': 10},
+    {'label': '11', 'hour24': 11},
+    {'label': '12', 'hour24': 12},
+    {'label': '1', 'hour24': 13},
+    {'label': '2', 'hour24': 14},
+    {'label': '3', 'hour24': 15},
+    {'label': '4', 'hour24': 16},
+    {'label': '5', 'hour24': 17},
+  ];
+
   Map<String, String>? _subjectById(String subjectId) {
     for (final subject in _filteredSubjects) {
       if ((subject['id'] ?? '') == subjectId) return subject;
@@ -231,7 +319,15 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
 
       final draftDocs = snapshot.docs.where((doc) {
         final data = doc.data();
-        return (data['releaseStatus'] ?? 'draft').toString() == 'draft';
+        final status = (data['releaseStatus'] ?? 'draft').toString();
+        final year = (data['year'] ?? '').toString().trim();
+        final semester = (data['semester'] ?? '').toString().trim();
+        final examType =
+            (data['examType'] ?? 'regular').toString().trim().toLowerCase();
+        return status == 'draft' &&
+            year == _selectedYear &&
+            semester == _selectedSemester &&
+            examType == _selectedExamType;
       }).toList();
 
       final bySubject = <String, Map<String, dynamic>>{};
@@ -347,7 +443,15 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
 
       final draftSchedules = branchSchedules.docs.where((doc) {
         final data = doc.data();
-        return (data['releaseStatus'] ?? 'draft').toString() == 'draft';
+        final status = (data['releaseStatus'] ?? 'draft').toString();
+        final year = (data['year'] ?? '').toString().trim();
+        final semester = (data['semester'] ?? '').toString().trim();
+        final examType =
+          (data['examType'] ?? 'regular').toString().trim().toLowerCase();
+        return status == 'draft' &&
+          year == _selectedYear &&
+          semester == _selectedSemester &&
+          examType == _selectedExamType;
       }).toList();
 
       final existingForSubject = draftSchedules.where((doc) {
@@ -375,6 +479,9 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
       final payload = {
         'branch': _selectedBranch,
         'course': _selectedBranch,
+        'year': _selectedYear,
+        'semester': _selectedSemester,
+        'examType': _selectedExamType,
         'subjectId': subjectId,
         'subjectName': selectedSubjectName,
         'subjectCode': selectedSubjectCode,
@@ -446,7 +553,11 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
     try {
       final branch = _selectedBranch!;
       final branchSubjects = _allSubjects
-          .where((s) => (s['branch'] ?? '').toUpperCase() == branch)
+        .where((s) =>
+          (s['branch'] ?? '').toUpperCase() == branch &&
+          ((s['year'] ?? '').isEmpty || (s['year'] ?? '') == _selectedYear) &&
+          ((s['semester'] ?? '').isEmpty ||
+            (s['semester'] ?? '') == _selectedSemester))
           .toList();
 
       final schedulesSnapshot = await _firestore
@@ -456,7 +567,15 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
 
       final draftDocs = schedulesSnapshot.docs.where((doc) {
         final data = doc.data();
-        return (data['releaseStatus'] ?? 'draft').toString() == 'draft';
+        final status = (data['releaseStatus'] ?? 'draft').toString();
+        final year = (data['year'] ?? '').toString().trim();
+        final semester = (data['semester'] ?? '').toString().trim();
+        final examType =
+            (data['examType'] ?? 'regular').toString().trim().toLowerCase();
+        return status == 'draft' &&
+            year == _selectedYear &&
+            semester == _selectedSemester &&
+            examType == _selectedExamType;
       }).toList();
 
       if (branchSubjects.isEmpty) {
@@ -552,6 +671,9 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
       final releasedBy = FirebaseAuth.instance.currentUser?.email ?? 'admin';
       final releaseRef = await _firestore.collection('hallticketReleases').add({
         'branch': branch,
+        'year': _selectedYear,
+        'semester': _selectedSemester,
+        'examType': _selectedExamType,
         'hallticketType': 'combined_branch',
         'isIndividualHallticket': false,
         'subjectCount': scheduleEntries.length,
@@ -578,8 +700,9 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Combined hallticket released successfully for branch'),
+        SnackBar(
+          content: Text(
+              'Released hallticket for $branch - Year $_selectedYear Sem $_selectedSemester (${_displayExamType(_selectedExamType)})'),
         ),
       );
     } catch (e) {
@@ -603,6 +726,72 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
 
   Future<void> _deleteSchedule(String docId) async {
     await _firestore.collection('hallticketSchedules').doc(docId).delete();
+  }
+
+  Future<void> _deleteReleasedGroup(
+      String scheduleDocId, Map<String, dynamic> data) async {
+    final releaseId = (data['hallticketReleaseId'] ?? '').toString().trim();
+    final branch = (data['branch'] ?? '').toString();
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Released Hallticket'),
+        content: Text(
+          releaseId.isEmpty
+              ? 'This schedule is marked released. Delete this released schedule?'
+              : 'This will delete the released hallticket for $branch and move linked schedules back to draft. Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      if (releaseId.isEmpty) {
+        await _firestore.collection('hallticketSchedules').doc(scheduleDocId).delete();
+      } else {
+        final linked = await _firestore
+            .collection('hallticketSchedules')
+            .where('hallticketReleaseId', isEqualTo: releaseId)
+            .get();
+
+        final batch = _firestore.batch();
+        for (final doc in linked.docs) {
+          batch.update(doc.reference, {
+            'releaseStatus': 'draft',
+            'hallticketReleaseId': FieldValue.delete(),
+            'releasedBy': FieldValue.delete(),
+            'releasedAt': FieldValue.delete(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        final releaseRef = _firestore.collection('hallticketReleases').doc(releaseId);
+        batch.delete(releaseRef);
+        await batch.commit();
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Released hallticket deleted successfully')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete released hallticket: $e')),
+      );
+    }
   }
 
   @override
@@ -682,7 +871,8 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
               ),
               const SizedBox(height: 12),
               Text(
-                'No subjects found for branch ${_selectedBranch ?? ''}. Please add subjects in backend.',
+                'No subjects found for ${_selectedBranch ?? ''} | Year $_selectedYear | Sem $_selectedSemester.\n'
+                'Try changing Year/Semester or verify subject year/semester data in backend.',
                 style: const TextStyle(color: Colors.redAccent),
               ),
               const SizedBox(height: 12),
@@ -731,10 +921,77 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
               },
             ),
             const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedYear,
+                    decoration: const InputDecoration(
+                      labelText: 'Year',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _years
+                        .map((year) => DropdownMenuItem<String>(
+                              value: year,
+                              child: Text('Year $year'),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _selectedYear = value);
+                      _filterSubjectsForBranch();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedSemester,
+                    decoration: const InputDecoration(
+                      labelText: 'Semester',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: _semesters
+                        .map((sem) => DropdownMenuItem<String>(
+                              value: sem,
+                              child: Text('Sem $sem'),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _selectedSemester = value);
+                      _filterSubjectsForBranch();
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _selectedExamType,
+              decoration: const InputDecoration(
+                labelText: 'Examination Type',
+                border: OutlineInputBorder(),
+              ),
+              items: _examTypeValues
+                  .map(
+                    (type) => DropdownMenuItem<String>(
+                      value: type,
+                      child: Text(_displayExamType(type)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _selectedExamType = value);
+                _filterSubjectsForBranch();
+              },
+            ),
+            const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Subjects auto-fetched for ${_selectedBranch ?? ''} (${_filteredSubjects.length}). Date + time are autosaved.',
+                'Subjects for ${_selectedBranch ?? ''} | Year $_selectedYear | Sem $_selectedSemester | ${_displayExamType(_selectedExamType)} (${_filteredSubjects.length}). Date + time are autosaved.',
                 style: const TextStyle(
                   color: Color(0xFF1e3a5f),
                   fontWeight: FontWeight.w600,
@@ -821,6 +1078,26 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: _preferredHourOptions.map((opt) {
+                          final hour24 = opt['hour24'] as int;
+                          final isSelected = effectiveTime != null &&
+                              effectiveTime.hour == hour24 &&
+                              effectiveTime.minute == 0;
+                          return ChoiceChip(
+                            label: Text(opt['label'].toString()),
+                            selected: isSelected,
+                            onSelected: (_) =>
+                                _setPreferredHourForSubject(subjectId, hour24),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          );
+                        }).toList(),
+                      ),
                     ],
                   ),
                 );
@@ -873,8 +1150,16 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
         final allDocs = snapshot.data?.docs ?? [];
         final docs = allDocs.where((doc) {
           if (selectedBranch.isEmpty) return true;
-          final branch = (doc.data()['branch'] ?? '').toString().toUpperCase();
-          return branch == selectedBranch;
+          final data = doc.data();
+          final branch = (data['branch'] ?? '').toString().toUpperCase();
+          final year = (data['year'] ?? '').toString().trim();
+          final semester = (data['semester'] ?? '').toString().trim();
+          final examType =
+              (data['examType'] ?? 'regular').toString().trim().toLowerCase();
+          return branch == selectedBranch &&
+              year == _selectedYear &&
+              semester == _selectedSemester &&
+              examType == _selectedExamType;
         }).toList();
 
         if (docs.isEmpty) {
@@ -898,6 +1183,10 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
             final isActive = (data['isActive'] ?? false) as bool;
             final releaseStatus =
                 (data['releaseStatus'] ?? 'draft').toString().toUpperCase();
+            final year = (data['year'] ?? '').toString();
+            final semester = (data['semester'] ?? '').toString();
+            final examType = _displayExamType(
+              (data['examType'] ?? 'regular').toString().toLowerCase());
             final isReleased = releaseStatus == 'RELEASED';
 
             final ts = data['examDateTime'] as Timestamp?;
@@ -919,7 +1208,7 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 subtitle: Text(
-                  'Subject: $subjectName\nDate: $dateLabel    Time: $timeLabel\nStatus: $releaseStatus',
+                  'Subject: $subjectName\nYear: $year   Sem: $semester   Exam: $examType\nDate: $dateLabel    Time: $timeLabel\nStatus: $releaseStatus',
                 ),
                 leading: CircleAvatar(
                   backgroundColor: isActive ? Colors.green : Colors.grey,
@@ -941,10 +1230,12 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
                           : (_) => _toggleSchedule(doc.id, isActive),
                     ),
                     IconButton(
-                      onPressed:
-                          isReleased ? null : () => _deleteSchedule(doc.id),
+                      onPressed: isReleased
+                          ? () => _deleteReleasedGroup(doc.id, data)
+                          : () => _deleteSchedule(doc.id),
                       icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      tooltip: 'Delete',
+                      tooltip:
+                          isReleased ? 'Delete Released Hallticket' : 'Delete',
                     ),
                   ],
                 ),
@@ -954,5 +1245,18 @@ class _HallticketManagementPageState extends State<HallticketManagementPage> {
         );
       },
     );
+  }
+
+  String _displayExamType(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'mid':
+        return 'Mid';
+      case 'makeupmid':
+        return 'Makeup Mid';
+      case 'supply':
+        return 'Supply';
+      default:
+        return 'Regular';
+    }
   }
 }

@@ -419,7 +419,8 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                               ),
                             ),
                           ),
-                          label: Text('${batch.batchName} (Y${batch.year})'),
+                            label: Text(
+                              '${batch.batchName} (Y${batch.year} - Sem ${batch.semester})'),
                         );
                       }).toList(),
                     ),
@@ -503,12 +504,13 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
               return matchesYear && matchesSem;
             }).toList();
 
-            // Filter batches by department and year
+            // Filter batches by department, year and semester
             final filteredBatches = _batches.where((b) {
               bool matchesDept =
                   selectedDepartment == null || b.department == selectedDepartment;
               bool matchesYear = b.year == selectedYear;
-              return matchesDept && matchesYear;
+              bool matchesSem = b.semester == selectedSemester;
+              return matchesDept && matchesYear && matchesSem;
             }).toList();
 
             // Check if selected year is already assigned
@@ -533,6 +535,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                     children: [
                       // Department Selection
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Department *',
                           border: OutlineInputBorder(),
@@ -572,6 +575,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
 
                       // Faculty Selection
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         decoration: InputDecoration(
                           labelText: 'Faculty *',
                           border: const OutlineInputBorder(),
@@ -589,7 +593,9 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                           return DropdownMenuItem(
                             value: faculty['facultyId'] as String,
                             child: Text(
-                                '${faculty['name']} (${faculty['facultyId']})'),
+                                '${faculty['name']} (${faculty['facultyId']})',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis),
                           );
                         }).toList(),
                         onChanged: selectedDepartment == null
@@ -731,6 +737,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<int>(
+                              isExpanded: true,
                               decoration: InputDecoration(
                                 labelText: 'Year *',
                                 border: const OutlineInputBorder(),
@@ -775,6 +782,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                           const SizedBox(width: 16),
                           Expanded(
                             child: DropdownButtonFormField<String>(
+                              isExpanded: true,
                               decoration: const InputDecoration(
                                 labelText: 'Semester *',
                                 border: OutlineInputBorder(),
@@ -824,6 +832,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
 
                       // Subject Selection (from faculty's preferred courses ONLY)
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         decoration: InputDecoration(
                           labelText: 'Subject (from preferences) *',
                           border: const OutlineInputBorder(),
@@ -921,7 +930,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
                           child: Text(
                             selectedDepartment == null
                                 ? 'Select a department first'
-                                : 'No batches found for Year $selectedYear',
+                                : 'No batches found for Year $selectedYear, Semester $selectedSemester',
                             style: TextStyle(color: Colors.grey.shade600),
                           ),
                         )
@@ -1085,7 +1094,8 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
             final availableBatches = _batches
                 .where((b) =>
                     b.department == assignment.department &&
-                    b.year == assignment.year)
+                b.year == assignment.year &&
+                b.semester == assignment.semester)
                 .toList();
 
             return AlertDialog(
@@ -1107,6 +1117,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
 
                       // Semester
                       DropdownButtonFormField<String>(
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Semester',
                           border: OutlineInputBorder(),
@@ -1243,6 +1254,7 @@ class _FacultyAssignmentPageState extends State<FacultyAssignmentPage>
     final availableBatches = _batches.where((b) {
       return b.department == assignment.department &&
           b.year == assignment.year &&
+          b.semester == assignment.semester &&
           !assignment.assignedBatches.contains(b.batchName);
     }).toList();
 

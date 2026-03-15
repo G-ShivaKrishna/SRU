@@ -4,6 +4,24 @@ import '../models/faculty_assignment_model.dart';
 class FacultyAssignmentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  String _normalizeSemesterLabel(dynamic value) {
+    final raw = value?.toString().trim().toUpperCase() ?? '';
+    if (raw.isEmpty) return 'I';
+
+    if (raw == 'I' || raw == '1' || raw == 'SEM I' || raw == 'SEMESTER I') {
+      return 'I';
+    }
+    if (raw == 'II' || raw == '2' || raw == 'SEM II' || raw == 'SEMESTER II') {
+      return 'II';
+    }
+
+    final n = int.tryParse(raw);
+    if (n != null && n > 0) {
+      return n.isOdd ? 'I' : 'II';
+    }
+    return 'I';
+  }
+
   // Collection references
   CollectionReference get _assignmentsCollection =>
       _firestore.collection('facultyAssignments');
@@ -656,9 +674,14 @@ class FacultyAssignmentService {
         final batchNumber = data['batchNumber'] ?? '';
         final department = data['department'] ?? '';
         final year = data['year'] ?? 1;
+        final semester = _normalizeSemesterLabel(
+          data['semester'] ?? data['currentSemester'],
+        );
 
         if (batchNumber.isNotEmpty) {
-          final key = '$department-$batchNumber';
+          final normalizedYear =
+              year is int ? year : int.tryParse(year.toString()) ?? 1;
+          final key = '$department-$batchNumber-$normalizedYear-$semester';
           if (batchMap.containsKey(key)) {
             batchMap[key]!['studentCount'] =
                 (batchMap[key]!['studentCount'] as int) + 1;
@@ -666,7 +689,8 @@ class FacultyAssignmentService {
             batchMap[key] = {
               'batchName': batchNumber,
               'department': department,
-              'year': year is int ? year : int.tryParse(year.toString()) ?? 1,
+              'year': normalizedYear,
+              'semester': semester,
               'studentCount': 1,
             };
           }
@@ -679,6 +703,7 @@ class FacultyAssignmentService {
           batchName: entry.value['batchName'] as String,
           department: entry.value['department'] as String,
           year: entry.value['year'] as int,
+          semester: (entry.value['semester'] ?? 'I') as String,
           academicYear: _getCurrentAcademicYear(),
           studentCount: entry.value['studentCount'] as int,
         );

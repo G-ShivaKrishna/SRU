@@ -66,6 +66,34 @@ class _AdminCourseManagementScreenState
     super.dispose();
   }
 
+  String _normalizedSemester(dynamic value) {
+    final raw = value?.toString().trim().toUpperCase() ?? '';
+    if (raw.isEmpty) return '';
+    if (raw == 'I' || raw == '1' || raw == 'SEM I' || raw == 'SEMESTER I') {
+      return '1';
+    }
+    if (raw == 'II' || raw == '2' || raw == 'SEM II' || raw == 'SEMESTER II') {
+      return '2';
+    }
+    final n = int.tryParse(raw);
+    if (n != null && n > 0) {
+      return n.isOdd ? '1' : '2';
+    }
+    return '';
+  }
+
+  String _normalizedYear({dynamic year, dynamic semester}) {
+    final y = year?.toString().trim() ?? '';
+    final yNum = int.tryParse(y);
+    if (yNum != null && yNum > 0) return yNum.toString();
+
+    final sNum = int.tryParse(semester?.toString().trim() ?? '');
+    if (sNum != null && sNum > 0) {
+      return (((sNum - 1) ~/ 2) + 1).toString();
+    }
+    return '';
+  }
+
   Future<void> _loadRegistrationSettings() async {
     try {
       final results = await Future.wait<dynamic>([
@@ -1754,68 +1782,102 @@ class _AdminCourseManagementScreenState
               ),
               const SizedBox(height: 16),
               // Student submissions list from studentSubjectSelections
+              // Use current student profile (students collection) to enforce
+              // year/semester filters after promotions.
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
-                    .collection('studentSubjectSelections')
-                    .where('year', isEqualTo: int.tryParse(selectedYear) ?? 1)
+                    .collection('students')
                     .where('department', isEqualTo: selectedBranch)
                     .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                builder: (context, studentsSnap) {
+                  if (studentsSnap.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text('Error: ${snapshot.error}'),
-                    );
+                  if (studentsSnap.hasError) {
+                    return Center(child: Text('Error: ${studentsSnap.error}'));
                   }
 
-                  // Filter by semester in Dart to avoid composite index
-                  final allDocs = snapshot.data?.docs ?? [];
-                  final submissions = allDocs.where((doc) {
+                  final eligibleStudentIds = <String>{};
+                  for (final doc in studentsSnap.data?.docs ?? const []) {
                     final d = doc.data() as Map<String, dynamic>;
-                    final docSem = (d['semester'] ?? '').toString().trim();
-                    final normalizedDocSem = docSem.toUpperCase();
-                    final acceptedSemesters =
-                        selectedSemester == '1' ? {'1', 'I'} : {'2', 'II'};
-                    return acceptedSemesters.contains(normalizedDocSem);
-                  }).toList();
-
-                  if (submissions.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          children: [
-                            Icon(Icons.inbox,
-                                size: 64, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No submissions for Year $selectedYear Sem $selectedSemester – $selectedBranch',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
+                    final sem = _normalizedSemester(
+                        d['semester'] ?? d['currentSemester']);
+                    final year = _normalizedYear(
+                      year: d['year'] ?? d['currentYear'],
+                      semester: d['semester'] ?? d['currentSemester'],
                     );
+
+                    if (year == selectedYear && sem == selectedSemester) {
+                      final roll =
+                          (d['hallTicketNumber'] ?? d['rollNo'] ?? doc.id)
+                              .toString()
+                              .trim();
+                      if (roll.isNotEmpty) eligibleStudentIds.add(roll);
+                    }
                   }
 
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: submissions.length,
-                    itemBuilder: (context, index) {
-                      final data =
-                          submissions[index].data() as Map<String, dynamic>;
-                      return _buildSubjectSubmissionCard(
-                        context,
-                        submissions[index].id,
-                        data,
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('studentSubjectSelections')
+                        .where('department', isEqualTo: selectedBranch)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Text('Error: ${snapshot.error}'),
+                        );
+                      }
+
+                      final allDocs = snapshot.data?.docs ?? [];
+                      final submissions = allDocs.where((doc) {
+                        final d = doc.data() as Map<String, dynamic>;
+                        final sid =
+                            (d['studentId'] ?? d['hallTicketNumber'] ?? '')
+                                .toString()
+                                .trim();
+                        return sid.isNotEmpty && eligibleStudentIds.contains(sid);
+                      }).toList();
+
+                      if (submissions.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              children: [
+                                Icon(Icons.inbox,
+                                    size: 64, color: Colors.grey[400]),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No submissions for Year $selectedYear Sem $selectedSemester – $selectedBranch',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: submissions.length,
+                        itemBuilder: (context, index) {
+                          final data =
+                              submissions[index].data() as Map<String, dynamic>;
+                          return _buildSubjectSubmissionCard(
+                            context,
+                            submissions[index].id,
+                            data,
+                          );
+                        },
                       );
                     },
                   );
