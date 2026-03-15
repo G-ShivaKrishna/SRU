@@ -22,6 +22,7 @@ import 'pages/grievance_management_page.dart';
 import 'pages/attendance_management_page.dart';
 import 'pages/results_management_page.dart';
 import 'pages/makeup_mid_management_page.dart';
+import 'pages/hallticket_management_page.dart';
 import 'screens/admin_course_management_screen.dart';
 import 'screens/admin_cie_memo_release_screen.dart';
 import 'screens/admin_lookup_screen.dart';
@@ -283,6 +284,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const ResultsManagementPage(initialTab: 1);
     } else if (pageName == 'Makeup Mid') {
       page = const MakeupMidManagementPage();
+    } else if (pageName == 'Hallticket Management') {
+      page = const HallticketManagementPage();
     } else if (pageName == 'Audit Trail') {
       page = const AuditLogViewerPage();
     } else {
@@ -408,6 +411,7 @@ class _AdminHomeState extends State<AdminHome> {
       'Sem Memo Release',
       'Subject Management',
       'Course Management',
+      'Hallticket Management',
       'Feedback Management',
       'Attendance Management',
       'Supply Exam',
@@ -924,6 +928,13 @@ class _AdminHomeState extends State<AdminHome> {
           Colors.orange,
           context,
           () => _navigateToPage(context, 'Course Management'),
+        ),
+        _buildActionCard(
+          'Hallticket\nManagement',
+          Icons.badge_outlined,
+          Colors.blueGrey,
+          context,
+          () => _navigateToPage(context, 'Hallticket Management'),
         ),
         _buildActionCard(
           'CIE Memo\nRelease',

@@ -111,114 +111,197 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                   ),
                 )
               else
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!, width: 1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Column(
-                    children: [
-                      // Header Row
-                      Container(
+                isMobile
+                    ? _buildMobileSyllabusCards(syllabusList)
+                    : Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE8E8E8),
-                          border: Border(
-                            bottom:
-                                BorderSide(color: Colors.grey[300]!, width: 1),
-                          ),
+                          border: Border.all(color: Colors.grey[300]!, width: 1),
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Row(
+                        child: Column(
                           children: [
-                            _buildHeaderCell('S.No',
-                                flex: 2, isMobile: isMobile),
-                            _buildHeaderCell('Class Info',
-                                flex: 5, isMobile: isMobile),
-                            _buildHeaderCell(isMobile ? 'Reg.' : 'Regulation',
-                                flex: 3, isMobile: isMobile),
-                            _buildHeaderCell('View',
-                                flex: 2,
-                                isMobile: isMobile,
-                                textAlign: TextAlign.center),
-                          ],
-                        ),
-                      ),
-                      // Data Rows
-                      ...syllabusList.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final syllabus = entry.value;
-                        final isLast = index == syllabusList.length - 1;
-                        final isEvenRow = index % 2 == 0;
-
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: isEvenRow
-                                ? Colors.white
-                                : const Color(0xFFF5F5F5),
-                            border: Border(
-                              bottom: BorderSide(
-                                color: isLast
-                                    ? Colors.transparent
-                                    : Colors.grey[200]!,
-                                width: 1,
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8E8E8),
+                                border: Border(
+                                  bottom:
+                                      BorderSide(color: Colors.grey[300]!, width: 1),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  _buildHeaderCell('S.No', flex: 2, isMobile: false),
+                                  _buildHeaderCell('Class Info', flex: 5, isMobile: false),
+                                  _buildHeaderCell('Regulation',
+                                      flex: 3, isMobile: false),
+                                  _buildHeaderCell('View',
+                                      flex: 2,
+                                      isMobile: false,
+                                      textAlign: TextAlign.center),
+                                ],
                               ),
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              _buildDataCell(syllabus.sNo.toString(),
-                                  flex: 2, isMobile: isMobile),
-                              _buildDataCell(syllabus.classInfo,
-                                  flex: 5,
-                                  isMobile: isMobile,
-                                  maxLines: isMobile ? 4 : 2),
-                              _buildDataCell(syllabus.regulation,
-                                  flex: 3, isMobile: isMobile),
-                              _buildDataCell(
-                                TextButton(
-                                  onPressed: syllabus.pdfUrl.isEmpty
-                                      ? null
-                                      : () {
-                                          setState(() {
-                                            _selectedSyllabus = syllabus;
-                                            _showingPdf = true;
-                                          });
-                                        },
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 12,
-                                    ),
-                                    minimumSize: const Size(0, 40),
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: Text(
-                                    syllabus.pdfUrl.isEmpty ? 'No PDF' : 'View',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: syllabus.pdfUrl.isEmpty
-                                          ? Colors.grey
-                                          : const Color(0xFF1976D2),
+                            ...syllabusList.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final syllabus = entry.value;
+                              final isLast = index == syllabusList.length - 1;
+                              final isEvenRow = index % 2 == 0;
+
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color:
+                                      isEvenRow ? Colors.white : const Color(0xFFF5F5F5),
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: isLast
+                                          ? Colors.transparent
+                                          : Colors.grey[200]!,
+                                      width: 1,
                                     ),
                                   ),
                                 ),
-                                isAction: true,
-                                flex: 2,
-                                isMobile: isMobile,
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
+                                child: Row(
+                                  children: [
+                                    _buildDataCell(syllabus.sNo.toString(),
+                                        flex: 2, isMobile: false),
+                                    _buildDataCell(syllabus.classInfo,
+                                        flex: 5, isMobile: false),
+                                    _buildDataCell(syllabus.regulation,
+                                        flex: 3, isMobile: false),
+                                    _buildDataCell(
+                                      SizedBox(
+                                        width: 72,
+                                        child: TextButton(
+                                          onPressed: syllabus.pdfUrl.isEmpty
+                                              ? null
+                                              : () {
+                                                  setState(() {
+                                                    _selectedSyllabus = syllabus;
+                                                    _showingPdf = true;
+                                                  });
+                                                },
+                                          style: TextButton.styleFrom(
+                                            minimumSize: const Size(72, 40),
+                                          ),
+                                          child: Text(
+                                            syllabus.pdfUrl.isEmpty
+                                                ? 'No PDF'
+                                                : 'View',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: syllabus.pdfUrl.isEmpty
+                                                  ? Colors.grey
+                                                  : const Color(0xFF1976D2),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      isAction: true,
+                                      flex: 2,
+                                      isMobile: false,
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMobileSyllabusCards(List<SyllabusItem> syllabusList) {
+    return Column(
+      children: syllabusList.map((syllabus) {
+        final hasPdf = syllabus.pdfUrl.isNotEmpty;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.grey[300]!, width: 1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'S.No ${syllabus.sNo}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1e3a5f),
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8E8E8),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      syllabus.regulation,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1e3a5f),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                syllabus.classInfo,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: hasPdf
+                      ? () {
+                          setState(() {
+                            _selectedSyllabus = syllabus;
+                            _showingPdf = true;
+                          });
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: hasPdf
+                        ? const Color(0xFF1e3a5f)
+                        : Colors.grey.shade400,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(hasPdf ? 'View' : 'No PDF'),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
