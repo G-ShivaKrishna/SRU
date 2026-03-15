@@ -69,6 +69,8 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
   }
 
   Widget _buildSyllabusList() {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return StreamBuilder<QuerySnapshot>(
       stream: _syllabusStream,
       builder: (context, snapshot) {
@@ -127,10 +129,14 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                         ),
                         child: Row(
                           children: [
-                            _buildHeaderCell('S.No'),
-                            _buildHeaderCell('Class Info'),
-                            _buildHeaderCell('Regulation'),
-                            _buildHeaderCell('View'),
+                            _buildHeaderCell('S.No', flex: 2, isMobile: isMobile),
+                            _buildHeaderCell('Class Info', flex: 5, isMobile: isMobile),
+                            _buildHeaderCell(isMobile ? 'Reg.' : 'Regulation',
+                                flex: 3, isMobile: isMobile),
+                            _buildHeaderCell('View',
+                                flex: 2,
+                                isMobile: isMobile,
+                                textAlign: TextAlign.center),
                           ],
                         ),
                       ),
@@ -157,9 +163,14 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                           ),
                           child: Row(
                             children: [
-                              _buildDataCell(syllabus.sNo.toString()),
-                              _buildDataCell(syllabus.classInfo),
-                              _buildDataCell(syllabus.regulation),
+                              _buildDataCell(syllabus.sNo.toString(),
+                                  flex: 2, isMobile: isMobile),
+                              _buildDataCell(syllabus.classInfo,
+                                  flex: 5,
+                                  isMobile: isMobile,
+                                  maxLines: isMobile ? 4 : 2),
+                              _buildDataCell(syllabus.regulation,
+                                  flex: 3, isMobile: isMobile),
                               _buildDataCell(
                                 TextButton(
                                   onPressed: syllabus.pdfUrl.isEmpty
@@ -172,9 +183,12 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                                         },
                                   style: TextButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
+                                      horizontal: 8,
                                       vertical: 12,
                                     ),
+                                    minimumSize: const Size(0, 40),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   child: Text(
                                     syllabus.pdfUrl.isEmpty ? 'No PDF' : 'View',
@@ -188,6 +202,9 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                                   ),
                                 ),
                                 isAction: true,
+                                flex: 2,
+                                isMobile: isMobile,
+                                textAlign: TextAlign.center,
                               ),
                             ],
                           ),
@@ -203,12 +220,24 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
     );
   }
 
-  Widget _buildHeaderCell(String text) {
+  Widget _buildHeaderCell(
+    String text, {
+    required int flex,
+    required bool isMobile,
+    TextAlign textAlign = TextAlign.left,
+  }) {
     return Expanded(
+      flex: flex,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 8 : 16,
+          vertical: 14,
+        ),
         child: Text(
           text,
+          textAlign: textAlign,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
@@ -219,14 +248,33 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
     );
   }
 
-  Widget _buildDataCell(dynamic content, {bool isAction = false}) {
+  Widget _buildDataCell(
+    dynamic content, {
+    bool isAction = false,
+    required int flex,
+    required bool isMobile,
+    int maxLines = 2,
+    TextAlign textAlign = TextAlign.left,
+  }) {
     return Expanded(
+      flex: flex,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 8 : 16,
+          vertical: 12,
+        ),
         child: isAction
-            ? content
+            ? Align(
+                alignment: textAlign == TextAlign.center
+                    ? Alignment.center
+                    : Alignment.centerLeft,
+                child: content,
+              )
             : Text(
                 content.toString(),
+                textAlign: textAlign,
+                maxLines: maxLines,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,
                   color: Colors.black87,
