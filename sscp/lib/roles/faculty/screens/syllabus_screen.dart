@@ -129,8 +129,10 @@ class _SyllabusScreenState extends State<SyllabusScreen> {
                         ),
                         child: Row(
                           children: [
-                            _buildHeaderCell('S.No', flex: 2, isMobile: isMobile),
-                            _buildHeaderCell('Class Info', flex: 5, isMobile: isMobile),
+                            _buildHeaderCell('S.No',
+                                flex: 2, isMobile: isMobile),
+                            _buildHeaderCell('Class Info',
+                                flex: 5, isMobile: isMobile),
                             _buildHeaderCell(isMobile ? 'Reg.' : 'Regulation',
                                 flex: 3, isMobile: isMobile),
                             _buildHeaderCell('View',
