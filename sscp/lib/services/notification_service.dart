@@ -23,7 +23,8 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
-  String? _activeStudentId;
+  String? _activeRole;
+  String? _activeRoleId;
   bool _initialized = false;
   bool _tokenRefreshSubscribed = false;
 
@@ -43,7 +44,8 @@ class NotificationService {
       provisional: false,
     );
     debugPrint(
-        'Notification permission status: ${settings.authorizationStatus}');
+      'Notification permission status: ${settings.authorizationStatus}',
+    );
 
     if (!kIsWeb) {
       await _messaging.setForegroundNotificationPresentationOptions(
@@ -64,15 +66,32 @@ class NotificationService {
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       debugPrint(
-          'Notification opened from terminated state: ${initialMessage.messageId}');
+        'Notification opened from terminated state: ${initialMessage.messageId}',
+      );
     }
 
     _initialized = true;
   }
 
-  Future<void> registerStudentToken({required String studentId}) async {
-    _activeStudentId = studentId.trim().toUpperCase();
-    if (_activeStudentId == null || _activeStudentId!.isEmpty) return;
+  // Backward compatible wrappers used by existing student flow.
+  Future<void> registerStudentToken({required String studentId}) {
+    return registerRoleToken(role: 'student', roleId: studentId);
+  }
+
+  Future<void> unregisterStudentToken({required String studentId}) {
+    return unregisterRoleToken(role: 'student', roleId: studentId);
+  }
+
+  Future<void> registerRoleToken({
+    required String role,
+    required String roleId,
+  }) async {
+    final normalizedRole = _normalizeRole(role);
+    final normalizedRoleId = roleId.trim().toUpperCase();
+    if (normalizedRoleId.isEmpty) return;
+
+    _activeRole = normalizedRole;
+    _activeRoleId = normalizedRoleId;
 
     String? token;
     try {
@@ -84,49 +103,114 @@ class NotificationService {
     if (token == null || token.isEmpty) return;
 
     await _upsertToken(
-      studentId: _activeStudentId!,
+      role: normalizedRole,
+      roleId: normalizedRoleId,
       token: token,
     );
 
     if (!_tokenRefreshSubscribed) {
       _tokenRefreshSubscribed = true;
       _messaging.onTokenRefresh.listen((newToken) async {
-        final currentStudentId = _activeStudentId;
-        if (currentStudentId == null || currentStudentId.isEmpty) return;
-        await _upsertToken(studentId: currentStudentId, token: newToken);
+        final currentRole = _activeRole;
+        final currentRoleId = _activeRoleId;
+        if (currentRole == null || currentRoleId == null) return;
+        if (currentRoleId.isEmpty) return;
+        await _upsertToken(
+          role: currentRole,
+          roleId: currentRoleId,
+          token: newToken,
+        );
       });
     }
   }
 
-  Future<void> unregisterStudentToken({required String studentId}) async {
-    final normalizedStudentId = studentId.trim().toUpperCase();
-    if (normalizedStudentId.isEmpty) return;
+  Future<void> unregisterRoleToken({
+    required String role,
+    required String roleId,
+  }) async {
+    final normalizedRole = _normalizeRole(role);
+    final normalizedRoleId = roleId.trim().toUpperCase();
+    if (normalizedRoleId.isEmpty) return;
 
     final token = await _messaging.getToken();
     if (token == null || token.isEmpty) return;
 
-    await _firestore.collection('students').doc(normalizedStudentId).set({
+    final uid = _auth.currentUser?.uid;
+    final roleCollection = _collectionForRole(normalizedRole);
+
+    await _firestore.collection(roleCollection).doc(normalizedRoleId).set({
       'fcmTokens': FieldValue.arrayRemove([token]),
       'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    if (_activeStudentId == normalizedStudentId) {
-      _activeStudentId = null;
+    if (uid != null && uid.isNotEmpty) {
+      await _firestore.collection('users').doc(uid).set({
+        'fcmTokens': FieldValue.arrayRemove([token]),
+        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+
+    if (_activeRole == normalizedRole && _activeRoleId == normalizedRoleId) {
+      _activeRole = null;
+      _activeRoleId = null;
     }
   }
 
   Future<void> _upsertToken({
-    required String studentId,
+    required String role,
+    required String roleId,
     required String token,
   }) async {
     final uid = _auth.currentUser?.uid;
-    await _firestore.collection('students').doc(studentId).set({
+    final roleCollection = _collectionForRole(role);
+
+    final rolePayload = {
       'fcmTokens': FieldValue.arrayUnion([token]),
       'lastFcmToken': token,
       'fcmUid': uid,
       'fcmPlatform': kIsWeb ? 'web' : defaultTargetPlatform.name,
       'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+
+    await _firestore
+        .collection(roleCollection)
+        .doc(roleId)
+        .set(rolePayload, SetOptions(merge: true));
+
+    if (uid != null && uid.isNotEmpty) {
+      await _firestore.collection('users').doc(uid).set({
+        'fcmTokens': FieldValue.arrayUnion([token]),
+        'lastFcmToken': token,
+        'fcmUid': uid,
+        'fcmPlatform': kIsWeb ? 'web' : defaultTargetPlatform.name,
+        'fcmRole': role,
+        'fcmRoleId': roleId,
+        'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+  }
+
+  String _normalizeRole(String role) {
+    final value = role.trim().toLowerCase();
+    if (value == 'feepayment' || value == 'fee payment') {
+      return 'fee_payment';
+    }
+    return value;
+  }
+
+  String _collectionForRole(String role) {
+    switch (role) {
+      case 'student':
+        return 'students';
+      case 'faculty':
+        return 'faculty';
+      case 'admin':
+        return 'admin';
+      case 'fee_payment':
+        return 'feePayments';
+      default:
+        return 'users';
+    }
   }
 
   Future<void> _initLocalNotifications() async {
@@ -142,9 +226,9 @@ class NotificationService {
     );
 
     const androidChannel = AndroidNotificationChannel(
-      'marks_uploads',
-      'Marks Uploads',
-      description: 'Notifications for newly uploaded student marks',
+      'sscp_notifications',
+      'SSCP Notifications',
+      description: 'Role-based notifications for SSCP users',
       importance: Importance.high,
     );
 
@@ -163,9 +247,9 @@ class NotificationService {
 
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
-        'marks_uploads',
-        'Marks Uploads',
-        channelDescription: 'Notifications for newly uploaded student marks',
+        'sscp_notifications',
+        'SSCP Notifications',
+        channelDescription: 'Role-based notifications for SSCP users',
         importance: Importance.high,
         priority: Priority.high,
       ),

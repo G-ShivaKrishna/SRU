@@ -5,6 +5,7 @@ import 'pages/mentor_assignment_page.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../services/user_service.dart';
 import '../../services/session_service.dart';
+import '../../services/notification_service.dart';
 import '../../services/audit_log_service.dart';
 import '../../models/audit_log_model.dart';
 import 'pages/unified_permissions_page.dart';
@@ -207,6 +208,15 @@ class _AdminHomeState extends State<AdminHome> {
         'designation': roleValue,
       };
 
+      final tokenAdminId = (mappedData['adminId'] ?? '')
+          .toString()
+          .trim()
+          .toUpperCase();
+      if (tokenAdminId.isNotEmpty) {
+        await NotificationService.instance
+            .registerRoleToken(role: 'admin', roleId: tokenAdminId);
+      }
+
       if (!mounted) return;
       setState(() {
         _adminData = mappedData;
@@ -301,6 +311,19 @@ class _AdminHomeState extends State<AdminHome> {
   }
 
   Future<void> _logout() async {
+    final adminId = (_adminData?['adminId'] ?? UserService.getCurrentUserId() ?? '')
+        .toString()
+        .trim()
+        .toUpperCase();
+    if (adminId.isNotEmpty) {
+      try {
+        await NotificationService.instance
+            .unregisterRoleToken(role: 'admin', roleId: adminId);
+      } catch (e) {
+        debugPrint('Admin token unregister failed: $e');
+      }
+    }
+
     await FirebaseAuth.instance.signOut();
     await SessionService.clearRole();
     if (mounted) {

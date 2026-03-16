@@ -5,6 +5,7 @@ import '../../screens/role_selection_screen.dart';
 import '../../services/audit_log_service.dart';
 import '../../services/user_service.dart';
 import '../../services/session_service.dart';
+import '../../services/notification_service.dart';
 
 // ─── Fee type configuration ───────────────────────────────────────────────────
 class _FeeTypeConfig {
@@ -52,6 +53,35 @@ class FeePaymentHome extends StatefulWidget {
 
 class _FeePaymentHomeState extends State<FeePaymentHome> {
   _FeeTypeConfig _selectedType = _feeTypes[0];
+  String _feePaymentStaffId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _registerNotificationToken();
+  }
+
+  Future<void> _registerNotificationToken() async {
+    try {
+      String staffId = (UserService.getCurrentUserId() ?? '').trim().toUpperCase();
+      if (staffId.isEmpty) {
+        staffId = ((await UserService.fetchAndCacheUserId()) ?? '')
+            .trim()
+            .toUpperCase();
+      }
+      if (staffId.isEmpty) {
+        final email = FirebaseAuth.instance.currentUser?.email ?? '';
+        staffId = email.split('@').first.toUpperCase();
+      }
+      if (staffId.isEmpty) return;
+
+      _feePaymentStaffId = staffId;
+      await NotificationService.instance
+          .registerRoleToken(role: 'fee_payment', roleId: staffId);
+    } catch (e) {
+      debugPrint('Fee payment token register failed: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +93,20 @@ class _FeePaymentHomeState extends State<FeePaymentHome> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {
+            final staffId = (_feePaymentStaffId.isNotEmpty
+                    ? _feePaymentStaffId
+                    : (UserService.getCurrentUserId() ?? ''))
+                .trim()
+                .toUpperCase();
+            if (staffId.isNotEmpty) {
+              try {
+                await NotificationService.instance
+                    .unregisterRoleToken(role: 'fee_payment', roleId: staffId);
+              } catch (e) {
+                debugPrint('Fee payment token unregister failed: $e');
+              }
+            }
+
             await SessionService.clearRole();
             await FirebaseAuth.instance.signOut();
             if (context.mounted) {

@@ -7,6 +7,7 @@ import '../../config/dev_config.dart';
 import '../../services/feedback_service.dart';
 import '../../services/user_service.dart';
 import '../../services/session_service.dart';
+import '../../services/notification_service.dart';
 import 'screens/profile_screen.dart';
 import 'screens/attendance_entry_screen.dart';
 import 'screens/multi_batch_attendance_screen.dart';
@@ -145,6 +146,11 @@ class _FacultyHomeState extends State<FacultyHome> {
           _facultyData?['avgFeedback'] = '0.0';
         }
 
+        if (resolvedFacultyId.isNotEmpty) {
+          await NotificationService.instance
+              .registerRoleToken(role: 'faculty', roleId: resolvedFacultyId);
+        }
+
         setState(() {
           _facultyId = resolvedFacultyId;
           _isLoading = false;
@@ -158,6 +164,20 @@ class _FacultyHomeState extends State<FacultyHome> {
   }
 
   Future<void> _logout() async {
+    final facultyId = (_facultyId.isNotEmpty
+            ? _facultyId
+            : (UserService.getCurrentUserId() ?? ''))
+        .trim()
+        .toUpperCase();
+    if (facultyId.isNotEmpty) {
+      try {
+        await NotificationService.instance
+            .unregisterRoleToken(role: 'faculty', roleId: facultyId);
+      } catch (e) {
+        debugPrint('Faculty token unregister failed: $e');
+      }
+    }
+
     await SessionService.clearRole();
     await _auth.signOut();
     if (mounted) {
