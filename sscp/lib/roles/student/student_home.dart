@@ -5,11 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
+import '../../services/notification_service.dart';
 import '../../services/user_service.dart';
 import '../../services/session_service.dart';
 import '../faculty/screens/student_handbook_screen.dart';
 import '../faculty/screens/syllabus_screen.dart';
 import 'screens/academics_screen.dart';
+import 'screens/notifications_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/subject_registration_screen.dart';
 import 'screens/attendance_screen.dart';
@@ -120,6 +122,10 @@ class _StudentHomeState extends State<StudentHome> {
           _studentData = studentData;
           _isLoading = false;
         });
+
+        await NotificationService.instance
+            .registerStudentToken(studentId: rollNumber);
+
         // Compute CGPA from marks in the background
         _computeCgpa(rollNumber);
         // Compute live attendance % from the attendance collection
@@ -681,6 +687,11 @@ class _StudentHomeState extends State<StudentHome> {
   }
 
   Future<void> _logout() async {
+    final hallTicket = (_studentData?['hallTicketNumber'] ?? '').toString();
+    if (hallTicket.isNotEmpty) {
+      await NotificationService.instance
+          .unregisterStudentToken(studentId: hallTicket);
+    }
     await SessionService.clearRole();
     await _auth.signOut();
     if (mounted) {
@@ -688,6 +699,60 @@ class _StudentHomeState extends State<StudentHome> {
         MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
       );
     }
+  }
+
+  void _openNotifications(String hallTicketNumber) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => NotificationsScreen(studentId: hallTicketNumber),
+      ),
+    );
+  }
+
+  Widget _buildNotificationAction(String hallTicketNumber) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _firestore
+          .collection('notifications')
+          .where('recipientRole', isEqualTo: 'student')
+          .where('recipientId', isEqualTo: hallTicketNumber)
+          .where('isRead', isEqualTo: false)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final unreadCount = snapshot.data?.docs.length ?? 0;
+        return IconButton(
+          onPressed: () => _openNotifications(hallTicketNumber),
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.notifications_none),
+              if (unreadCount > 0)
+                Positioned(
+                  right: -3,
+                  top: -3,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -702,7 +767,8 @@ class _StudentHomeState extends State<StudentHome> {
     final name = _studentData?['name'] ?? 'Student';
     final rollNumber =
         _currentUser?.email?.split('@')[0].toUpperCase() ?? 'DEMO';
-    final hallTicketNumber = _studentData?['hallTicketNumber'] ?? rollNumber;
+    final hallTicketNumber =
+      (_studentData?['hallTicketNumber'] ?? rollNumber).toString().toUpperCase();
     final department =
         _studentData?['department']?.toString().toUpperCase() ?? 'CSE';
     final batchNumber = _studentData?['batchNumber'] ?? 'N/A';
@@ -725,6 +791,7 @@ class _StudentHomeState extends State<StudentHome> {
         ),
         actions: [
           if (!isMobile) ...[
+            _buildNotificationAction(hallTicketNumber),
             TextButton(
               onPressed: () {},
               child:
@@ -736,6 +803,7 @@ class _StudentHomeState extends State<StudentHome> {
                   const Text('Logout', style: TextStyle(color: Colors.white)),
             ),
           ] else ...[
+            _buildNotificationAction(hallTicketNumber),
             IconButton(
               icon: const Icon(Icons.settings),
               onPressed: () {},

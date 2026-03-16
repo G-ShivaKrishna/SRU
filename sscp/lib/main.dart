@@ -9,6 +9,7 @@ import 'roles/student/student_home.dart';
 import 'roles/admin/admin_home.dart';
 import 'roles/fee_payment/fee_payment_home.dart';
 import 'roles/faculty/faculty_home.dart';
+import 'services/notification_service.dart';
 import 'services/session_service.dart';
 import 'services/user_service.dart';
 
@@ -17,6 +18,11 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  try {
+    await NotificationService.instance.initialize();
+  } catch (e) {
+    debugPrint('Notification init skipped: $e');
+  }
   runApp(const MyApp());
 }
 

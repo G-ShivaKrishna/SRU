@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "944777248096",
+    "firebase_url": "https://sscp-6aedc-default-rtdb.firebaseio.com",
+    "project_id": "sscp-6aedc",
+    "storage_bucket": "sscp-6aedc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:944777248096:android:de17daab8844cb72b4f205",
+        "android_client_info": {
+          "package_name": "com.example.sscp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDT-OwW0UrisyLgvPWJpkie1qm8Jr2It6k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
