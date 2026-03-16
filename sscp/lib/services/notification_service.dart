@@ -48,6 +48,11 @@ class NotificationService {
     );
 
     if (!kIsWeb) {
+      final apnsToken = await _messaging.getAPNSToken();
+      debugPrint('APNs token available: ${apnsToken != null && apnsToken.isNotEmpty}');
+    }
+
+    if (!kIsWeb) {
       await _messaging.setForegroundNotificationPresentationOptions(
         alert: true,
         badge: true,
@@ -92,6 +97,17 @@ class NotificationService {
 
     _activeRole = normalizedRole;
     _activeRoleId = normalizedRoleId;
+
+    if (!kIsWeb) {
+      // On iOS, APNs token can arrive a little later than permission grant.
+      for (var i = 0; i < 5; i++) {
+        final apnsToken = await _messaging.getAPNSToken();
+        if (apnsToken != null && apnsToken.isNotEmpty) {
+          break;
+        }
+        await Future.delayed(const Duration(seconds: 1));
+      }
+    }
 
     String? token;
     try {
