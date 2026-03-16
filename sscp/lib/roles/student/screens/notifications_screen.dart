@@ -96,9 +96,8 @@ class NotificationsScreen extends StatelessWidget {
                               title,
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: isRead
-                                    ? FontWeight.w500
-                                    : FontWeight.w700,
+                                fontWeight:
+                                    isRead ? FontWeight.w500 : FontWeight.w700,
                               ),
                             ),
                           ),

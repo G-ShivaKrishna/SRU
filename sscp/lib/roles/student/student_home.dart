@@ -767,8 +767,9 @@ class _StudentHomeState extends State<StudentHome> {
     final name = _studentData?['name'] ?? 'Student';
     final rollNumber =
         _currentUser?.email?.split('@')[0].toUpperCase() ?? 'DEMO';
-    final hallTicketNumber =
-      (_studentData?['hallTicketNumber'] ?? rollNumber).toString().toUpperCase();
+    final hallTicketNumber = (_studentData?['hallTicketNumber'] ?? rollNumber)
+        .toString()
+        .toUpperCase();
     final department =
         _studentData?['department']?.toString().toUpperCase() ?? 'CSE';
     final batchNumber = _studentData?['batchNumber'] ?? 'N/A';

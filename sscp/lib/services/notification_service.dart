@@ -42,7 +42,8 @@ class NotificationService {
       sound: true,
       provisional: false,
     );
-    debugPrint('Notification permission status: ${settings.authorizationStatus}');
+    debugPrint(
+        'Notification permission status: ${settings.authorizationStatus}');
 
     if (!kIsWeb) {
       await _messaging.setForegroundNotificationPresentationOptions(
@@ -62,7 +63,8 @@ class NotificationService {
 
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
-      debugPrint('Notification opened from terminated state: ${initialMessage.messageId}');
+      debugPrint(
+          'Notification opened from terminated state: ${initialMessage.messageId}');
     }
 
     _initialized = true;
@@ -155,7 +157,8 @@ class NotificationService {
   Future<void> _showForegroundNotification(RemoteMessage message) async {
     if (kIsWeb) return;
 
-    final title = message.notification?.title ?? message.data['title'] ?? 'SRU SSCP';
+    final title =
+        message.notification?.title ?? message.data['title'] ?? 'SRU SSCP';
     final body = message.notification?.body ?? message.data['body'] ?? '';
 
     const details = NotificationDetails(
