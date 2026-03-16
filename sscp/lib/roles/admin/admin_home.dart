@@ -208,10 +208,8 @@ class _AdminHomeState extends State<AdminHome> {
         'designation': roleValue,
       };
 
-      final tokenAdminId = (mappedData['adminId'] ?? '')
-          .toString()
-          .trim()
-          .toUpperCase();
+      final tokenAdminId =
+          (mappedData['adminId'] ?? '').toString().trim().toUpperCase();
       if (tokenAdminId.isNotEmpty) {
         await NotificationService.instance
             .registerRoleToken(role: 'admin', roleId: tokenAdminId);
@@ -311,10 +309,11 @@ class _AdminHomeState extends State<AdminHome> {
   }
 
   Future<void> _logout() async {
-    final adminId = (_adminData?['adminId'] ?? UserService.getCurrentUserId() ?? '')
-        .toString()
-        .trim()
-        .toUpperCase();
+    final adminId =
+        (_adminData?['adminId'] ?? UserService.getCurrentUserId() ?? '')
+            .toString()
+            .trim()
+            .toUpperCase();
     if (adminId.isNotEmpty) {
       try {
         await NotificationService.instance

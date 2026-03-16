@@ -63,7 +63,8 @@ class _FeePaymentHomeState extends State<FeePaymentHome> {
 
   Future<void> _registerNotificationToken() async {
     try {
-      String staffId = (UserService.getCurrentUserId() ?? '').trim().toUpperCase();
+      String staffId =
+          (UserService.getCurrentUserId() ?? '').trim().toUpperCase();
       if (staffId.isEmpty) {
         staffId = ((await UserService.fetchAndCacheUserId()) ?? '')
             .trim()
