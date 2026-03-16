@@ -49,7 +49,9 @@ class NotificationService {
 
     if (!kIsWeb) {
       final apnsToken = await _messaging.getAPNSToken();
-      debugPrint('APNs token available: ${apnsToken != null && apnsToken.isNotEmpty}');
+      debugPrint(
+        'APNs token available: ${apnsToken != null && apnsToken.isNotEmpty}',
+      );
     }
 
     if (!kIsWeb) {
@@ -250,7 +252,8 @@ class NotificationService {
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(androidChannel);
   }
 

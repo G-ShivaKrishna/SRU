@@ -32,9 +32,9 @@ Future<void> _bootstrapServices() async {
   }
 
   try {
-    await NotificationService.instance
-        .initialize()
-        .timeout(const Duration(seconds: 10));
+    await NotificationService.instance.initialize().timeout(
+      const Duration(seconds: 10),
+    );
   } catch (e) {
     debugPrint('Notification init skipped: $e');
   }
@@ -106,10 +106,10 @@ class _SessionRouteState extends State<_SessionRoute> {
 
     // Wait for Firebase Auth to restore its state — currentUser can be null
     // briefly on startup even when a session exists.
-    final user = await FirebaseAuth.instance
-        .authStateChanges()
-        .first
-        .timeout(const Duration(seconds: 10), onTimeout: () => null);
+    final user = await FirebaseAuth.instance.authStateChanges().first.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => null,
+    );
     final session = await SessionService.getSession();
 
     if (!mounted) return;
@@ -160,9 +160,9 @@ class _SessionRouteState extends State<_SessionRoute> {
     }
 
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => dest),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => dest));
   }
 
   @override
