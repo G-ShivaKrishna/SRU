@@ -200,6 +200,20 @@ class _FacultyHomeState extends State<FacultyHome> {
           _feedbackTargetCounts = {};
         }
 
+        try {
+          final stats = await _computeFacultyDashboardStats(
+            facultyId: resolvedFacultyId,
+            alternateFacultyIds: alternateIds,
+          );
+          _facultyData?['courses'] = stats['courses'] ?? '0';
+          _facultyData?['totalStudents'] = stats['totalStudents'] ?? '0';
+        } catch (_) {
+          _facultyData?['courses'] =
+              (_facultyData?['courses'] ?? '0').toString();
+          _facultyData?['totalStudents'] =
+              (_facultyData?['totalStudents'] ?? '0').toString();
+        }
+
         _feedbackLoaded = true;
 
         if (resolvedFacultyId.isNotEmpty) {
@@ -1211,6 +1225,82 @@ class _FacultyHomeState extends State<FacultyHome> {
     }
 
     return result;
+  }
+
+  Future<Map<String, String>> _computeFacultyDashboardStats({
+    required String facultyId,
+    required List<String> alternateFacultyIds,
+  }) async {
+    final idCandidates = <String>{
+      facultyId,
+      ...alternateFacultyIds,
+    }.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
+
+    final assignmentsById = <String, Map<String, dynamic>>{};
+    final ids = idCandidates.toList();
+
+    for (var i = 0; i < ids.length; i += 10) {
+      final chunk = ids.sublist(i, (i + 10).clamp(0, ids.length));
+      if (chunk.isEmpty) continue;
+
+      final snap = await _firestore
+          .collection('facultyAssignments')
+          .where('facultyId', whereIn: chunk)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      for (final doc in snap.docs) {
+        assignmentsById[doc.id] = doc.data();
+      }
+    }
+
+    if (assignmentsById.isEmpty) {
+      final normalizedIds = idCandidates.map(_normalizeToken).toSet();
+      final snap = await _firestore
+          .collection('facultyAssignments')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final fid = _normalizeToken((data['facultyId'] ?? '').toString());
+        if (normalizedIds.contains(fid)) {
+          assignmentsById[doc.id] = data;
+        }
+      }
+    }
+
+    if (assignmentsById.isEmpty) {
+      return {'courses': '0', 'totalStudents': '0'};
+    }
+
+    final uniqueSubjects = <String>{};
+    for (final assignment in assignmentsById.values) {
+      final code = (assignment['subjectCode'] ?? '').toString().trim();
+      final name = (assignment['subjectName'] ?? '').toString().trim();
+      final key = _normalizeToken(code.isNotEmpty ? code : name);
+      if (key.isNotEmpty) {
+        uniqueSubjects.add(key);
+      }
+    }
+
+    final studentsSnap = await _firestore.collection('students').get();
+    final uniqueStudents = <String>{};
+
+    for (final studentDoc in studentsSnap.docs) {
+      final student = studentDoc.data();
+      for (final assignment in assignmentsById.values) {
+        if (_studentMatchesAssignment(student, assignment)) {
+          uniqueStudents.add(studentDoc.id.toUpperCase());
+          break;
+        }
+      }
+    }
+
+    return {
+      'courses': uniqueSubjects.length.toString(),
+      'totalStudents': uniqueStudents.length.toString(),
+    };
   }
 
   // ignore: unused_element

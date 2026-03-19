@@ -86,8 +86,11 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
+    final titleColor = const Color(0xFF1E3A5F);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF3F6FB),
       body: Column(
         children: [
           const AppHeader(),
@@ -102,13 +105,57 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1976D2)
+                                        .withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.assignment_outlined,
+                                    color: Color(0xFF1976D2),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Course Preference Rounds',
+                                        style: TextStyle(
+                                          fontSize: isMobile ? 20 : 24,
+                                          fontWeight: FontWeight.w800,
+                                          color: titleColor,
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Select and submit your subject preference order by round.',
+                                        style: TextStyle(
+                                          fontSize: isMobile ? 12 : 13,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
                             // Info banner
                             Container(
                               padding: const EdgeInsets.all(12),
                               margin: const EdgeInsets.only(bottom: 16),
                               decoration: BoxDecoration(
                                 color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: Colors.blue.shade200),
                               ),
                               child: Row(
@@ -126,59 +173,147 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
                               ),
                             ),
                             if ((_facultyDept ?? '').trim().isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: Text(
-                                  'Your branch: ${_facultyDept!.trim()} (you will see branch-specific subjects and All Branches subjects)',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue.shade700,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 10),
+                                margin: const EdgeInsets.only(bottom: 16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE8F2FF),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border:
+                                      Border.all(color: const Color(0xFFBFD8FF)),
                                 ),
-                              ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
+                                child: Row(
                                   children: [
-                                    const Text('Show'),
+                                    const Icon(Icons.account_tree_outlined,
+                                        size: 16, color: Color(0xFF1565C0)),
                                     const SizedBox(width: 8),
-                                    _buildEntriesDropdown(),
-                                    const SizedBox(width: 8),
-                                    const Text('entries'),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    const Text('Search:'),
-                                    const SizedBox(width: 8),
-                                    SizedBox(
-                                      width: 200,
-                                      child: TextField(
-                                        controller: _searchController,
-                                        decoration: const InputDecoration(
-                                          isDense: true,
-                                          border: OutlineInputBorder(),
+                                    Expanded(
+                                      child: Text(
+                                        'Your branch: ${_facultyDept!.trim()} (includes branch-specific + all-branches subjects)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.blue.shade700,
+                                          fontWeight: FontWeight.w600,
                                         ),
-                                        onChanged: (v) {
-                                          setState(() {
-                                            _searchQuery = v.trim();
-                                            _currentPage = 1;
-                                          });
-                                        },
                                       ),
                                     ),
                                   ],
                                 ),
-                              ],
+                              ),
+                            Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(isMobile ? 12 : 14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade300),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Wrap(
+                                spacing: 16,
+                                runSpacing: 12,
+                                alignment: WrapAlignment.spaceBetween,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text('Show',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade800,
+                                            fontWeight: FontWeight.w600,
+                                          )),
+                                      const SizedBox(width: 8),
+                                      _buildEntriesDropdown(),
+                                      const SizedBox(width: 8),
+                                      Text('entries',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade800,
+                                            fontWeight: FontWeight.w600,
+                                          )),
+                                    ],
+                                  ),
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      maxWidth: isMobile ? 360 : 290,
+                                      minWidth: isMobile ? 240 : 260,
+                                    ),
+                                    child: TextField(
+                                      controller: _searchController,
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        hintText: 'Search rounds',
+                                        prefixIcon:
+                                            const Icon(Icons.search, size: 20),
+                                        border: const OutlineInputBorder(),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 10),
+                                      ),
+                                      onChanged: (v) {
+                                        setState(() {
+                                          _searchQuery = v.trim();
+                                          _currentPage = 1;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 16),
-                            _buildTable(),
-                            const SizedBox(height: 8),
-                            Text(
-                              _buildEntriesLabel(),
-                              style: const TextStyle(fontSize: 12),
+                            _pagedItems.isEmpty
+                                ? Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 36, horizontal: 16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border:
+                                          Border.all(color: Colors.grey.shade300),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.search_off,
+                                            size: 34,
+                                            color: Colors.grey.shade400),
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          'No rounds found for your search.',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade700,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : _buildTable(context),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Text(
+                                _buildEntriesLabel(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 8),
                             _buildPagination(),
@@ -196,6 +331,11 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
   Widget _buildEntriesDropdown() {
     return DropdownButton<int>(
       value: _entriesPerPage,
+      borderRadius: BorderRadius.circular(8),
+      underline: Container(
+        height: 1,
+        color: Colors.transparent,
+      ),
       items: const [
         DropdownMenuItem(value: 10, child: Text('10')),
         DropdownMenuItem(value: 25, child: Text('25')),
@@ -211,63 +351,168 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
     );
   }
 
-  Widget _buildTable() {
+  Widget _buildTable(BuildContext context) {
+    final isCompact = MediaQuery.of(context).size.width < 900;
+
+    if (isCompact) {
+      return Column(
+        children: _pagedItems.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final round = entry.value;
+          final effectiveDept = _effectiveDeptForRound(round);
+          final globalIdx = (_currentPage - 1) * _entriesPerPage + idx + 1;
+
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$globalIdx. ${round.className}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E3A5F),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _mRow('AC Year', round.acYear),
+                _mRow('Department', effectiveDept),
+                _mRow('From', round.fromDate),
+                _mRow('To', round.toDate),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => CoursePreferenceDetailScreen(
+                          roundId: round.id,
+                          title:
+                              '${round.className} Select Course Preference Order (${round.acYear})',
+                          dept: effectiveDept,
+                          acYear: round.acYear,
+                        ),
+                      ));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1976D2),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Open Preference'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(Colors.grey[100]),
-          columns: const [
-            DataColumn(label: Text('S.No')),
-            DataColumn(label: Text('AC Year')),
-            DataColumn(label: Text('Class')),
-            DataColumn(label: Text('Dept')),
-            DataColumn(label: Text('From Date')),
-            DataColumn(label: Text('To Date')),
-            DataColumn(label: Text('Action')),
-          ],
-          rows: _pagedItems.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final round = entry.value;
-            final effectiveDept = _effectiveDeptForRound(round);
-            final globalIdx = (_currentPage - 1) * _entriesPerPage + idx + 1;
-            return DataRow(cells: [
-              DataCell(Text('$globalIdx')),
-              DataCell(Text(round.acYear)),
-              DataCell(Text(round.className)),
-              DataCell(Text(effectiveDept)),
-              DataCell(Text(round.fromDate)),
-              DataCell(Text(round.toDate)),
-              DataCell(
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => CoursePreferenceDetailScreen(
-                        roundId: round.id,
-                        title:
-                            '${round.className} Select Course Preference Order (${round.acYear})',
-                        dept: effectiveDept,
-                        acYear: round.acYear,
-                      ),
-                    ));
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1976D2),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                  ),
-                  child: const Text('Goto Course Preference'),
+      child: DataTable(
+        columnSpacing: 22,
+        horizontalMargin: 14,
+        headingRowHeight: 50,
+        headingRowColor: WidgetStateProperty.all(Colors.grey[100]),
+        columns: const [
+          DataColumn(label: Text('S.No')),
+          DataColumn(label: Text('AC Year')),
+          DataColumn(label: Text('Class')),
+          DataColumn(label: Text('Dept')),
+          DataColumn(label: Text('From Date')),
+          DataColumn(label: Text('To Date')),
+          DataColumn(label: Text('Action')),
+        ],
+        rows: _pagedItems.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final round = entry.value;
+          final effectiveDept = _effectiveDeptForRound(round);
+          final globalIdx = (_currentPage - 1) * _entriesPerPage + idx + 1;
+          return DataRow(cells: [
+            DataCell(Text('$globalIdx')),
+            DataCell(Text(round.acYear)),
+            DataCell(Text(round.className)),
+            DataCell(Text(effectiveDept)),
+            DataCell(Text(round.fromDate)),
+            DataCell(Text(round.toDate)),
+            DataCell(
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => CoursePreferenceDetailScreen(
+                      roundId: round.id,
+                      title:
+                          '${round.className} Select Course Preference Order (${round.acYear})',
+                      dept: effectiveDept,
+                      acYear: round.acYear,
+                    ),
+                  ));
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1976D2),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
+                child: const Text('Open Preference'),
               ),
-            ]);
-          }).toList(),
-        ),
+            ),
+          ]);
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _mRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const Text(': ', style: TextStyle(fontSize: 12)),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -281,15 +526,23 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
   }
 
   Widget _buildPagination() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
+    return Wrap(
+      alignment: isMobile ? WrapAlignment.center : WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
           onPressed:
               _currentPage > 1 ? () => setState(() => _currentPage--) : null,
           child: const Text('Previous'),
         ),
-        const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
@@ -297,12 +550,15 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            '$_currentPage',
+            '$_currentPage / $_totalPages',
             style: const TextStyle(color: Colors.white),
           ),
         ),
-        const SizedBox(width: 8),
         OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
           onPressed: _currentPage < _totalPages
               ? () => setState(() => _currentPage++)
               : null,
