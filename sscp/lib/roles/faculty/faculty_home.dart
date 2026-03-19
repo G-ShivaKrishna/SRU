@@ -266,16 +266,18 @@ class _FacultyHomeState extends State<FacultyHome> {
     }
 
     final isMobile = MediaQuery.of(context).size.width < 600;
-    final name = _facultyData?['name'] ?? 'Faculty';
+    final name = (_facultyData?['name'] ?? 'Faculty').toString();
     final facultyId = _facultyId.isNotEmpty
         ? _facultyId
         : ((UserService.getCurrentUserId() ?? '').trim().toUpperCase().isEmpty
             ? 'N/A'
             : (UserService.getCurrentUserId() ?? '').trim().toUpperCase());
-    final department = _facultyData?['department'] ?? 'Department';
-    final designation = _facultyData?['designation'] ?? 'Faculty';
-    final email = _facultyData?['email'] ?? _currentUser?.email ?? 'N/A';
-    final experience = _facultyData?['experience'] ?? 'N/A';
+    final department =
+      (_facultyData?['department'] ?? 'Department').toString();
+    final designation = (_facultyData?['designation'] ?? 'Faculty').toString();
+    final email =
+      (_facultyData?['email'] ?? _currentUser?.email ?? 'N/A').toString();
+    final experience = (_facultyData?['experience'] ?? 'N/A').toString();
 
     return Scaffold(
       appBar: AppBar(
@@ -720,25 +722,25 @@ class _FacultyHomeState extends State<FacultyHome> {
       children: [
         _buildStatsCard(
           'Courses',
-          _facultyData?['courses'] ?? '0',
+          (_facultyData?['courses'] ?? '0').toString(),
           Colors.teal,
           context,
         ),
         _buildStatsCard(
           'Total Students',
-          _facultyData?['totalStudents'] ?? '0',
+          (_facultyData?['totalStudents'] ?? '0').toString(),
           Colors.green,
           context,
         ),
         _buildStatsCard(
           'Avg Feedback',
-          _facultyData?['avgFeedback'] ?? '0.0',
+          (_facultyData?['avgFeedback'] ?? '0.0').toString(),
           Colors.orange,
           context,
         ),
         _buildStatsCard(
           'Classes/Week',
-          _facultyData?['classesPerWeek'] ?? '0',
+          (_facultyData?['classesPerWeek'] ?? '0').toString(),
           Colors.blue,
           context,
         ),
@@ -1027,7 +1029,7 @@ class _FacultyHomeState extends State<FacultyHome> {
       if (trimmed.isEmpty) continue;
       tokens.add(_normalizeToken(trimmed));
       final parts = trimmed
-          .split(RegExp(r'[-_/\\s]+'))
+          .split(RegExp(r'[-_/\s]+'))
           .map(_normalizeToken)
           .where((p) => p.isNotEmpty);
       tokens.addAll(parts);

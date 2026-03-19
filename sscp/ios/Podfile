@@ -38,9 +38,19 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
-    # Disable Xcode 16 strict header checking for Firebase pods
+    # Relax Xcode 16+ verifier checks that break some Flutter plugin pods.
     target.build_configurations.each do |config|
       config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
+      config.build_settings['ENABLE_MODULE_VERIFIER'] = 'NO'
+      config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'NO'
+      config.build_settings['CLANG_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+      config.build_settings['GCC_TREAT_WARNINGS_AS_ERRORS'] = 'NO'
+
+      other_cflags = config.build_settings['OTHER_CFLAGS'] || '$(inherited)'
+      config.build_settings['OTHER_CFLAGS'] = "#{other_cflags} -Wno-error=quoted-include-in-framework-header"
+
+      other_cxxflags = config.build_settings['OTHER_CPLUSPLUSFLAGS'] || '$(inherited)'
+      config.build_settings['OTHER_CPLUSPLUSFLAGS'] = "#{other_cxxflags} -Wno-error=quoted-include-in-framework-header"
     end
   end
 end
