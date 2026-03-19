@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'pages/mentor_assignment_page.dart';
+import 'pages/hod_assignment_page.dart';
 import '../../screens/role_selection_screen.dart';
 import '../../services/user_service.dart';
 import '../../services/session_service.dart';
@@ -275,6 +276,8 @@ class _AdminHomeState extends State<AdminHome> {
       page = const FacultyAssignmentPage();
     } else if (pageName == 'Mentor Assignment') {
       page = const MentorAssignmentPage();
+    } else if (pageName == 'HOD Assignment') {
+      page = const HodAssignmentPage();
     } else if (pageName == 'Lookup') {
       page = const AdminLookupScreen();
     } else if (pageName == 'Feedback Management') {
@@ -436,6 +439,7 @@ class _AdminHomeState extends State<AdminHome> {
     const assignmentsSubItems = [
       'Faculty Assignment',
       'Mentor Assignment',
+      'HOD Assignment',
     ];
 
     const allSubMenus = <String, List<String>>{

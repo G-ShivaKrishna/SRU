@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math' as math;
 import '../../screens/role_selection_screen.dart';
 import '../../config/dev_config.dart';
 import '../../services/feedback_service.dart';
@@ -54,6 +55,9 @@ class _FacultyHomeState extends State<FacultyHome> {
   Map<String, dynamic>? _facultyData;
   String _facultyId = '';
   bool _isLoading = true;
+  bool _feedbackLoaded = false;
+  List<Map<String, dynamic>> _feedbackSummary = [];
+  Map<String, int> _feedbackTargetCounts = {};
 
   @override
   void initState() {
@@ -83,6 +87,32 @@ class _FacultyHomeState extends State<FacultyHome> {
             'classesPerWeek': '12',
           };
           _facultyId = 'FAC001';
+          _feedbackLoaded = true;
+          _feedbackSummary = [
+            {
+              'subjectCode': 'CS301',
+              'subjectName': 'Data Structures',
+              'averageRating': 4.6,
+              'totalResponses': 52,
+            },
+            {
+              'subjectCode': 'CS302',
+              'subjectName': 'Operating Systems',
+              'averageRating': 4.4,
+              'totalResponses': 47,
+            },
+            {
+              'subjectCode': 'CS303',
+              'subjectName': 'Database Systems',
+              'averageRating': 4.5,
+              'totalResponses': 50,
+            },
+          ];
+          _feedbackTargetCounts = {
+            'CS301||': 60,
+            'CS302||': 60,
+            'CS303||': 60,
+          };
           _isLoading = false;
         });
         return;
@@ -135,16 +165,42 @@ class _FacultyHomeState extends State<FacultyHome> {
       if (resolvedDoc != null) {
         _facultyData = resolvedDoc.data();
 
+        final alternateIds = <String>{
+          resolvedFacultyId,
+          cachedId,
+          (_facultyData?['facultyId'] ?? '').toString(),
+          (_facultyData?['employeeId'] ?? '').toString(),
+        }.where((e) => e.trim().isNotEmpty).toList();
+
         // Fetch average feedback from backend
         try {
           final avgFeedback = await _feedbackService.getOverallAverageFeedback(
             facultyId: resolvedFacultyId,
+            alternateFacultyIds: alternateIds,
           );
           _facultyData?['avgFeedback'] = avgFeedback.toString();
         } catch (e) {
           // If feedback calculation fails, use default value
           _facultyData?['avgFeedback'] = '0.0';
         }
+
+        try {
+          final summary = await _feedbackService.getFacultyFeedbackSummary(
+            facultyId: resolvedFacultyId,
+            alternateFacultyIds: alternateIds,
+          );
+          _feedbackSummary = summary;
+          _feedbackTargetCounts = await _computeFeedbackTargetCounts(
+            facultyId: resolvedFacultyId,
+            alternateFacultyIds: alternateIds,
+            summary: summary,
+          );
+        } catch (_) {
+          _feedbackSummary = [];
+          _feedbackTargetCounts = {};
+        }
+
+        _feedbackLoaded = true;
 
         if (resolvedFacultyId.isNotEmpty) {
           await NotificationService.instance
@@ -253,9 +309,7 @@ class _FacultyHomeState extends State<FacultyHome> {
                   const SizedBox(height: 24),
                   _buildHODCard(context),
                   const SizedBox(height: 24),
-                  _buildChartSection('Weekly Teaching Hours', context),
-                  const SizedBox(height: 24),
-                  _buildChartSection('Student Feedback Ratings', context),
+                  _buildFeedbackRatingsSection(context),
                 ],
               ),
             ),
@@ -772,9 +826,23 @@ class _FacultyHomeState extends State<FacultyHome> {
     );
   }
 
-  Widget _buildChartSection(String title, BuildContext context) {
+  Widget _buildFeedbackRatingsSection(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    final chartHeight = isMobile ? 150.0 : 200.0;
+    final avgRating =
+        double.tryParse((_facultyData?['avgFeedback'] ?? '0').toString()) ??
+            0.0;
+    final topItems = _feedbackSummary.take(6).toList();
+    final totalSubmitted = topItems.fold<int>(
+      0,
+      (sum, item) => sum + ((item['totalResponses'] as num?)?.toInt() ?? 0),
+    );
+    final totalTarget = topItems.fold<int>(0, (sum, item) {
+      final key = _feedbackSummaryKey(item);
+      final submitted = (item['totalResponses'] as num?)?.toInt() ?? 0;
+      final target = _feedbackTargetCounts[key] ?? submitted;
+      return sum + math.max(submitted, target);
+    });
+    final totalPending = math.max(totalTarget - totalSubmitted, 0);
 
     return Container(
       color: const Color(0xFF2d3e4f),
@@ -784,7 +852,7 @@ class _FacultyHomeState extends State<FacultyHome> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
+            'Student Feedback Ratings',
             style: TextStyle(
               color: Colors.white,
               fontSize: isMobile ? 14 : 16,
@@ -792,16 +860,352 @@ class _FacultyHomeState extends State<FacultyHome> {
             ),
           ),
           const SizedBox(height: 16),
-          Container(
-            height: chartHeight,
-            color: Colors.grey[300],
-            child: const Center(
-              child: Text('Chart Placeholder'),
+          if (!_feedbackLoaded)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: CircularProgressIndicator(color: Colors.white54),
+              ),
+            )
+          else if (topItems.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'No feedback ratings submitted yet',
+                style: TextStyle(color: Colors.white60),
+              ),
+            )
+          else ...[
+            Row(
+              children: [
+                Text(
+                  avgRating.toStringAsFixed(2),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isMobile ? 24 : 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '/ 5.00',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: isMobile ? 12 : 14,
+                  ),
+                ),
+              ],
             ),
-          ),
+            const SizedBox(height: 4),
+            Text(
+              'Overall average rating',
+              style: TextStyle(
+                color: Colors.white60,
+                fontSize: isMobile ? 11 : 12,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Feedback submissions: $totalSubmitted/$totalTarget  (Pending: $totalPending)',
+              style: TextStyle(
+                color: Colors.white60,
+                fontSize: isMobile ? 10 : 11,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...topItems.map((item) {
+              final subjectCode = (item['subjectCode'] ?? '').toString();
+              final subjectName = (item['subjectName'] ?? '').toString();
+              final submitted = (item['totalResponses'] as num?)?.toInt() ?? 0;
+              final rating =
+                  (item['averageRating'] as num?)?.toDouble() ?? 0.0;
+              final key = _feedbackSummaryKey(item);
+              final target = math.max(_feedbackTargetCounts[key] ?? submitted, submitted);
+              final pending = math.max(target - submitted, 0);
+              final ratio = target == 0 ? 0.0 : (submitted / target).clamp(0.0, 1.0);
+              final barColor = const Color(0xFF00C853);
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '$subjectCode - $subjectName',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${rating.toStringAsFixed(2)}  ($submitted/$target)',
+                          style: TextStyle(
+                            color: barColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$pending students left to submit',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 9,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Stack(
+                      children: [
+                        Container(
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Colors.white12,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        FractionallySizedBox(
+                          widthFactor: ratio,
+                          child: Container(
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: barColor,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
         ],
       ),
     );
+  }
+
+  String _normalizeToken(String value) {
+    return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.floor();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  Set<String> _buildBatchTokens(List<String> values) {
+    final tokens = <String>{};
+    for (final value in values) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) continue;
+      tokens.add(_normalizeToken(trimmed));
+      final parts = trimmed
+          .split(RegExp(r'[-_/\\s]+'))
+          .map(_normalizeToken)
+          .where((p) => p.isNotEmpty);
+      tokens.addAll(parts);
+    }
+    return tokens;
+  }
+
+  String _normalizeSemester(String raw) {
+    final value = raw.trim().toUpperCase();
+    switch (value) {
+      case '1':
+      case 'I':
+      case '01':
+        return '1';
+      case '2':
+      case 'II':
+      case '02':
+        return '2';
+      case '3':
+      case 'III':
+      case '03':
+        return '3';
+      case '4':
+      case 'IV':
+      case '04':
+        return '4';
+      case '5':
+      case 'V':
+      case '05':
+        return '5';
+      case '6':
+      case 'VI':
+      case '06':
+        return '6';
+      case '7':
+      case 'VII':
+      case '07':
+        return '7';
+      case '8':
+      case 'VIII':
+      case '08':
+        return '8';
+      default:
+        return _normalizeToken(raw);
+    }
+  }
+
+  String _feedbackSummaryKey(Map<String, dynamic> item) {
+    final subject = (item['subjectCode'] ?? '').toString().trim().toUpperCase();
+    final semester = (item['semester'] ?? '').toString().trim().toUpperCase();
+    final year = (item['academicYear'] ?? '').toString().trim().toUpperCase();
+    return '$subject|$semester|$year';
+  }
+
+  bool _studentMatchesAssignment(
+    Map<String, dynamic> student,
+    Map<String, dynamic> assignment,
+  ) {
+    final assignmentYear = _parseInt(assignment['year']);
+    final studentYear = _parseInt(student['year']);
+    if (assignmentYear > 0 && studentYear > 0 && assignmentYear != studentYear) {
+      return false;
+    }
+
+    final assignmentDept =
+        _normalizeToken((assignment['department'] ?? '').toString());
+    final studentDept = _normalizeToken((student['department'] ?? '').toString());
+    if (assignmentDept.isNotEmpty && studentDept.isNotEmpty && assignmentDept != studentDept) {
+      return false;
+    }
+
+    final assignedBatches = List<String>.from(assignment['assignedBatches'] ?? const []);
+    if (assignedBatches.isEmpty) {
+      return true;
+    }
+
+    final assignedTokens = _buildBatchTokens(assignedBatches);
+    final studentTokens = _buildBatchTokens([
+      (student['batchNumber'] ?? '').toString(),
+      (student['section'] ?? '').toString(),
+    ]);
+
+    if (studentTokens.isEmpty) {
+      return false;
+    }
+
+    return assignedTokens.intersection(studentTokens).isNotEmpty;
+  }
+
+  Future<Map<String, int>> _computeFeedbackTargetCounts({
+    required String facultyId,
+    required List<String> alternateFacultyIds,
+    required List<Map<String, dynamic>> summary,
+  }) async {
+    if (summary.isEmpty) return {};
+
+    final idCandidates = <String>{
+      facultyId,
+      ...alternateFacultyIds,
+    }
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+
+    final assignmentsById = <String, Map<String, dynamic>>{};
+    final ids = idCandidates.toList();
+
+    for (var i = 0; i < ids.length; i += 10) {
+      final chunk = ids.sublist(i, (i + 10).clamp(0, ids.length));
+      if (chunk.isEmpty) continue;
+      final snap = await _firestore
+          .collection('facultyAssignments')
+          .where('facultyId', whereIn: chunk)
+          .where('isActive', isEqualTo: true)
+          .get();
+      for (final doc in snap.docs) {
+        assignmentsById[doc.id] = doc.data();
+      }
+    }
+
+    if (assignmentsById.isEmpty) {
+      final normalizedIds = idCandidates.map(_normalizeToken).toSet();
+      final snap = await _firestore
+          .collection('facultyAssignments')
+          .where('isActive', isEqualTo: true)
+          .get();
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final fid = _normalizeToken((data['facultyId'] ?? '').toString());
+        if (normalizedIds.contains(fid)) {
+          assignmentsById[doc.id] = data;
+        }
+      }
+    }
+
+    if (assignmentsById.isEmpty) {
+      return {};
+    }
+
+    final studentsSnap = await _firestore.collection('students').get();
+    final students = studentsSnap.docs;
+
+    final result = <String, int>{};
+
+    for (final item in summary) {
+      final subjectToken = _normalizeToken((item['subjectCode'] ?? '').toString());
+      final semesterToken =
+          _normalizeSemester((item['semester'] ?? '').toString());
+      final academicYear = (item['academicYear'] ?? '').toString().trim();
+      final key = _feedbackSummaryKey(item);
+
+      if (subjectToken.isEmpty) {
+        result[key] = 0;
+        continue;
+      }
+
+      final matchingAssignments = assignmentsById.values.where((a) {
+        final aSubject = _normalizeToken((a['subjectCode'] ?? '').toString());
+        if (aSubject != subjectToken) return false;
+
+        if (semesterToken.isNotEmpty) {
+          final aSem = _normalizeSemester((a['semester'] ?? '').toString());
+          if (aSem.isNotEmpty && aSem != semesterToken) return false;
+        }
+
+        if (academicYear.isNotEmpty) {
+          final aYear = (a['academicYear'] ?? '').toString().trim();
+          if (aYear.isNotEmpty && aYear != academicYear) return false;
+        }
+
+        return true;
+      }).toList();
+
+      if (matchingAssignments.isEmpty) {
+        result[key] = 0;
+        continue;
+      }
+
+      final eligibleStudents = <String>{};
+      for (final studentDoc in students) {
+        final student = studentDoc.data();
+        for (final assignment in matchingAssignments) {
+          if (_studentMatchesAssignment(student, assignment)) {
+            eligibleStudents.add(studentDoc.id.toUpperCase());
+            break;
+          }
+        }
+      }
+
+      result[key] = eligibleStudents.length;
+    }
+
+    return result;
   }
 
   // ignore: unused_element

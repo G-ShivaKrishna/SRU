@@ -94,8 +94,10 @@ class _StudentHomeState extends State<StudentHome> {
       _currentUser = user;
       // Get roll number from cached user service, fallback to email extraction
       final userEmail = user.email?.toLowerCase().trim() ?? '';
-      final rollNumber = UserService.getCurrentUserId() ??
-          userEmail.split('@')[0].toUpperCase();
+        final rollNumber = ((UserService.getCurrentUserId() ??
+              userEmail.split('@')[0])
+            .trim()
+            .toUpperCase());
 
       if (rollNumber.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -387,6 +389,7 @@ class _StudentHomeState extends State<StudentHome> {
   Future<void> _computeAttendancePct(String rollNumber,
       {DateTime? sinceDate}) async {
     try {
+      final normalizedRoll = rollNumber.trim().toUpperCase();
       final snap = await _firestore.collection('attendance').get();
       int held = 0;
       int present = 0;
@@ -400,7 +403,8 @@ class _StudentHomeState extends State<StudentHome> {
         final students = List<dynamic>.from(d['students'] ?? []);
         final record = students.cast<Map?>().firstWhere(
               (s) =>
-                  (s?['rollNo'] as String? ?? '').toUpperCase() == rollNumber,
+                  (s?['rollNo'] as String? ?? '').trim().toUpperCase() ==
+                  normalizedRoll,
               orElse: () => null,
             );
         if (record == null) continue;
@@ -409,6 +413,7 @@ class _StudentHomeState extends State<StudentHome> {
         final isPresent = record['present'] == true;
         final code = (d['subjectCode'] as String? ?? '').trim();
         final name = (d['subjectName'] as String? ?? code).trim();
+        final courseKey = code.isNotEmpty ? code : name;
         final dateStr = (d['dateStr'] as String? ?? '');
 
         // Skip records before the last semester promotion date
@@ -436,11 +441,12 @@ class _StudentHomeState extends State<StudentHome> {
         if (isPresent) present += count;
 
         // Course-wise accumulation
-        cwMap.putIfAbsent(
-            code, () => {'code': code, 'name': name, 'held': 0, 'present': 0});
-        cwMap[code]!['held'] = (cwMap[code]!['held'] as int) + count;
+        cwMap.putIfAbsent(courseKey,
+            () => {'code': code, 'name': name, 'held': 0, 'present': 0});
+        cwMap[courseKey]!['held'] = (cwMap[courseKey]!['held'] as int) + count;
         if (isPresent) {
-          cwMap[code]!['present'] = (cwMap[code]!['present'] as int) + count;
+          cwMap[courseKey]!['present'] =
+              (cwMap[courseKey]!['present'] as int) + count;
         }
 
         // Daily accumulation
@@ -1825,7 +1831,7 @@ class _StudentHomeState extends State<StudentHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return _chartContainer(
-      title: 'Course Wise Attendance %',
+      title: 'Attendance Course Wise %',
       isMobile: isMobile,
       child: !_attendanceLoaded
           ? const Center(
