@@ -917,12 +917,13 @@ class _FacultyHomeState extends State<FacultyHome> {
               final subjectCode = (item['subjectCode'] ?? '').toString();
               final subjectName = (item['subjectName'] ?? '').toString();
               final submitted = (item['totalResponses'] as num?)?.toInt() ?? 0;
-              final rating =
-                  (item['averageRating'] as num?)?.toDouble() ?? 0.0;
+              final rating = (item['averageRating'] as num?)?.toDouble() ?? 0.0;
               final key = _feedbackSummaryKey(item);
-              final target = math.max(_feedbackTargetCounts[key] ?? submitted, submitted);
+              final target =
+                  math.max(_feedbackTargetCounts[key] ?? submitted, submitted);
               final pending = math.max(target - submitted, 0);
-              final ratio = target == 0 ? 0.0 : (submitted / target).clamp(0.0, 1.0);
+              final ratio =
+                  target == 0 ? 0.0 : (submitted / target).clamp(0.0, 1.0);
               final barColor = const Color(0xFF00C853);
 
               return Padding(
@@ -1073,18 +1074,24 @@ class _FacultyHomeState extends State<FacultyHome> {
   ) {
     final assignmentYear = _parseInt(assignment['year']);
     final studentYear = _parseInt(student['year']);
-    if (assignmentYear > 0 && studentYear > 0 && assignmentYear != studentYear) {
+    if (assignmentYear > 0 &&
+        studentYear > 0 &&
+        assignmentYear != studentYear) {
       return false;
     }
 
     final assignmentDept =
         _normalizeToken((assignment['department'] ?? '').toString());
-    final studentDept = _normalizeToken((student['department'] ?? '').toString());
-    if (assignmentDept.isNotEmpty && studentDept.isNotEmpty && assignmentDept != studentDept) {
+    final studentDept =
+        _normalizeToken((student['department'] ?? '').toString());
+    if (assignmentDept.isNotEmpty &&
+        studentDept.isNotEmpty &&
+        assignmentDept != studentDept) {
       return false;
     }
 
-    final assignedBatches = List<String>.from(assignment['assignedBatches'] ?? const []);
+    final assignedBatches =
+        List<String>.from(assignment['assignedBatches'] ?? const []);
     if (assignedBatches.isEmpty) {
       return true;
     }
@@ -1112,10 +1119,7 @@ class _FacultyHomeState extends State<FacultyHome> {
     final idCandidates = <String>{
       facultyId,
       ...alternateFacultyIds,
-    }
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toSet();
+    }.map((e) => e.trim()).where((e) => e.isNotEmpty).toSet();
 
     final assignmentsById = <String, Map<String, dynamic>>{};
     final ids = idCandidates.toList();
@@ -1158,7 +1162,8 @@ class _FacultyHomeState extends State<FacultyHome> {
     final result = <String, int>{};
 
     for (final item in summary) {
-      final subjectToken = _normalizeToken((item['subjectCode'] ?? '').toString());
+      final subjectToken =
+          _normalizeToken((item['subjectCode'] ?? '').toString());
       final semesterToken =
           _normalizeSemester((item['semester'] ?? '').toString());
       final academicYear = (item['academicYear'] ?? '').toString().trim();

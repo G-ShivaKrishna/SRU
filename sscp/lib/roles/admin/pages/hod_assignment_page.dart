@@ -57,7 +57,8 @@ class _HodAssignmentPageState extends State<HodAssignmentPage> {
         depts.add(dept);
       }
 
-      options.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      options
+          .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
       final sortedDepartments = depts.toList()..sort();
 
       if (!mounted) return;
@@ -128,7 +129,8 @@ class _HodAssignmentPageState extends State<HodAssignmentPage> {
     try {
       final batch = _firestore.batch();
 
-      final assignmentRef = _firestore.collection('hodAssignments').doc(department);
+      final assignmentRef =
+          _firestore.collection('hodAssignments').doc(department);
       batch.set(
         assignmentRef,
         {
@@ -270,7 +272,8 @@ class _HodAssignmentPageState extends State<HodAssignmentPage> {
                             .orderBy('department')
                             .snapshots(),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return const Padding(
                               padding: EdgeInsets.symmetric(vertical: 24),
                               child: Center(child: CircularProgressIndicator()),
@@ -296,9 +299,12 @@ class _HodAssignmentPageState extends State<HodAssignmentPage> {
                               ...docs.map((doc) {
                                 final d = doc.data();
                                 final dept = (d['department'] ?? '').toString();
-                                final hodName = (d['hodName'] ?? 'N/A').toString();
-                                final hodEmail = (d['hodEmail'] ?? 'N/A').toString();
-                                final hodPhone = (d['hodPhone'] ?? 'N/A').toString();
+                                final hodName =
+                                    (d['hodName'] ?? 'N/A').toString();
+                                final hodEmail =
+                                    (d['hodEmail'] ?? 'N/A').toString();
+                                final hodPhone =
+                                    (d['hodPhone'] ?? 'N/A').toString();
                                 final hodFacultyId =
                                     (d['hodFacultyId'] ?? 'N/A').toString();
 
