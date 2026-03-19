@@ -108,11 +108,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               'totalResponses': 50,
             },
           ];
-          _feedbackTargetCounts = {
-            'CS301||': 60,
-            'CS302||': 60,
-            'CS303||': 60,
-          };
+          _feedbackTargetCounts = {'CS301||': 60, 'CS302||': 60, 'CS303||': 60};
           _isLoading = false;
         });
         return;
@@ -208,8 +204,8 @@ class _FacultyHomeState extends State<FacultyHome> {
           _facultyData?['courses'] = stats['courses'] ?? '0';
           _facultyData?['totalStudents'] = stats['totalStudents'] ?? '0';
         } catch (_) {
-          _facultyData?['courses'] =
-              (_facultyData?['courses'] ?? '0').toString();
+          _facultyData?['courses'] = (_facultyData?['courses'] ?? '0')
+              .toString();
           _facultyData?['totalStudents'] =
               (_facultyData?['totalStudents'] ?? '0').toString();
         }
@@ -217,8 +213,10 @@ class _FacultyHomeState extends State<FacultyHome> {
         _feedbackLoaded = true;
 
         if (resolvedFacultyId.isNotEmpty) {
-          await NotificationService.instance
-              .registerRoleToken(role: 'faculty', roleId: resolvedFacultyId);
+          await NotificationService.instance.registerRoleToken(
+            role: 'faculty',
+            roleId: resolvedFacultyId,
+          );
         }
 
         setState(() {
@@ -234,15 +232,18 @@ class _FacultyHomeState extends State<FacultyHome> {
   }
 
   Future<void> _logout() async {
-    final facultyId = (_facultyId.isNotEmpty
-            ? _facultyId
-            : (UserService.getCurrentUserId() ?? ''))
-        .trim()
-        .toUpperCase();
+    final facultyId =
+        (_facultyId.isNotEmpty
+                ? _facultyId
+                : (UserService.getCurrentUserId() ?? ''))
+            .trim()
+            .toUpperCase();
     if (facultyId.isNotEmpty) {
       try {
-        await NotificationService.instance
-            .unregisterRoleToken(role: 'faculty', roleId: facultyId);
+        await NotificationService.instance.unregisterRoleToken(
+          role: 'faculty',
+          roleId: facultyId,
+        );
       } catch (e) {
         debugPrint('Faculty token unregister failed: $e');
       }
@@ -260,9 +261,7 @@ class _FacultyHomeState extends State<FacultyHome> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final isMobile = MediaQuery.of(context).size.width < 600;
@@ -270,13 +269,12 @@ class _FacultyHomeState extends State<FacultyHome> {
     final facultyId = _facultyId.isNotEmpty
         ? _facultyId
         : ((UserService.getCurrentUserId() ?? '').trim().toUpperCase().isEmpty
-            ? 'N/A'
-            : (UserService.getCurrentUserId() ?? '').trim().toUpperCase());
-    final department =
-      (_facultyData?['department'] ?? 'Department').toString();
+              ? 'N/A'
+              : (UserService.getCurrentUserId() ?? '').trim().toUpperCase());
+    final department = (_facultyData?['department'] ?? 'Department').toString();
     final designation = (_facultyData?['designation'] ?? 'Faculty').toString();
-    final email =
-      (_facultyData?['email'] ?? _currentUser?.email ?? 'N/A').toString();
+    final email = (_facultyData?['email'] ?? _currentUser?.email ?? 'N/A')
+        .toString();
     final experience = (_facultyData?['experience'] ?? 'N/A').toString();
 
     return Scaffold(
@@ -289,19 +287,20 @@ class _FacultyHomeState extends State<FacultyHome> {
           if (!isMobile) ...[
             TextButton(
               onPressed: () {},
-              child:
-                  const Text('Password', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Password',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
             TextButton(
               onPressed: _logout,
-              child:
-                  const Text('Logout', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Logout',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ] else ...[
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: _logout,
-            ),
+            IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
           ],
           const SizedBox(width: 16),
         ],
@@ -312,14 +311,26 @@ class _FacultyHomeState extends State<FacultyHome> {
             _buildNavigationMenu(context),
             _buildStatusBar(context),
             _buildWelcomeSection(
-                context, name, facultyId, designation, department),
+              context,
+              name,
+              facultyId,
+              designation,
+              department,
+            ),
             _buildTimetableLink(context),
             Padding(
               padding: EdgeInsets.all(isMobile ? 12 : 16),
               child: Column(
                 children: [
-                  _buildFacultyDetailsCard(context, facultyId, name, email,
-                      department, designation, experience),
+                  _buildFacultyDetailsCard(
+                    context,
+                    facultyId,
+                    name,
+                    email,
+                    department,
+                    designation,
+                    experience,
+                  ),
                   const SizedBox(height: 24),
                   _buildFacultyStatsGrid(context),
                   const SizedBox(height: 24),
@@ -363,15 +374,8 @@ class _FacultyHomeState extends State<FacultyHome> {
         'Staff Handbook',
         'Student Handbook',
       ],
-      'Profile': [
-        'View Profile',
-        'Update Basic Data',
-      ],
-      'Course': [
-        'Course Preference',
-        'Course View',
-        'Preference Report',
-      ],
+      'Profile': ['View Profile', 'Update Basic Data'],
+      'Course': ['Course Preference', 'Course View', 'Preference Report'],
       'Attendance': [
         'Attendance Entry',
         'Attendance Entry-Multi Batch Selection',
@@ -389,143 +393,156 @@ class _FacultyHomeState extends State<FacultyHome> {
       ],
     };
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final available = constraints.maxWidth;
-      const moreButtonWidth = 90.0;
-      final budget = available - 8;
-      final totalWidth =
-          topItems.fold(0.0, (s, item) => s + _navItemWidth(item));
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        const moreButtonWidth = 90.0;
+        final budget = available - 8;
+        final totalWidth = topItems.fold(
+          0.0,
+          (s, item) => s + _navItemWidth(item),
+        );
 
-      List<String> visible;
-      List<String> overflowTop;
+        List<String> visible;
+        List<String> overflowTop;
 
-      if (totalWidth <= budget) {
-        visible = List<String>.from(topItems);
-        overflowTop = [];
-      } else {
-        visible = [];
-        overflowTop = [];
-        double used = 0;
-        for (final item in topItems) {
-          final w = _navItemWidth(item);
-          if (used + w + moreButtonWidth <= budget) {
-            visible.add(item);
-            used += w;
-          } else {
-            overflowTop.add(item);
+        if (totalWidth <= budget) {
+          visible = List<String>.from(topItems);
+          overflowTop = [];
+        } else {
+          visible = [];
+          overflowTop = [];
+          double used = 0;
+          for (final item in topItems) {
+            final w = _navItemWidth(item);
+            if (used + w + moreButtonWidth <= budget) {
+              visible.add(item);
+              used += w;
+            } else {
+              overflowTop.add(item);
+            }
           }
         }
-      }
 
-      const moreSubMenus = <String, List<String>>{
-        'Profile': ['View Profile', 'Update Basic Data'],
-        'Course': [
-          'Course Preference',
-          'Course View',
-          'Preference Report',
-        ],
-        'Attendance': [
-          'Attendance Entry',
-          'Attendance Entry-Multi Batch Selection',
-          'Lab/Tutorial Attendance Entry',
-          'View | Update | Delete Day Attendance',
-          'Register View',
-          'SSM',
-        ],
-        'Marks': [
-          'Check & Define CIE Format (UG/PG)',
-          'Total Marks',
-          'Makeup Mid Marks',
-          'Consolidated Marks Report(New)',
-          'Supply Exam Marks',
-        ],
-        'Feedback': ['Feedback'],
-        'Employee Directory': ['Employee Directory'],
-        'Mentorship': ['Mentorship'],
-      };
+        const moreSubMenus = <String, List<String>>{
+          'Profile': ['View Profile', 'Update Basic Data'],
+          'Course': ['Course Preference', 'Course View', 'Preference Report'],
+          'Attendance': [
+            'Attendance Entry',
+            'Attendance Entry-Multi Batch Selection',
+            'Lab/Tutorial Attendance Entry',
+            'View | Update | Delete Day Attendance',
+            'Register View',
+            'SSM',
+          ],
+          'Marks': [
+            'Check & Define CIE Format (UG/PG)',
+            'Total Marks',
+            'Makeup Mid Marks',
+            'Consolidated Marks Report(New)',
+            'Supply Exam Marks',
+          ],
+          'Feedback': ['Feedback'],
+          'Employee Directory': ['Employee Directory'],
+          'Mentorship': ['Mentorship'],
+        };
 
-      return SizedBox(
-        width: available,
-        child: Container(
-          color: const Color(0xFF1e3a5f),
-          height: 42,
-          child: ClipRect(
-            child: Row(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                ...visible.map((item) {
-                  final isHome = item == 'Home';
-                  final subs = subMenus[item];
-                  final showChevron =
-                      item != visible.last || overflowTop.isNotEmpty;
-                  final labelWidget = Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 10),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isHome)
-                          const Icon(Icons.home,
-                              color: Colors.white70, size: 14),
-                        if (isHome) const SizedBox(width: 4),
-                        Text(
-                          item,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+        return SizedBox(
+          width: available,
+          child: Container(
+            color: const Color(0xFF1e3a5f),
+            height: 42,
+            child: ClipRect(
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  ...visible.map((item) {
+                    final isHome = item == 'Home';
+                    final subs = subMenus[item];
+                    final showChevron =
+                        item != visible.last || overflowTop.isNotEmpty;
+                    final labelWidget = Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isHome)
+                            const Icon(
+                              Icons.home,
+                              color: Colors.white70,
+                              size: 14,
+                            ),
+                          if (isHome) const SizedBox(width: 4),
+                          Text(
+                            item,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                        if (showChevron)
-                          const Padding(
-                            padding: EdgeInsets.only(left: 6),
-                            child: Icon(Icons.chevron_right,
-                                color: Colors.white38, size: 14),
-                          ),
-                      ],
-                    ),
-                  );
-                  if (subs != null) {
-                    return PopupMenuButton<String>(
-                      offset: const Offset(0, 42),
-                      color: const Color(0xFF1e3a5f),
-                      onSelected: (value) =>
-                          _handleMenuSelection(context, item, value),
-                      itemBuilder: (_) => subs
-                          .map((s) => PopupMenuItem<String>(
+                          if (showChevron)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 6),
+                              child: Icon(
+                                Icons.chevron_right,
+                                color: Colors.white38,
+                                size: 14,
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                    if (subs != null) {
+                      return PopupMenuButton<String>(
+                        offset: const Offset(0, 42),
+                        color: const Color(0xFF1e3a5f),
+                        onSelected: (value) =>
+                            _handleMenuSelection(context, item, value),
+                        itemBuilder: (_) => subs
+                            .map(
+                              (s) => PopupMenuItem<String>(
                                 value: s,
                                 height: 40,
-                                child: Text(s,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500)),
-                              ))
-                          .toList(),
+                                child: Text(
+                                  s,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        child: labelWidget,
+                      );
+                    }
+                    return InkWell(
+                      onTap: isHome
+                          ? null
+                          : () => _handleMenuSelection(context, '', item),
+                      hoverColor: Colors.white.withOpacity(0.12),
                       child: labelWidget,
                     );
-                  }
-                  return InkWell(
-                    onTap: isHome
-                        ? null
-                        : () => _handleMenuSelection(context, '', item),
-                    hoverColor: Colors.white.withOpacity(0.12),
-                    child: labelWidget,
-                  );
-                }),
-                if (overflowTop.isNotEmpty)
-                  _FacultyOverflowNavButton(
-                    subMenus: moreSubMenus,
-                    onSelected: (item) =>
-                        _handleMenuSelection(context, '', item),
-                  ),
-                const Spacer(),
-              ],
+                  }),
+                  if (overflowTop.isNotEmpty)
+                    _FacultyOverflowNavButton(
+                      subMenus: moreSubMenus,
+                      onSelected: (item) =>
+                          _handleMenuSelection(context, '', item),
+                    ),
+                  const Spacer(),
+                ],
+              ),
             ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 
   Widget _buildStatusBar(BuildContext context) {
@@ -627,8 +644,11 @@ class _FacultyHomeState extends State<FacultyHome> {
                   color: Colors.blue.shade100,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child:
-                    Icon(Icons.person, color: Colors.blue.shade700, size: 32),
+                child: Icon(
+                  Icons.person,
+                  color: Colors.blue.shade700,
+                  size: 32,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -708,8 +728,9 @@ class _FacultyHomeState extends State<FacultyHome> {
 
   Widget _buildFacultyStatsGrid(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
-    final crossAxisCount =
-        isMobile ? 2 : (MediaQuery.of(context).size.width < 1024 ? 2 : 4);
+    final crossAxisCount = isMobile
+        ? 2
+        : (MediaQuery.of(context).size.width < 1024 ? 2 : 4);
     final childAspectRatio = isMobile ? 1.1 : 1.3;
 
     return GridView.count(
@@ -818,8 +839,11 @@ class _FacultyHomeState extends State<FacultyHome> {
         children: [
           Row(
             children: [
-              Icon(Icons.person_outline,
-                  color: Colors.amber.shade700, size: 24),
+              Icon(
+                Icons.person_outline,
+                color: Colors.amber.shade700,
+                size: 24,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Head of Department',
@@ -846,7 +870,7 @@ class _FacultyHomeState extends State<FacultyHome> {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final avgRating =
         double.tryParse((_facultyData?['avgFeedback'] ?? '0').toString()) ??
-            0.0;
+        0.0;
     final topItems = _feedbackSummary.take(6).toList();
     final totalSubmitted = topItems.fold<int>(
       0,
@@ -935,11 +959,14 @@ class _FacultyHomeState extends State<FacultyHome> {
               final submitted = (item['totalResponses'] as num?)?.toInt() ?? 0;
               final rating = (item['averageRating'] as num?)?.toDouble() ?? 0.0;
               final key = _feedbackSummaryKey(item);
-              final target =
-                  math.max(_feedbackTargetCounts[key] ?? submitted, submitted);
+              final target = math.max(
+                _feedbackTargetCounts[key] ?? submitted,
+                submitted,
+              );
               final pending = math.max(target - submitted, 0);
-              final ratio =
-                  target == 0 ? 0.0 : (submitted / target).clamp(0.0, 1.0);
+              final ratio = target == 0
+                  ? 0.0
+                  : (submitted / target).clamp(0.0, 1.0);
               final barColor = const Color(0xFF00C853);
 
               return Padding(
@@ -1096,18 +1123,21 @@ class _FacultyHomeState extends State<FacultyHome> {
       return false;
     }
 
-    final assignmentDept =
-        _normalizeToken((assignment['department'] ?? '').toString());
-    final studentDept =
-        _normalizeToken((student['department'] ?? '').toString());
+    final assignmentDept = _normalizeToken(
+      (assignment['department'] ?? '').toString(),
+    );
+    final studentDept = _normalizeToken(
+      (student['department'] ?? '').toString(),
+    );
     if (assignmentDept.isNotEmpty &&
         studentDept.isNotEmpty &&
         assignmentDept != studentDept) {
       return false;
     }
 
-    final assignedBatches =
-        List<String>.from(assignment['assignedBatches'] ?? const []);
+    final assignedBatches = List<String>.from(
+      assignment['assignedBatches'] ?? const [],
+    );
     if (assignedBatches.isEmpty) {
       return true;
     }
@@ -1178,10 +1208,12 @@ class _FacultyHomeState extends State<FacultyHome> {
     final result = <String, int>{};
 
     for (final item in summary) {
-      final subjectToken =
-          _normalizeToken((item['subjectCode'] ?? '').toString());
-      final semesterToken =
-          _normalizeSemester((item['semester'] ?? '').toString());
+      final subjectToken = _normalizeToken(
+        (item['subjectCode'] ?? '').toString(),
+      );
+      final semesterToken = _normalizeSemester(
+        (item['semester'] ?? '').toString(),
+      );
       final academicYear = (item['academicYear'] ?? '').toString().trim();
       final key = _feedbackSummaryKey(item);
 
@@ -1310,8 +1342,9 @@ class _FacultyHomeState extends State<FacultyHome> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: TextButton(
-        onPressed:
-            route == null ? null : () => _navigateToRoute(context, route),
+        onPressed: route == null
+            ? null
+            : () => _navigateToRoute(context, route),
         style: TextButton.styleFrom(
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -1353,11 +1386,15 @@ class _FacultyHomeState extends State<FacultyHome> {
           _handleMenuSelection(context, 'Professional Outline', value),
       itemBuilder: (BuildContext ctx) {
         final List<PopupMenuEntry<String>> entries = [
-          ...items.map((item) => PopupMenuItem<String>(
-                value: item,
-                child: Text(item,
-                    style: const TextStyle(color: Colors.white, fontSize: 13)),
-              )),
+          ...items.map(
+            (item) => PopupMenuItem<String>(
+              value: item,
+              child: Text(
+                item,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          ),
           PopupMenuItem<String>(
             enabled: false,
             padding: EdgeInsets.zero,
@@ -1378,11 +1415,14 @@ class _FacultyHomeState extends State<FacultyHome> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Professional Outline',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500)),
+            Text(
+              'Professional Outline',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             SizedBox(width: 4),
             Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
           ],
@@ -1393,14 +1433,14 @@ class _FacultyHomeState extends State<FacultyHome> {
 
   // ignore: unused_element
   Widget _buildDropdownMenu(
-      BuildContext context, String title, List<String> items) {
+    BuildContext context,
+    String title,
+    List<String> items,
+  ) {
     return PopupMenuButton<String>(
       offset: const Offset(0, 48),
       color: const Color(0xFF2d3e4f),
-      constraints: const BoxConstraints(
-        minWidth: 250,
-        maxWidth: 350,
-      ),
+      constraints: const BoxConstraints(minWidth: 250, maxWidth: 350),
       onSelected: (value) => _handleMenuSelection(context, title, value),
       itemBuilder: (BuildContext context) {
         return items.map<PopupMenuEntry<String>>((String choice) {
@@ -1426,10 +1466,7 @@ class _FacultyHomeState extends State<FacultyHome> {
             value: choice,
             child: Text(
               choice,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 13),
             ),
           );
         }).toList();
@@ -1448,11 +1485,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(
-              Icons.arrow_drop_down,
-              color: Colors.white,
-              size: 20,
-            ),
+            const Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
           ],
         ),
       ),
@@ -1464,10 +1497,7 @@ class _FacultyHomeState extends State<FacultyHome> {
     return PopupMenuButton<String>(
       offset: const Offset(0, 48),
       color: const Color(0xFF2d3e4f),
-      constraints: const BoxConstraints(
-        minWidth: 200,
-        maxWidth: 300,
-      ),
+      constraints: const BoxConstraints(minWidth: 200, maxWidth: 300),
       onSelected: (value) {
         if (value == 'Regular Exams') {
           // Don't navigate, let the submenu handle it
@@ -1484,10 +1514,7 @@ class _FacultyHomeState extends State<FacultyHome> {
             child: PopupMenuButton<String>(
               offset: const Offset(200, 0),
               color: const Color(0xFF2d3e4f),
-              constraints: const BoxConstraints(
-                minWidth: 280,
-                maxWidth: 350,
-              ),
+              constraints: const BoxConstraints(minWidth: 280, maxWidth: 350),
               onSelected: (value) {
                 Navigator.of(context).pop(); // Close parent menu
                 _handleMenuSelection(context, 'Regular Exams', value);
@@ -1504,33 +1531,25 @@ class _FacultyHomeState extends State<FacultyHome> {
                     value: choice,
                     child: Text(
                       choice,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                   );
                 }).toList();
               },
               child: Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Regular Exams',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 13),
                     ),
-                    Icon(
-                      Icons.arrow_right,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    Icon(Icons.arrow_right, color: Colors.white, size: 20),
                   ],
                 ),
               ),
@@ -1552,11 +1571,7 @@ class _FacultyHomeState extends State<FacultyHome> {
               ),
             ),
             SizedBox(width: 4),
-            Icon(
-              Icons.arrow_drop_down,
-              color: Colors.white,
-              size: 20,
-            ),
+            Icon(Icons.arrow_drop_down, color: Colors.white, size: 20),
           ],
         ),
       ),
@@ -1564,7 +1579,10 @@ class _FacultyHomeState extends State<FacultyHome> {
   }
 
   void _handleMenuSelection(
-      BuildContext context, String menuTitle, String item) {
+    BuildContext context,
+    String menuTitle,
+    String item,
+  ) {
     // Map menu items to navigation routes
     final routeMap = {
       // Attendance submenu
@@ -1617,9 +1635,9 @@ class _FacultyHomeState extends State<FacultyHome> {
     if (route != null) {
       _navigateToRoute(context, route);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$item - Coming Soon')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('$item - Coming Soon')));
     }
   }
 
@@ -1688,38 +1706,44 @@ class _FacultyHomeState extends State<FacultyHome> {
         page = const MentorStudentAccessScreen();
       case 'download_mtech_internship':
         launchUrl(
-            Uri.parse(
-                'https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_INTERNSHIP.pptx'),
-            mode: LaunchMode.externalApplication);
+          Uri.parse(
+            'https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_INTERNSHIP.pptx',
+          ),
+          mode: LaunchMode.externalApplication,
+        );
         return;
       case 'download_mtech_project':
         launchUrl(
-            Uri.parse(
-                'https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_PROJECT.pptx'),
-            mode: LaunchMode.externalApplication);
+          Uri.parse(
+            'https://github.com/SumithReddy007/DOCS/raw/main/MTECH_MSC_PROJECT.pptx',
+          ),
+          mode: LaunchMode.externalApplication,
+        );
         return;
       case 'download_mba_internship':
         launchUrl(
-            Uri.parse(
-                'https://github.com/SumithReddy007/DOCS/raw/main/MBA_Internship.pptx'),
-            mode: LaunchMode.externalApplication);
+          Uri.parse(
+            'https://github.com/SumithReddy007/DOCS/raw/main/MBA_Internship.pptx',
+          ),
+          mode: LaunchMode.externalApplication,
+        );
         return;
       case 'download_mba_project':
         launchUrl(
-            Uri.parse(
-                'https://github.com/SumithReddy007/DOCS/raw/main/MBA_PROJECT.pptx'),
-            mode: LaunchMode.externalApplication);
+          Uri.parse(
+            'https://github.com/SumithReddy007/DOCS/raw/main/MBA_PROJECT.pptx',
+          ),
+          mode: LaunchMode.externalApplication,
+        );
         return;
       default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$route - Coming Soon')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('$route - Coming Soon')));
         return;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => page),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => page));
   }
 }
 
@@ -1737,11 +1761,15 @@ class _DownloadSubMenu extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 250, maxWidth: 320),
       onSelected: onSelected,
       itemBuilder: (context) => items
-          .map((item) => PopupMenuItem<String>(
-                value: item,
-                child: Text(item,
-                    style: const TextStyle(color: Colors.white, fontSize: 13)),
-              ))
+          .map(
+            (item) => PopupMenuItem<String>(
+              value: item,
+              child: Text(
+                item,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+            ),
+          )
           .toList(),
       child: const Padding(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
@@ -1749,8 +1777,10 @@ class _DownloadSubMenu extends StatelessWidget {
           mainAxisSize: MainAxisSize.max,
           children: [
             Expanded(
-              child: Text('Download',
-                  style: TextStyle(color: Colors.white, fontSize: 13)),
+              child: Text(
+                'Download',
+                style: TextStyle(color: Colors.white, fontSize: 13),
+              ),
             ),
             Icon(Icons.arrow_right, color: Colors.white70, size: 18),
           ],
@@ -1764,8 +1794,10 @@ class _FacultyOverflowNavButton extends StatelessWidget {
   final Map<String, List<String>> subMenus;
   final void Function(String) onSelected;
 
-  const _FacultyOverflowNavButton(
-      {required this.subMenus, required this.onSelected});
+  const _FacultyOverflowNavButton({
+    required this.subMenus,
+    required this.onSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1790,11 +1822,14 @@ class _FacultyOverflowNavButton extends StatelessWidget {
                 if (entry.value.length == 1 && entry.value.first == entry.key) {
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    title: Text(entry.key,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13)),
+                    title: Text(
+                      entry.key,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
                     onTap: () {
                       Navigator.pop(context);
                       onSelected(entry.value.first);
@@ -1805,24 +1840,33 @@ class _FacultyOverflowNavButton extends StatelessWidget {
                   title: Text(
                     entry.key,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                   iconColor: Colors.white70,
                   collapsedIconColor: Colors.white54,
                   children: entry.value
-                      .map((item) => ListTile(
-                            contentPadding:
-                                const EdgeInsets.only(left: 32, right: 16),
-                            title: Text(item,
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 13)),
-                            onTap: () {
-                              Navigator.pop(context);
-                              onSelected(item);
-                            },
-                          ))
+                      .map(
+                        (item) => ListTile(
+                          contentPadding: const EdgeInsets.only(
+                            left: 32,
+                            right: 16,
+                          ),
+                          title: Text(
+                            item,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            onSelected(item);
+                          },
+                        ),
+                      )
                       .toList(),
                 );
               }).toList(),
@@ -1835,11 +1879,14 @@ class _FacultyOverflowNavButton extends StatelessWidget {
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('More',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500)),
+            Text(
+              'More',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             SizedBox(width: 4),
             Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
           ],
