@@ -209,18 +209,10 @@ class _FacultyHomeState extends State<FacultyHome> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Academics & Administration Portal'),
         backgroundColor: const Color(0xFF1e3a5f),
         foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                  builder: (context) => const RoleSelectionScreen()),
-            );
-          },
-        ),
         actions: [
           if (!isMobile) ...[
             TextButton(
@@ -234,10 +226,6 @@ class _FacultyHomeState extends State<FacultyHome> {
                   const Text('Logout', style: TextStyle(color: Colors.white)),
             ),
           ] else ...[
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {},
-            ),
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: _logout,

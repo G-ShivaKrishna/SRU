@@ -778,18 +778,10 @@ class _StudentHomeState extends State<StudentHome> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Academics & Administration Portal'),
         backgroundColor: const Color(0xFF1e3a5f),
         foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                  builder: (context) => const RoleSelectionScreen()),
-            );
-          },
-        ),
         actions: [
           if (!isMobile) ...[
             _buildNotificationAction(hallTicketNumber),
@@ -805,10 +797,6 @@ class _StudentHomeState extends State<StudentHome> {
             ),
           ] else ...[
             _buildNotificationAction(hallTicketNumber),
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () {},
-            ),
             IconButton(
               icon: const Icon(Icons.logout),
               onPressed: _logout,
