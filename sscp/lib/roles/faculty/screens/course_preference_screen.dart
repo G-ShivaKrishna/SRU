@@ -181,8 +181,8 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE8F2FF),
                                   borderRadius: BorderRadius.circular(10),
-                                  border:
-                                      Border.all(color: const Color(0xFFBFD8FF)),
+                                  border: Border.all(
+                                      color: const Color(0xFFBFD8FF)),
                                 ),
                                 child: Row(
                                   children: [
@@ -278,8 +278,8 @@ class _CoursePreferenceScreenState extends State<CoursePreferenceScreen> {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(12),
-                                      border:
-                                          Border.all(color: Colors.grey.shade300),
+                                      border: Border.all(
+                                          color: Colors.grey.shade300),
                                     ),
                                     child: Column(
                                       children: [
