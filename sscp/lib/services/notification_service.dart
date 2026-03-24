@@ -150,7 +150,13 @@ class NotificationService {
     final normalizedRoleId = roleId.trim().toUpperCase();
     if (normalizedRoleId.isEmpty) return;
 
-    final token = await _messaging.getToken();
+    String? token;
+    try {
+      token = await _messaging.getToken();
+    } catch (e) {
+      debugPrint('Unable to fetch FCM token for unregister: $e');
+      return;
+    }
     if (token == null || token.isEmpty) return;
 
     final uid = _auth.currentUser?.uid;

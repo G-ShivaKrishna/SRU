@@ -623,6 +623,72 @@ exports.notifyFacultyOnMentorAssignment = functions
     });
   });
 
+exports.notifyFacultyOnHodAssignment = functions
+  .region('us-central1')
+  .firestore.document('hodAssignments/{department}')
+  .onWrite(async (change, context) => {
+    const before = change.before.exists ? change.before.data() : null;
+    const after = change.after.exists ? change.after.data() : null;
+
+    if (before && !after) {
+      const oldHodId = normalizeId(before.hodFacultyId);
+      if (!oldHodId) return;
+
+      const department = String(before.department || context.params.department || 'Department').trim();
+      const oldTargets = await getRoleTargets('faculty', oldHodId);
+      if (oldTargets.length > 0) {
+        await dispatchNotifications({
+          targets: oldTargets,
+          type: 'hod_assignment_removed',
+          title: 'HOD Assignment Removed',
+          body: `You are no longer assigned as HOD of ${department}.`,
+          relatedDocId: context.params.department,
+          metadata: { department },
+        });
+      }
+
+      return;
+    }
+
+    if (!after) return;
+
+    const hodId = normalizeId(after.hodFacultyId);
+    if (!hodId) return;
+
+    const department = String(after.department || context.params.department || 'Department').trim();
+    const hodName = String(after.hodName || 'HOD').trim();
+
+    if (before && normalizeId(before.hodFacultyId) && normalizeId(before.hodFacultyId) !== hodId) {
+      const previousHodId = normalizeId(before.hodFacultyId);
+      const previousTargets = await getRoleTargets('faculty', previousHodId);
+      if (previousTargets.length > 0) {
+        await dispatchNotifications({
+          targets: previousTargets,
+          type: 'hod_assignment_reassigned',
+          title: 'HOD Assignment Changed',
+          body: `You are no longer HOD of ${department}.`,
+          relatedDocId: context.params.department,
+          metadata: { department },
+        });
+      }
+    }
+
+    const targets = await getRoleTargets('faculty', hodId);
+    if (targets.length === 0) return;
+
+    await dispatchNotifications({
+      targets,
+      type: 'hod_assignment_updated',
+      title: 'HOD Assignment Updated',
+      body: `You have been assigned as HOD of ${department} (${hodName}).`,
+      relatedDocId: context.params.department,
+      metadata: {
+        department,
+        hodName,
+      },
+    });
+  });
+
 exports.notifyStudentsOnCieMemoRelease = functions
   .region('us-central1')
   .firestore.document('cieMemoReleases/{docId}')

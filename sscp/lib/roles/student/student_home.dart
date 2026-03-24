@@ -693,13 +693,23 @@ class _StudentHomeState extends State<StudentHome> {
   }
 
   Future<void> _logout() async {
-    final hallTicket = (_studentData?['hallTicketNumber'] ?? '').toString();
-    if (hallTicket.isNotEmpty) {
-      await NotificationService.instance
-          .unregisterStudentToken(studentId: hallTicket);
+    try {
+      final hallTicket = (_studentData?['hallTicketNumber'] ?? '').toString();
+      if (hallTicket.isNotEmpty) {
+        await NotificationService.instance
+            .unregisterStudentToken(studentId: hallTicket);
+      }
+    } catch (e) {
+      debugPrint('Error unregistering token: $e');
     }
-    await SessionService.clearRole();
-    await _auth.signOut();
+
+    try {
+      await SessionService.clearRole();
+      await _auth.signOut();
+    } catch (e) {
+      debugPrint('Error during logout: $e');
+    }
+
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),

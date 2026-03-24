@@ -15,8 +15,8 @@ import 'services/user_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _bootstrapServices();
   runApp(const MyApp());
-  _bootstrapServices();
 }
 
 Future<void> _bootstrapServices() async {
@@ -31,13 +31,14 @@ Future<void> _bootstrapServices() async {
     return;
   }
 
-  try {
-    await NotificationService.instance.initialize().timeout(
-      const Duration(seconds: 10),
-    );
-  } catch (e) {
-    debugPrint('Notification init skipped: $e');
-  }
+  // Notifications disabled for now
+  // try {
+  //   await NotificationService.instance.initialize().timeout(
+  //     const Duration(seconds: 10),
+  //   );
+  // } catch (e) {
+  //   debugPrint('Notification init skipped: $e');
+  // }
 }
 
 class MyApp extends StatelessWidget {
@@ -90,20 +91,8 @@ class _SessionRouteState extends State<_SessionRoute> {
   }
 
   Future<void> _redirect() async {
-    try {
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        ).timeout(const Duration(seconds: 20));
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const RoleSelectionScreen()),
-      );
-      return;
-    }
-
+    // Firebase is already initialized in _bootstrapServices()
+    
     // Wait for Firebase Auth to restore its state — currentUser can be null
     // briefly on startup even when a session exists.
     final user = await FirebaseAuth.instance.authStateChanges().first.timeout(
