@@ -92,13 +92,13 @@ class _SessionRouteState extends State<_SessionRoute> {
 
   Future<void> _redirect() async {
     // Firebase is already initialized in _bootstrapServices()
-    
+
     // Wait for Firebase Auth to restore its state — currentUser can be null
     // briefly on startup even when a session exists.
     final user = await FirebaseAuth.instance.authStateChanges().first.timeout(
-      const Duration(seconds: 10),
-      onTimeout: () => null,
-    );
+          const Duration(seconds: 10),
+          onTimeout: () => null,
+        );
     final session = await SessionService.getSession();
 
     if (!mounted) return;
