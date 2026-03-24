@@ -31,26 +31,14 @@ Future<void> _bootstrapServices() async {
     return;
   }
 
-  // Notifications disabled for now
-  // try {
-  //   await NotificationService.instance.initialize().timeout(
-  //     const Duration(seconds: 10),
-  //   );
-  // } catch (e) {
-  //   debugPrint('Notification init skipped: $e');
-  // }
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SRU SSCP',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
+    // Enable Firebase Messaging and local notifications on Android/iOS.
+    try {
+      await NotificationService.instance.initialize().timeout(
+        const Duration(seconds: 10),
+      );
+    } catch (e) {
+      debugPrint('Notification init skipped: $e');
+    }
       ),
       home: SplashAnimationScreen(next: _getDevHome() ?? const _SessionRoute()),
     );
