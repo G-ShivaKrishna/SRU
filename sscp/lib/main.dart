@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sscp/app/app.dart';
 import 'firebase_options.dart';
 import 'config/dev_config.dart';
 import 'splash_animation.dart';
@@ -31,15 +32,24 @@ Future<void> _bootstrapServices() async {
     return;
   }
 
-    // Enable Firebase Messaging and local notifications on Android/iOS.
-    try {
-      await NotificationService.instance.initialize().timeout(
-        const Duration(seconds: 10),
-      );
-    } catch (e) {
-      debugPrint('Notification init skipped: $e');
-    }
-      ),
+  // Enable Firebase Messaging and local notifications on Android/iOS.
+  try {
+    await NotificationService.instance.initialize().timeout(
+          const Duration(seconds: 10),
+        );
+  } catch (e) {
+    debugPrint('Notification init skipped: $e');
+  }
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'SSCP',
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: SplashAnimationScreen(next: _getDevHome() ?? const _SessionRoute()),
     );
   }
